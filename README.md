@@ -1,6 +1,24 @@
-# gdenv - Godot Environment Manager
+# gdenv
 
-A beautiful terminal tool for managing Godot installations, inspired by [xcodes](https://github.com/XcodesOrg/xcodes).
+The best command-line tool to install and switch between multiple versions of Godot.
+
+_Inspired by [xcodes](https://github.com/XcodesOrg/xcodes) and built with ❤️ in Rust._
+
+## Installation
+
+### Quick Install (Recommended)
+
+```bash
+# Unix/Linux/macOS
+curl -fsSL https://gdenv.bytemeadow.com | sh
+
+# Windows PowerShell
+irm https://gdenv.bytemeadow.com | iex
+```
+
+### Manual Download
+
+Download pre-built binaries from [GitHub Releases](https://github.com/bytemeadow/gdenv/releases)
 
 ---
 
@@ -18,179 +36,46 @@ _Special thanks to [Blaze](https://runblaze.dev) for their support of this proje
 
 </div>
 
-## Features
-
-✨ **Simple & Beautiful** - Clean CLI interface with colored output and progress bars
-🚀 **Fast Downloads** - Streaming downloads with progress indicators
-🔄 **Version Switching** - Seamless switching between Godot versions via symlinks
-📦 **Smart Management** - Standard version by default, .NET available with --dotnet flag
-🌍 **Cross-Platform** - Works on Windows, macOS, and Linux
-⚡ **Zero Config** - Works out of the box with sensible defaults
-
-## Installation
-
-### Quick Install (Recommended)
-
-```bash
-# Unix/Linux/macOS
-curl -fsSL https://gdenv.bytemeadow.com | sh
-
-# Windows PowerShell
-irm https://gdenv.bytemeadow.com | iex
-```
-
-### Manual Download
-
-Download pre-built binaries from [GitHub Releases](https://github.com/dcvz/gdenv/releases)
-
 ## Usage
 
-### Install a Godot Version
+Install a specific version of Godot using commands like:
 
 ```bash
-# Install latest stable
-gdenv install 4.2.1
-
-# Install with .NET support
-gdenv install 4.2.1 --dotnet
-
-# Install a beta/rc version
-gdenv install 4.3.0-beta2
-
-# Force reinstall
-gdenv install 4.2.1 --force
-
-# Install from .godot-version file
-gdenv install
+gdenv install 4.4.1
+gdenv install 4.5-beta1
+gdenv install 3.6 --dotnet
+gdenv install --latest
 ```
 
-### List Versions
+gdenv will download and install the version you asked for so that it's ready to use.
 
-```bash
-# Show available versions from GitHub
-gdenv list
+### `.godot-version`
 
-# Include prereleases (beta, rc, etc.)
-gdenv list --include-prereleases
+We recommend creating a `.godot-version` file to explicitly declare the Godot version for your project:
 
-# Show installed versions
-gdenv installed
-
-# Show installed versions with paths
-gdenv installed --path
+```txt
+4.4.1
 ```
 
-### Switch Between Versions
-
+Then run:
 ```bash
-# Switch to a specific version
-gdenv use 4.2.1
-
-# Switch to .NET version
-gdenv use 4.1.0 --dotnet
-
-# Switch to version from .godot-version file
-gdenv use
-```
-
-### Check Current Version
-
-```bash
-# Show active version
-gdenv current
-
-# Show path to active Godot
-gdenv current --path
-```
-
-### Uninstall Versions
-
-```bash
-# Uninstall with confirmation
-gdenv uninstall 4.1.0
-
-# Skip confirmation
-gdenv uninstall 4.1.0 --yes
-```
-
-### Update Available Versions
-
-```bash
-# Refresh available versions from GitHub
-gdenv update
-```
-
-### Cache Management
-
-```bash
-# Show cache info
-gdenv cache
-gdenv cache info
-
-# Clear download cache
-gdenv cache clear
-```
-
-### Version Files
-
-Create a `.godot-version` file in your project root:
-
-```bash
-echo "4.2.1" > .godot-version
-
-# Now these commands will use that version:
 gdenv install  # Installs 4.2.1
 gdenv use      # Switches to 4.2.1
 ```
 
-## How It Works
+### Commands
 
-- **Installations**: Stored in `~/.local/share/gdenv/installations/` (Linux/macOS) or `%APPDATA%/gdenv/installations/` (Windows)
-- **Active Version**: Managed via symlink at `~/.local/share/gdenv/current/`
-- **Downloads**: Cached in `~/.local/share/gdenv/cache/` for faster reinstalls
-- **Sources**: Fetches releases from [godotengine/godot-builds](https://github.com/godotengine/godot-builds)
-
-## Examples
-
-```bash
-# Fresh setup workflow
-gdenv install 4.2.1          # Install latest stable
-gdenv current                 # Verify it's active
-gdenv installed               # See installed versions
-
-# Multi-version workflow
-gdenv install 4.3.0-beta2    # Install beta for testing
-gdenv install 4.1.0 --dotnet # Install older version with .NET for compatibility
-gdenv installed               # See all versions with active indicator (★)
-gdenv use 4.3.0-beta2        # Switch to beta
-gdenv use 4.2.1              # Switch back to stable
-
-# Browse available versions
-gdenv list                    # See all available versions
-gdenv list --include-prereleases  # Include beta/rc versions
-
-# Cleanup
-gdenv uninstall 4.1.0        # Remove old version
-gdenv installed               # Verify removal
-```
-
-## Architecture
-
-gdenv takes inspiration from xcodes' excellent design and adapts it for Godot:
-
-- **Simple Commands**: Clean `install`, `list`, `installed`, `use`, `uninstall` API
-- **Godot-Specific**: Proper version parsing, .NET opt-in support, GitHub integration
-- **Modern Rust**: Async downloads, robust error handling, beautiful terminal UI
-
-## Contributing
-
-Built with ❤️ using:
-- [clap](https://github.com/clap-rs/clap) - CLI framework
-- [tokio](https://tokio.rs/) - Async runtime
-- [reqwest](https://github.com/seanmonstar/reqwest) - HTTP client
-- [indicatif](https://github.com/console-rs/indicatif) - Progress bars
-- [colored](https://github.com/mackwic/colored) - Terminal colors
+- `install <version>`: Download and install a specific version of Godot
+- `installed`: List the versions of Godot that are installed
+- `list`: List all versions of Godot that are available to install
+- `use <version>`: Switch to a specific version of Godot
+- `current`: Show the currently active version
+- `uninstall <version>`: Uninstall a specific version of Godot
+- `update`: Update the list of available versions of Godot
+- `cache`: Manage download cache
 
 ## License
 
-MIT
+gdenv is distributed under the terms of both the MIT license and the Apache License (Version 2.0).
+See [LICENSE-APACHE](./LICENSE-APACHE) and [LICENSE-MIT](./LICENSE-MIT) for details. Opening a pull
+request is assumed to signal agreement with these licensing terms.

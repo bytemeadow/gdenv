@@ -9,4 +9,4 @@ zone_name = "bytemeadow.com"
 
 # Environment variables (if needed)
 [vars]
-# GITHUB_RAW_BASE_URL = "https://raw.githubusercontent.com/dcvz/gdenv/main"
+# GITHUB_RAW_BASE_URL = "https://raw.githubusercontent.com/bytemeadow/gdenv/main"

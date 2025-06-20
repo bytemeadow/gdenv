@@ -3,9 +3,9 @@ name = "gdenv"
 version = "0.1.0"
 edition = "2021"
 description = "A beautiful terminal tool for managing Godot installations"
-license = "MIT"
-repository = "https://github.com/dcvz/gdenv"
-authors = ["dcvz"]
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/bytemeadow/gdenv"
+authors = ["David Chavez <david@dcvz.io>"]
 
 [[bin]]
 name = "gdenv"

@@ -5,7 +5,7 @@ set -e
 # Inspired by pkgx's installation approach
 
 GDENV_VERSION="${GDENV_VERSION:-latest}"
-GDENV_BASE_URL="https://github.com/dcvz/gdenv/releases"
+GDENV_BASE_URL="https://github.com/bytemeadow/gdenv/releases"
 
 # Colors for output
 if [ -t 1 ]; then
@@ -42,7 +42,7 @@ warning() {
 detect_platform() {
     OS=$(uname -s | tr '[:upper:]' '[:lower:]')
     ARCH=$(uname -m)
-    
+
     # Normalize OS names
     case "$OS" in
         linux*) OS="linux" ;;
@@ -50,14 +50,14 @@ detect_platform() {
         msys*|mingw*|cygwin*) OS="windows" ;;
         *) error "Unsupported operating system: $OS"; exit 1 ;;
     esac
-    
+
     # Normalize architecture names
     case "$ARCH" in
         x86_64|amd64) ARCH="x86_64" ;;
         arm64|aarch64) ARCH="aarch64" ;;
         *) error "Unsupported architecture: $ARCH"; exit 1 ;;
     esac
-    
+
     info "Detected platform: $OS/$ARCH"
 }
 
@@ -86,7 +86,7 @@ get_install_dir() {
         INSTALL_DIR="$HOME/.local/bin"
         mkdir -p "$INSTALL_DIR"
     fi
-    
+
     info "Installing to: $INSTALL_DIR"
 }
 
@@ -98,7 +98,7 @@ download_gdenv() {
     else
         DOWNLOAD_URL="$GDENV_BASE_URL/download/v$GDENV_VERSION/gdenv-$OS-$ARCH"
     fi
-    
+
     # Add .exe extension for Windows
     if [ "$OS" = "windows" ]; then
         DOWNLOAD_URL="${DOWNLOAD_URL}.exe"
@@ -106,13 +106,13 @@ download_gdenv() {
     else
         BINARY_NAME="gdenv"
     fi
-    
+
     info "Downloading gdenv from $DOWNLOAD_URL"
-    
+
     # Create temporary directory
     TEMP_DIR=$(mktemp -d)
     trap 'rm -rf "$TEMP_DIR"' EXIT
-    
+
     # Download with curl or wget
     if command -v curl >/dev/null 2>&1; then
         curl -fsSL --progress-bar "$DOWNLOAD_URL" -o "$TEMP_DIR/$BINARY_NAME"
@@ -122,23 +122,23 @@ download_gdenv() {
         error "Neither curl nor wget found. Please install one of them."
         exit 1
     fi
-    
+
     # Make executable
     chmod +x "$TEMP_DIR/$BINARY_NAME"
-    
+
     # Verify download
     if [ ! -f "$TEMP_DIR/$BINARY_NAME" ]; then
         error "Download failed"
         exit 1
     fi
-    
+
     success "Downloaded successfully"
 }
 
 # Install the binary
 install_binary() {
     info "Installing gdenv..."
-    
+
     # Move to installation directory
     if [ -w "$INSTALL_DIR" ]; then
         mv "$TEMP_DIR/$BINARY_NAME" "$INSTALL_DIR/"
@@ -147,7 +147,7 @@ install_binary() {
         warning "Installation to $INSTALL_DIR requires sudo privileges"
         sudo mv "$TEMP_DIR/$BINARY_NAME" "$INSTALL_DIR/"
     fi
-    
+
     success "gdenv installed successfully!"
 }
 
@@ -155,14 +155,14 @@ install_binary() {
 setup_path() {
     # Check if install directory is in PATH
     case ":$PATH:" in
-        *":$INSTALL_DIR:"*) 
+        *":$INSTALL_DIR:"*)
             info "✓ $INSTALL_DIR is already in your PATH"
             return
             ;;
     esac
-    
+
     warning "$INSTALL_DIR is not in your PATH"
-    
+
     # Detect shell and provide instructions
     SHELL_NAME=$(basename "$SHELL")
     case "$SHELL_NAME" in
@@ -181,7 +181,7 @@ setup_path() {
             PROFILE="$HOME/.profile"
             ;;
     esac
-    
+
     info "Add this line to your $PROFILE:"
     printf "  ${GREEN}export PATH=\"%s:\$PATH\"${RESET}\n" "$INSTALL_DIR"
     info "Then restart your shell or run:"
@@ -197,14 +197,14 @@ main() {
     │  https://gdenv.bytemeadow.com │
     └──────────────────────────────┘
     "
-    
+
     detect_platform
     check_existing
     get_install_dir
     download_gdenv
     install_binary
     setup_path
-    
+
     echo
     success "Installation complete! 🎉"
     info "Run 'gdenv --help' to get started"
