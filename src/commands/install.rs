@@ -34,7 +34,9 @@ impl InstallCommand {
 
         // Fetch available releases from GitHub first (needed for --latest flags)
         let include_prereleases = self.latest_prerelease;
-        let releases = github_client.get_godot_releases(include_prereleases).await?;
+        let releases = github_client
+            .get_godot_releases(include_prereleases)
+            .await?;
 
         // Get the version to install
         let version_string = if self.latest {
@@ -67,7 +69,10 @@ impl InstallCommand {
         if self.latest {
             ui::info(&format!("Found latest stable version: {}", version_string));
         } else if self.latest_prerelease {
-            ui::info(&format!("Found latest prerelease version: {}", version_string));
+            ui::info(&format!(
+                "Found latest prerelease version: {}",
+                version_string
+            ));
         }
 
         println!("🤖 Installing Godot v{}", requested_version);
