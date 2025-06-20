@@ -83,8 +83,7 @@ impl InstallCommand {
         
         ui::success(&format!("Successfully installed Godot v{}", requested_version));
         ui::info(&format!("Installed to: {}", install_path.display()));
-        ui::info(&format!("Add {} to your PATH to run 'godot' from anywhere", config.bin_dir.display()));
-        ui::info("Run 'gdm current' to verify the active version");
+        ui::info("Run 'gdm current' for PATH setup instructions");
         
         Ok(())
     }
