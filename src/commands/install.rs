@@ -83,10 +83,6 @@ impl InstallCommand {
         
         ui::success(&format!("Successfully installed Godot v{}", requested_version));
         ui::info(&format!("Installed to: {}", install_path.display()));
-        
-        #[cfg(target_os = "macos")]
-        ui::info("Godot.app is now available in Applications folder");
-        
         ui::info(&format!("Add {} to your PATH to run 'godot' from anywhere", config.bin_dir.display()));
         ui::info("Run 'gdm current' to verify the active version");
         

@@ -133,10 +133,6 @@ impl Installer {
         #[cfg(windows)]
         std::os::windows::fs::symlink_dir(&install_path, &self.config.active_symlink)?;
 
-        // On macOS, also create a symlink in Applications for easy access
-        #[cfg(target_os = "macos")]
-        self.create_applications_symlink(&install_path)?;
-
         // Create executable symlink in bin directory
         self.create_executable_symlink(&install_path)?;
 
@@ -145,36 +141,6 @@ impl Installer {
         Ok(())
     }
 
-    #[cfg(target_os = "macos")]
-    fn create_applications_symlink(&self, install_path: &std::path::Path) -> Result<()> {
-        use std::path::Path;
-
-        // Find the Godot.app inside the installation
-        let godot_app_path = install_path.join("Godot.app");
-        if !godot_app_path.exists() {
-            ui::warning("Godot.app not found in installation, skipping Applications symlink");
-            return Ok(());
-        }
-
-        let applications_symlink = Path::new("/Applications/Godot.app");
-
-        // Remove existing symlink if it exists
-        if applications_symlink.exists() {
-            if applications_symlink.is_symlink() {
-                fs::remove_file(applications_symlink)?;
-            } else {
-                ui::warning("Found non-symlink Godot.app in Applications - not overwriting");
-                return Ok(());
-            }
-        }
-
-        // Create symlink in Applications
-        std::os::unix::fs::symlink(&godot_app_path, applications_symlink)?;
-
-        ui::info("Created Godot.app symlink in Applications folder");
-
-        Ok(())
-    }
 
     fn create_executable_symlink(&self, install_path: &std::path::Path) -> Result<()> {
         let godot_executable_symlink = self.config.bin_dir.join("godot");
