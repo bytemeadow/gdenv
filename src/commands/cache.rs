@@ -1,5 +1,5 @@
 use anyhow::Result;
-use clap::Args;
+use clap::{Args, Subcommand};
 use std::fs;
 
 use crate::{
@@ -9,26 +9,29 @@ use crate::{
 
 #[derive(Args)]
 pub struct CacheCommand {
-    /// Clear all cached downloads
-    #[arg(long, short)]
-    pub clear: bool,
-    
+    #[command(subcommand)]
+    pub action: Option<CacheAction>,
+}
+
+#[derive(Subcommand)]
+pub enum CacheAction {
     /// Show cache size and location
-    #[arg(long, short)]
-    pub info: bool,
+    Info,
+    /// Clear all cached downloads
+    Clear,
 }
 
 impl CacheCommand {
     pub async fn run(self) -> Result<()> {
         let config = Config::new()?;
         
-        if self.clear {
-            self.clear_cache(&config)?;
-        } else if self.info {
-            self.show_cache_info(&config)?;
-        } else {
-            // Default to showing cache info
-            self.show_cache_info(&config)?;
+        match self.action {
+            Some(CacheAction::Clear) => self.clear_cache(&config)?,
+            Some(CacheAction::Info) => self.show_cache_info(&config)?,
+            None => {
+                // Default to showing cache info
+                self.show_cache_info(&config)?;
+            }
         }
         
         Ok(())
