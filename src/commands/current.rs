@@ -60,23 +60,26 @@ fn show_path_instructions(bin_dir: &Path) {
         let bin_path = bin_dir.display();
         ui::info(&format!("  export PATH=\"{}:$PATH\"", bin_path));
         ui::info("");
-        ui::info("Add this line to your shell profile:");
+        ui::info("To add it to your shell profile, run:");
         
         // Detect common shells and show appropriate file
         if let Ok(shell) = std::env::var("SHELL") {
             if shell.contains("zsh") {
                 ui::info(&format!("  echo 'export PATH=\"{}:$PATH\"' >> ~/.zshrc", bin_path));
+                ui::info("Then restart your shell or run: source ~/.zshrc");
             } else if shell.contains("bash") {
                 ui::info(&format!("  echo 'export PATH=\"{}:$PATH\"' >> ~/.bashrc", bin_path));
+                ui::info("Then restart your shell or run: source ~/.bashrc");
             } else if shell.contains("fish") {
                 ui::info(&format!("  fish_add_path {}", bin_path));
+                ui::info("Then restart your shell");
             } else {
-                ui::info("  ~/.bashrc or ~/.zshrc (depending on your shell)");
+                ui::info(&format!("  echo 'export PATH=\"{}:$PATH\"' >> ~/.bashrc  # or ~/.zshrc", bin_path));
+                ui::info("Then restart your shell or run: source ~/.bashrc");
             }
         } else {
-            ui::info("  ~/.bashrc, ~/.zshrc, or your shell's config file");
+            ui::info(&format!("  echo 'export PATH=\"{}:$PATH\"' >> ~/.bashrc  # or ~/.zshrc", bin_path));
+            ui::info("Then restart your shell or run: source ~/.bashrc");
         }
-        
-        ui::info("Then restart your shell or run: source ~/.bashrc (or ~/.zshrc)");
     }
 }
