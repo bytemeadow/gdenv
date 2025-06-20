@@ -9,6 +9,7 @@ use crate::commands::{
     uninstall::UninstallCommand,
     current::CurrentCommand,
     update::UpdateCommand,
+    cache::CacheCommand,
 };
 
 #[derive(Parser)]
@@ -42,6 +43,9 @@ pub enum Commands {
     
     /// Update the cache of available Godot versions
     Update(UpdateCommand),
+    
+    /// Manage download cache
+    Cache(CacheCommand),
 }
 
 impl Cli {
@@ -54,6 +58,7 @@ impl Cli {
             Commands::Uninstall(cmd) => cmd.run().await,
             Commands::Current(cmd) => cmd.run().await,
             Commands::Update(cmd) => cmd.run().await,
+            Commands::Cache(cmd) => cmd.run().await,
         }
     }
 }
