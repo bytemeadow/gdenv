@@ -22,7 +22,7 @@ impl InstalledCommand {
 
         if installed.is_empty() {
             ui::warning("No Godot versions installed");
-            ui::info("Use 'gdm install <version>' to install a version");
+            ui::info("Use 'gdenv install <version>' to install a version");
             return Ok(());
         }
 
@@ -50,7 +50,7 @@ impl InstalledCommand {
         if let Some(active) = active_version {
             println!("\n★ = active version ({})", active.to_string().green());
         } else {
-            ui::warning("\nNo active version set. Use 'gdm use <version>' to set one.");
+            ui::warning("\nNo active version set. Use 'gdenv use <version>' to set one.");
         }
 
         Ok(())

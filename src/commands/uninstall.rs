@@ -73,11 +73,11 @@ impl UninstallCommand {
                 for version in &remaining_versions {
                     println!("  • {}", version);
                 }
-                ui::info("Use 'gdm use <version>' to set a new active version");
-                ui::info("Use 'gdm installed' to see all remaining versions");
+                ui::info("Use 'gdenv use <version>' to set a new active version");
+                ui::info("Use 'gdenv installed' to see all remaining versions");
             } else {
                 ui::info(
-                    "No Godot versions remaining. Use 'gdm install <version>' to install one.",
+                    "No Godot versions remaining. Use 'gdenv install <version>' to install one.",
                 );
             }
         }

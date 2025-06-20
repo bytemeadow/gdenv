@@ -68,7 +68,7 @@ pub struct GitHubClient {
 impl GitHubClient {
     pub fn new(api_url: String) -> Self {
         let client = Client::builder()
-            .user_agent("gdm/0.1.0")
+            .user_agent("gdenv/0.1.0")
             .build()
             .expect("Failed to create HTTP client");
 

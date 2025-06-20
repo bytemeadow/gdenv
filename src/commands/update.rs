@@ -38,7 +38,7 @@ impl UpdateCommand {
             }
         }
 
-        ui::success("Update complete! Use 'gdm list --remote' to see all available versions");
+        ui::success("Update complete! Use 'gdenv list --remote' to see all available versions");
 
         Ok(())
     }
