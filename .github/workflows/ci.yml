@@ -1,4 +1,4 @@
-name: CI
+name: ci
 
 on:
   push:
@@ -11,7 +11,6 @@ env:
 
 jobs:
   test:
-    name: Test
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -65,8 +64,7 @@ jobs:
         run: ./target/release/gdenv.exe --help
         if: runner.os == 'Windows'
 
-  test-install:
-    name: Test Installation Script
+  install:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
