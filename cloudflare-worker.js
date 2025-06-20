@@ -3,14 +3,20 @@
 
 export default {
   async fetch(request, env, ctx) {
+    // Force no caching at the edge
+    ctx.passThroughOnException();
     const url = new URL(request.url);
     const userAgent = request.headers.get("user-agent") || "";
 
-    // Check if request is from curl or similar command-line tool
-    const isCurlLike =
-      userAgent.toLowerCase().includes("curl") ||
-      userAgent.toLowerCase().includes("wget") ||
-      userAgent.toLowerCase().includes("httpie");
+    // Check if request is from a browser (be explicit about browsers)
+    const isBrowser = 
+      userAgent.toLowerCase().includes("mozilla") ||
+      userAgent.toLowerCase().includes("chrome") ||
+      userAgent.toLowerCase().includes("safari") ||
+      userAgent.toLowerCase().includes("firefox") ||
+      userAgent.toLowerCase().includes("edge") ||
+      userAgent.toLowerCase().includes("opera") ||
+      userAgent.toLowerCase().includes("webkit");
     
     // Check if request is from PowerShell (Windows)
     const isPowerShell = 
@@ -25,10 +31,11 @@ export default {
       case "/install.sh":
         if (isPowerShell) {
           return await servePowerShellScript();
-        } else if (isCurlLike) {
-          return await serveInstallScript();
-        } else {
+        } else if (isBrowser) {
           return redirectToGitHub();
+        } else {
+          // Default to serving script for all non-browser requests
+          return await serveInstallScript();
         }
 
       case "/install.ps1":
@@ -60,9 +67,13 @@ async function serveInstallScript() {
       status: 200,
       headers: {
         "content-type": "text/x-sh",
-        "cache-control": "public, max-age=300", // 5 minute cache
+        "cache-control": "no-cache, no-store, must-revalidate", // Disable caching
+        "pragma": "no-cache",
+        "expires": "0",
+        "vary": "User-Agent", // Cache varies by user-agent
         "x-content-source": "github-raw",
         "x-detected-client": "curl-like",
+        "x-user-agent": userAgent,
         "access-control-allow-origin": "*",
       },
     });
@@ -113,5 +124,15 @@ async function servePowerShellScript() {
 }
 
 function redirectToGitHub() {
-  return Response.redirect("https://github.com/bytemeadow/gdenv", 302);
+  return new Response("", {
+    status: 302,
+    headers: {
+      "Location": "https://github.com/bytemeadow/gdenv",
+      "cache-control": "no-cache, no-store, must-revalidate",
+      "pragma": "no-cache", 
+      "expires": "0",
+      "vary": "User-Agent",
+      "x-detected-client": "browser",
+    }
+  });
 }

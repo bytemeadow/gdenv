@@ -5,16 +5,16 @@ use std::path::PathBuf;
 pub struct Config {
     /// Directory where Godot installations are stored
     pub installations_dir: PathBuf,
-    
+
     /// Directory for download cache
     pub cache_dir: PathBuf,
-    
+
     /// Path to the active Godot symlink
     pub active_symlink: PathBuf,
-    
+
     /// Directory for executable symlinks (to be added to PATH)
     pub bin_dir: PathBuf,
-    
+
     /// GitHub API base URL
     pub github_api_url: String,
 }
@@ -24,7 +24,7 @@ impl Default for Config {
         let data_dir = dirs::data_dir()
             .unwrap_or_else(|| dirs::home_dir().unwrap_or_default().join(".local/share"))
             .join("gdenv");
-            
+
         Self {
             installations_dir: data_dir.join("installations"),
             cache_dir: data_dir.join("cache"),
@@ -38,12 +38,12 @@ impl Default for Config {
 impl Config {
     pub fn new() -> Result<Self> {
         let config = Self::default();
-        
+
         // Ensure directories exist
         std::fs::create_dir_all(&config.installations_dir)?;
         std::fs::create_dir_all(&config.cache_dir)?;
         std::fs::create_dir_all(&config.bin_dir)?;
-        
+
         Ok(config)
     }
 }

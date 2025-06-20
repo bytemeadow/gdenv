@@ -1,7 +1,7 @@
-use anyhow::Result;
-use std::path::{Path, PathBuf};
-use std::fs;
 use crate::{config::Config, godot::GodotVersion, ui};
+use anyhow::Result;
+use std::fs;
+use std::path::{Path, PathBuf};
 
 pub struct Installer {
     config: Config,
@@ -12,8 +12,15 @@ impl Installer {
         Self { config }
     }
 
-    pub async fn install_version_from_archive(&self, version: &GodotVersion, archive_path: &Path) -> Result<PathBuf> {
-        let install_path = self.config.installations_dir.join(version.installation_name());
+    pub async fn install_version_from_archive(
+        &self,
+        version: &GodotVersion,
+        archive_path: &Path,
+    ) -> Result<PathBuf> {
+        let install_path = self
+            .config
+            .installations_dir
+            .join(version.installation_name());
 
         // Remove existing installation if it exists
         if install_path.exists() {
@@ -46,7 +53,7 @@ impl Installer {
                 None => continue,
             };
 
-            if (&*file.name()).ends_with('/') {
+            if file.name().ends_with('/') {
                 // Directory
                 fs::create_dir_all(&outpath)?;
             } else {
@@ -97,7 +104,10 @@ impl Installer {
     }
 
     pub fn uninstall_version(&self, version: &GodotVersion) -> Result<()> {
-        let install_path = self.config.installations_dir.join(version.installation_name());
+        let install_path = self
+            .config
+            .installations_dir
+            .join(version.installation_name());
 
         if !install_path.exists() {
             ui::warning(&format!("Godot v{} is not installed", version));
@@ -111,7 +121,10 @@ impl Installer {
     }
 
     pub fn set_active_version(&self, version: &GodotVersion) -> Result<()> {
-        let install_path = self.config.installations_dir.join(version.installation_name());
+        let install_path = self
+            .config
+            .installations_dir
+            .join(version.installation_name());
 
         if !install_path.exists() {
             return Err(anyhow::anyhow!("Godot v{} is not installed", version));
@@ -141,7 +154,6 @@ impl Installer {
         Ok(())
     }
 
-
     fn create_executable_symlink(&self, install_path: &std::path::Path) -> Result<()> {
         let godot_executable_symlink = self.config.bin_dir.join("godot");
 
@@ -150,7 +162,9 @@ impl Installer {
             if godot_executable_symlink.is_symlink() {
                 fs::remove_file(&godot_executable_symlink)?;
             } else {
-                ui::warning("Found non-symlink 'godot' executable in bin directory - not overwriting");
+                ui::warning(
+                    "Found non-symlink 'godot' executable in bin directory - not overwriting",
+                );
                 return Ok(());
             }
         }
@@ -165,7 +179,10 @@ impl Installer {
         #[cfg(windows)]
         std::os::windows::fs::symlink_file(&godot_exe_path, &godot_executable_symlink)?;
 
-        ui::info(&format!("Created 'godot' executable symlink in {}", self.config.bin_dir.display()));
+        ui::info(&format!(
+            "Created 'godot' executable symlink in {}",
+            self.config.bin_dir.display()
+        ));
 
         Ok(())
     }
@@ -208,7 +225,9 @@ impl Installer {
             }
         }
 
-        Err(anyhow::anyhow!("Could not find Godot executable in installation"))
+        Err(anyhow::anyhow!(
+            "Could not find Godot executable in installation"
+        ))
     }
 
     pub fn get_active_version(&self) -> Result<Option<GodotVersion>> {

@@ -2,14 +2,9 @@ use anyhow::Result;
 use clap::{Parser, Subcommand};
 
 use crate::commands::{
-    install::InstallCommand,
-    list::ListCommand, 
-    installed::InstalledCommand,
-    use_cmd::UseCommand,
-    uninstall::UninstallCommand,
-    current::CurrentCommand,
-    update::UpdateCommand,
-    cache::CacheCommand,
+    cache::CacheCommand, current::CurrentCommand, install::InstallCommand,
+    installed::InstalledCommand, list::ListCommand, uninstall::UninstallCommand,
+    update::UpdateCommand, use_cmd::UseCommand,
 };
 
 #[derive(Parser)]
@@ -25,25 +20,25 @@ pub struct Cli {
 pub enum Commands {
     /// Download and install a specific version of Godot
     Install(InstallCommand),
-    
+
     /// List available Godot versions from remote
     List(ListCommand),
-    
+
     /// List installed Godot versions
     Installed(InstalledCommand),
-    
+
     /// Switch to a specific Godot version
     Use(UseCommand),
-    
+
     /// Uninstall a specific Godot version
     Uninstall(UninstallCommand),
-    
+
     /// Show the currently active Godot version
     Current(CurrentCommand),
-    
+
     /// Update the cache of available Godot versions
     Update(UpdateCommand),
-    
+
     /// Manage download cache
     Cache(CacheCommand),
 }

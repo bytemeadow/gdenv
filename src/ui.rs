@@ -1,6 +1,5 @@
 use colored::*;
 
-
 pub fn success(msg: &str) {
     println!("{} {}", "✅".green(), msg);
 }

@@ -1,6 +1,6 @@
 use anyhow::Result;
-use serde::{Deserialize, Serialize};
 use semver::Version;
+use serde::{Deserialize, Serialize};
 use std::fmt;
 use std::str::FromStr;
 
@@ -14,12 +14,9 @@ impl GodotVersion {
     pub fn new(version_str: &str, is_dotnet: bool) -> Result<Self> {
         let normalized = Self::normalize_version_string(version_str)?;
         let version = Version::parse(&normalized)?;
-        Ok(Self {
-            version,
-            is_dotnet,
-        })
+        Ok(Self { version, is_dotnet })
     }
-    
+
     /// Normalize Godot version strings to be semver compatible
     /// Examples:
     /// - "4.2.1" -> "4.2.1"
@@ -28,20 +25,19 @@ impl GodotVersion {
     /// - "4.2.1-stable" -> "4.2.1"
     fn normalize_version_string(version_str: &str) -> Result<String> {
         let version_str = version_str.trim();
-        
+
         // Remove common suffixes that aren't standard semver
-        let cleaned = version_str
-            .strip_suffix("-stable")
-            .unwrap_or(version_str);
-        
+        let cleaned = version_str.strip_suffix("-stable").unwrap_or(version_str);
+
         // Handle short versions like "4.3" -> "4.3.0"
         let parts: Vec<&str> = cleaned.split('.').collect();
-        let cleaned = if parts.len() == 2 && parts.iter().all(|p| p.chars().all(|c| c.is_numeric())) {
+        let cleaned = if parts.len() == 2 && parts.iter().all(|p| p.chars().all(|c| c.is_numeric()))
+        {
             format!("{}.0", cleaned)
         } else {
             cleaned.to_string()
         };
-        
+
         // Handle beta/rc versions to be semver compatible
         if cleaned.contains("-beta") && !cleaned.contains("-beta.") {
             // Convert "4.3.0-beta2" to "4.3.0-beta.2"
@@ -53,7 +49,7 @@ impl GodotVersion {
                 }
             }
         }
-        
+
         if cleaned.contains("-rc") && !cleaned.contains("-rc.") {
             // Convert "4.1.0-rc1" to "4.1.0-rc.1"
             if let Some((base, rc_part)) = cleaned.split_once("-rc") {
@@ -64,7 +60,7 @@ impl GodotVersion {
                 }
             }
         }
-        
+
         if cleaned.contains("-alpha") && !cleaned.contains("-alpha.") {
             // Convert "4.3.0-alpha1" to "4.3.0-alpha.1"
             if let Some((base, alpha_part)) = cleaned.split_once("-alpha") {
@@ -75,22 +71,21 @@ impl GodotVersion {
                 }
             }
         }
-        
+
         Ok(cleaned.to_string())
     }
-    
-    
+
     pub fn godot_version_string(&self) -> String {
         // Convert back to Godot's preferred format
         let version_str = self.version.to_string();
-        
+
         // Convert semver format back to Godot format for display
         version_str
             .replace("-beta.", "-beta")
             .replace("-rc.", "-rc")
             .replace("-alpha.", "-alpha")
     }
-    
+
     pub fn installation_name(&self) -> String {
         if self.is_dotnet {
             format!("godot-{}-dotnet", self.godot_version_string())
@@ -98,31 +93,31 @@ impl GodotVersion {
             format!("godot-{}", self.godot_version_string())
         }
     }
-    
+
     #[allow(dead_code)]
     pub fn archive_name(&self) -> String {
         let platform = std::env::consts::OS;
-        
+
         let platform_suffix = match platform {
             "windows" => "win64.exe",
-            "macos" => "macos.universal", 
+            "macos" => "macos.universal",
             "linux" => "linux.x86_64",
             _ => "linux.x86_64", // fallback
         };
-        
+
         let version_part = if self.version.pre.is_empty() {
             format!("{}-stable", self.version)
         } else {
             self.godot_version_string()
         };
-        
+
         if self.is_dotnet {
             format!("Godot_v{}_mono_{}.zip", version_part, platform_suffix)
         } else {
             format!("Godot_v{}_{}.zip", version_part, platform_suffix)
         }
     }
-    
+
     #[allow(dead_code)]
     pub fn is_prerelease(&self) -> bool {
         !self.version.pre.is_empty()
@@ -131,7 +126,7 @@ impl GodotVersion {
 
 impl FromStr for GodotVersion {
     type Err = anyhow::Error;
-    
+
     fn from_str(s: &str) -> Result<Self> {
         // Default to non-.NET version
         Self::new(s, false)
@@ -148,46 +143,45 @@ impl fmt::Display for GodotVersion {
     }
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_version_parsing() {
         // Test stable versions
         let v1 = GodotVersion::new("4.2.1", false).unwrap();
         assert_eq!(v1.godot_version_string(), "4.2.1");
         assert!(!v1.is_prerelease());
-        
+
         // Test stable with suffix
         let v2 = GodotVersion::new("4.2.1-stable", false).unwrap();
         assert_eq!(v2.godot_version_string(), "4.2.1");
         assert!(!v2.is_prerelease());
-        
+
         // Test beta versions
         let v3 = GodotVersion::new("4.3.0-beta2", false).unwrap();
         assert_eq!(v3.godot_version_string(), "4.3.0-beta2");
         assert!(v3.is_prerelease());
-        
+
         // Test rc versions
         let v4 = GodotVersion::new("4.1.0-rc.1", false).unwrap();
         assert_eq!(v4.godot_version_string(), "4.1.0-rc1");
         assert!(v4.is_prerelease());
-        
+
         // Test .NET versions
         let v5 = GodotVersion::new("4.2.1", true).unwrap();
         assert_eq!(v5.to_string(), "4.2.1 (.NET)");
         assert_eq!(v5.installation_name(), "godot-4.2.1-dotnet");
     }
-    
+
     #[test]
     fn test_archive_names() {
         let v1 = GodotVersion::new("4.2.1", false).unwrap();
         let archive = v1.archive_name();
         assert!(archive.contains("Godot_v4.2.1-stable_"));
         assert!(archive.ends_with(".zip"));
-        
+
         let v2 = GodotVersion::new("4.3.0-beta2", true).unwrap();
         let archive = v2.archive_name();
         assert!(archive.contains("Godot_v4.3.0-beta2_mono_"));
