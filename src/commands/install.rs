@@ -1,6 +1,5 @@
 use anyhow::{anyhow, Result};
 use clap::Args;
-use std::path::Path;
 
 use crate::{
     config::Config,

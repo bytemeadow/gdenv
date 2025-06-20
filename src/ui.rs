@@ -1,16 +1,5 @@
-use indicatif::{ProgressBar, ProgressStyle};
 use colored::*;
 
-pub fn progress_bar(len: u64) -> ProgressBar {
-    let pb = ProgressBar::new(len);
-    pb.set_style(
-        ProgressStyle::default_bar()
-            .template("{spinner:.green} [{elapsed_precise}] [{wide_bar:.cyan/blue}] {bytes}/{total_bytes} ({eta})")
-            .unwrap()
-            .progress_chars("#>-"),
-    );
-    pb
-}
 
 pub fn success(msg: &str) {
     println!("{} {}", "✅".green(), msg);

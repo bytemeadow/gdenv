@@ -1,4 +1,4 @@
-use anyhow::{anyhow, Result};
+use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use semver::Version;
 use std::fmt;
@@ -71,9 +71,6 @@ impl GodotVersion {
         Ok(cleaned.to_string())
     }
     
-    pub fn version_string(&self) -> String {
-        self.version.to_string()
-    }
     
     pub fn godot_version_string(&self) -> String {
         // Convert back to Godot's preferred format
@@ -94,6 +91,7 @@ impl GodotVersion {
         }
     }
     
+    #[allow(dead_code)]
     pub fn archive_name(&self) -> String {
         let platform = std::env::consts::OS;
         
@@ -117,6 +115,7 @@ impl GodotVersion {
         }
     }
     
+    #[allow(dead_code)]
     pub fn is_prerelease(&self) -> bool {
         !self.version.pre.is_empty()
     }
@@ -141,12 +140,6 @@ impl fmt::Display for GodotVersion {
     }
 }
 
-#[derive(Debug, Clone)]
-pub struct InstalledGodot {
-    pub version: GodotVersion,
-    pub path: std::path::PathBuf,
-    pub is_active: bool,
-}
 
 #[cfg(test)]
 mod tests {

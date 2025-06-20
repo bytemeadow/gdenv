@@ -1,6 +1,6 @@
 use anyhow::{anyhow, Result};
 use serde::{Deserialize, Serialize};
-use reqwest::{Client, Response};
+use reqwest::Client;
 use chrono::{DateTime, Utc};
 use std::path::Path;
 use tokio::io::AsyncWriteExt;
@@ -147,22 +147,6 @@ impl GitHubClient {
         
         file.flush().await?;
         pb.finish_with_message("✅ Download complete");
-        
-        Ok(())
-    }
-    
-    pub async fn download_asset(&self, url: &str, path: &Path) -> Result<()> {
-        let response = self.client
-            .get(url)
-            .send()
-            .await?;
-            
-        if !response.status().is_success() {
-            return Err(anyhow!("Download failed: {}", response.status()));
-        }
-            
-        let bytes = response.bytes().await?;
-        tokio::fs::write(path, bytes).await?;
         
         Ok(())
     }
