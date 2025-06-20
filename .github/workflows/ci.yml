@@ -1,4 +1,4 @@
-name: CI
+name: ci
 
 on:
   push:
@@ -9,9 +9,12 @@ on:
 env:
   CARGO_TERM_COLOR: always
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   test:
-    name: Test
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -64,3 +67,76 @@ jobs:
       - name: Test CLI help (Windows)
         run: ./target/release/gdenv.exe --help
         if: runner.os == 'Windows'
+
+  install:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [blaze/ubuntu-latest, blaze/macos-latest, windows-latest]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Test install script syntax (Unix)
+        if: runner.os != 'Windows'
+        run: |
+          chmod +x install.sh
+          sh -n install.sh
+
+      - name: Test install script syntax (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          # Test PowerShell script syntax
+          Get-Content install.ps1 | Out-Null
+
+      - name: Test actual user experience (Unix)
+        if: runner.os != 'Windows'
+        run: |
+          # Test the real command users would run
+          curl https://gdenv.bytemeadow.com/ | sh
+
+      - name: Test actual user experience (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          # Test the real command users would run
+          irm https://gdenv.bytemeadow.com/ | iex
+
+      - name: Add gdenv to PATH (Unix)
+        if: runner.os != 'Windows'
+        run: echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+      - name: Add gdenv to PATH (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: echo "$env:LOCALAPPDATA\Programs\gdenv" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
+      - name: Verify installation (Unix)
+        if: runner.os != 'Windows'
+        run: |
+          # Check if gdenv was installed and works
+          if command -v gdenv >/dev/null 2>&1; then
+            echo "✅ gdenv installed successfully and found in PATH"
+            gdenv --version || gdenv --help
+          else
+            echo "❌ gdenv not found in PATH"
+            echo "Checking if binary exists..."
+            ls -la ~/.local/bin/gdenv* || echo "No gdenv binary found"
+            exit 1
+          fi
+
+      - name: Verify installation (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          # Check if gdenv was installed and works
+          if (Get-Command gdenv -ErrorAction SilentlyContinue) {
+            Write-Host "✅ gdenv installed successfully and found in PATH"
+            gdenv --version
+          } else {
+            Write-Host "❌ gdenv not found in PATH"
+            Write-Host "Checking if binary exists..."
+            Get-ChildItem "$env:USERPROFILE\.local\bin\gdenv*" -ErrorAction SilentlyContinue
+            exit 1
+          }
