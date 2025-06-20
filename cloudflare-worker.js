@@ -54,7 +54,7 @@ async function serveInstallScript() {
   try {
     // Fetch install script from GitHub
     const response = await fetch(
-      "https://raw.githubusercontent.com/bytemeadow/gdenv/main/install.sh",
+      "https://raw.githubusercontent.com/bytemeadow/gdenv/refs/heads/main/install.sh",
     );
 
     if (!response.ok) {
@@ -91,7 +91,7 @@ async function servePowerShellScript() {
   try {
     // Fetch PowerShell script from GitHub
     const response = await fetch(
-      "https://raw.githubusercontent.com/bytemeadow/gdenv/main/install.ps1",
+      "https://raw.githubusercontent.com/bytemeadow/gdenv/refs/heads/main/install.ps1",
     );
 
     if (!response.ok) {
