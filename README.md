@@ -16,6 +16,15 @@ curl -fsSL https://gdenv.bytemeadow.com | sh
 irm https://gdenv.bytemeadow.com | iex
 ```
 
+### Cargo
+
+```bash
+# For the latest unstable version
+cargo install --git https://github.com/bytemeadow/gdenv
+# For the version released to crates.io
+cargo install gdenv
+```
+
 ### Manual Download
 
 Download pre-built binaries from [GitHub Releases](https://github.com/bytemeadow/gdenv/releases)

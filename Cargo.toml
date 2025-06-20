@@ -2,7 +2,7 @@
 name = "gdenv"
 version = "0.1.2"
 edition = "2021"
-description = "A beautiful terminal tool for managing Godot installations"
+description = "The best command-line tool to install and switch between multiple versions of Godot."
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/bytemeadow/gdenv"
 authors = ["David Chavez <david@dcvz.io>"]
