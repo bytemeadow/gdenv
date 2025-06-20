@@ -90,18 +90,19 @@ jobs:
           # Test PowerShell script syntax
           Get-Content install.ps1 | Out-Null
 
-      - name: Test actual user experience (Unix)
+      - name: Test install script directly (Unix)
         if: runner.os != 'Windows'
         run: |
-          # Test the real command users would run
-          curl https://gdenv.bytemeadow.com/ | sh
+          # Test the install script from this branch
+          chmod +x install.sh
+          ./install.sh
 
-      - name: Test actual user experience (Windows)
+      - name: Test install script directly (Windows)
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          # Test the real command users would run
-          irm https://gdenv.bytemeadow.com/ | iex
+          # Test the install script from this branch
+          .\install.ps1
 
       - name: Add gdenv to PATH (Unix)
         if: runner.os != 'Windows'

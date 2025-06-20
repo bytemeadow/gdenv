@@ -61,17 +61,35 @@ detect_platform() {
     info "Detected platform: $OS/$ARCH"
 }
 
-# Check if gdenv is already installed
-check_existing() {
-    if command -v gdenv >/dev/null 2>&1; then
+# Check if gdenv should be installed/upgraded
+should_install_gdenv() {
+    if ! command -v gdenv >/dev/null 2>&1; then
+        return 0  # Not installed, should install
+    fi
+    
+    # Already installed, check if upgrade needed when installing latest
+    if [ "$GDENV_VERSION" = "latest" ]; then
+        CURRENT_VERSION=$(gdenv --version 2>/dev/null | grep -o '[0-9]\+\.[0-9]\+\.[0-9]\+' || echo "0.0.0")
+        
+        # Get latest version from GitHub API
+        if command -v curl >/dev/null 2>&1; then
+            LATEST_VERSION=$(curl -fsSL https://api.github.com/repos/bytemeadow/gdenv/releases/latest | grep -o '"tag_name": *"v[^"]*"' | sed 's/"tag_name": *"v\([^"]*\)"/\1/' 2>/dev/null || echo "$CURRENT_VERSION")
+        else
+            LATEST_VERSION="$CURRENT_VERSION"
+        fi
+        
+        if [ "$CURRENT_VERSION" != "$LATEST_VERSION" ]; then
+            info "Upgrading gdenv from $CURRENT_VERSION to $LATEST_VERSION"
+            return 0  # Should upgrade
+        else
+            info "gdenv $CURRENT_VERSION is already up to date at $(command -v gdenv)"
+            exit 0
+        fi
+    else
+        # Installing specific version, allow reinstall
         CURRENT_VERSION=$(gdenv --version 2>/dev/null | grep -o '[0-9]\+\.[0-9]\+\.[0-9]\+' || echo "unknown")
-        warning "gdenv $CURRENT_VERSION is already installed at $(command -v gdenv)"
-        printf "Do you want to reinstall? [y/N] "
-        read -r response
-        case "$response" in
-            [yY][eE][sS]|[yY]) ;;
-            *) info "Installation cancelled"; exit 0 ;;
-        esac
+        info "Reinstalling gdenv $GDENV_VERSION (current: $CURRENT_VERSION)"
+        return 0
     fi
 }
 
@@ -199,16 +217,18 @@ main() {
     "
 
     detect_platform
-    check_existing
-    get_install_dir
-    download_gdenv
-    install_binary
-    setup_path
+    
+    if should_install_gdenv; then
+        get_install_dir
+        download_gdenv
+        install_binary
+        setup_path
 
-    echo
-    success "Installation complete! 🎉"
-    info "Run 'gdenv --help' to get started"
-    info "Install a Godot version with: gdenv install 4.2.1"
+        echo
+        success "Installation complete! 🎉"
+        info "Run 'gdenv --help' to get started"
+        info "Install a Godot version with: gdenv install 4.2.1"
+    fi
 }
 
 # Run main function

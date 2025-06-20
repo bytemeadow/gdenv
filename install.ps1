@@ -41,18 +41,39 @@ function Get-Architecture {
     }
 }
 
-function Test-ExistingInstallation {
+function Test-ShouldInstall {
     $existing = Get-Command gdenv -ErrorAction SilentlyContinue
-    if ($existing) {
+    if (-not $existing) {
+        return $true  # Not installed, should install
+    }
+    
+    # Already installed, check if upgrade needed when installing latest
+    if ($Version -eq "latest") {
+        $currentVersion = & gdenv --version 2>$null | Select-String -Pattern '\d+\.\d+\.\d+' | ForEach-Object { $_.Matches[0].Value }
+        if (-not $currentVersion) { $currentVersion = "0.0.0" }
+        
+        # Get latest version from GitHub API
+        try {
+            $latestRelease = Invoke-RestMethod -Uri "https://api.github.com/repos/bytemeadow/gdenv/releases/latest" -ErrorAction Stop
+            $latestVersion = $latestRelease.tag_name -replace '^v', ''
+            
+            if ($currentVersion -ne $latestVersion) {
+                Write-Info "Upgrading gdenv from $currentVersion to $latestVersion"
+                return $true  # Should upgrade
+            } else {
+                Write-Info "gdenv $currentVersion is already up to date at $($existing.Source)"
+                return $false
+            }
+        } catch {
+            Write-Info "gdenv $currentVersion is already up to date at $($existing.Source)"
+            return $false
+        }
+    } else {
+        # Installing specific version, allow reinstall
         $currentVersion = & gdenv --version 2>$null | Select-String -Pattern '\d+\.\d+\.\d+' | ForEach-Object { $_.Matches[0].Value }
         if (-not $currentVersion) { $currentVersion = "unknown" }
-
-        Write-Warning "gdenv $currentVersion is already installed at $($existing.Source)"
-        $response = Read-Host "Do you want to reinstall? [y/N]"
-        if ($response -notmatch '^[yY]([eE][sS])?$') {
-            Write-Info "Installation cancelled"
-            exit 0
-        }
+        Write-Info "Reinstalling gdenv $Version (current: $currentVersion)"
+        return $true
     }
 }
 
@@ -141,21 +162,14 @@ function Update-Path {
         return
     }
 
-    Write-Warning "$InstallDirectory is not in your PATH"
-
-    $response = Read-Host "Add $InstallDirectory to your PATH? [Y/n]"
-    if ($response -match '^[nN]([oO])?$') {
-        Write-Info "You can manually add $InstallDirectory to your PATH later"
-        return
-    }
-
+    Write-Info "Adding $InstallDirectory to your PATH"
     try {
         $newPath = "$InstallDirectory;$currentPath"
         [Environment]::SetEnvironmentVariable("PATH", $newPath, "User")
         Write-Success "Added $InstallDirectory to your PATH"
         Write-Info "Restart your terminal or run 'refreshenv' to use gdenv"
     } catch {
-        Write-Error "Failed to update PATH: $($_.Exception.Message)"
+        Write-Warning "Failed to update PATH automatically"
         Write-Info "Please manually add $InstallDirectory to your PATH"
     }
 }
@@ -169,18 +183,19 @@ function Main {
     └──────────────────────────────┘
 "@ -ForegroundColor Blue
 
-    Test-ExistingInstallation
-    $installDir = Get-InstallDirectory
-    Write-Info "Installing to: $installDir"
+    if (Test-ShouldInstall) {
+        $installDir = Get-InstallDirectory
+        Write-Info "Installing to: $installDir"
 
-    $tempFile = Download-Gdenv -InstallDirectory $installDir
-    $binaryPath = Install-Binary -TempFile $tempFile -InstallDirectory $installDir
-    Update-Path -InstallDirectory $installDir
+        $tempFile = Download-Gdenv -InstallDirectory $installDir
+        $binaryPath = Install-Binary -TempFile $tempFile -InstallDirectory $installDir
+        Update-Path -InstallDirectory $installDir
 
-    Write-Host ""
-    Write-Success "Installation complete! 🎉"
-    Write-Info "Run 'gdenv --help' to get started"
-    Write-Info "Install a Godot version with: gdenv install 4.2.1"
+        Write-Host ""
+        Write-Success "Installation complete! 🎉"
+        Write-Info "Run 'gdenv --help' to get started"
+        Write-Info "Install a Godot version with: gdenv install 4.2.1"
+    }
 }
 
 # Run main function
