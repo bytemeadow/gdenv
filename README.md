@@ -2,6 +2,22 @@
 
 A beautiful terminal tool for managing Godot installations, inspired by [xcodes](https://github.com/XcodesOrg/xcodes).
 
+---
+
+<div align="left" valign="middle">
+<a href="https://runblaze.dev">
+ <picture>
+   <source media="(prefers-color-scheme: dark)" srcset="https://www.runblaze.dev/logo_dark.png">
+   <img align="right" src="https://www.runblaze.dev/logo_light.png" height="102px"/>
+ </picture>
+</a>
+
+<br style="display: none;"/>
+
+_Special thanks to [Blaze](https://runblaze.dev) for their support of this project. They provide high-performance Linux (AMD64 & ARM64) and Apple Silicon macOS runners for GitHub Actions, greatly reducing our automated build times._
+
+</div>
+
 ## Features
 
 ✨ **Simple & Beautiful** - Clean CLI interface with colored output and progress bars
@@ -19,26 +35,8 @@ A beautiful terminal tool for managing Godot installations, inspired by [xcodes]
 # Unix/Linux/macOS
 curl -fsSL https://gdenv.bytemeadow.com | sh
 
-# Windows PowerShell (auto-detects PowerShell)
+# Windows PowerShell
 irm https://gdenv.bytemeadow.com | iex
-
-# Or explicit PowerShell script
-irm https://gdenv.bytemeadow.com/install.ps1 | iex
-```
-
-### Package Managers
-
-```bash
-# Homebrew (macOS/Linux)
-brew install gdenv
-
-# Cargo
-cargo install gdenv
-
-# From source
-git clone https://github.com/dcvz/gdenv
-cd gdenv
-cargo install --path .
 ```
 
 ### Manual Download
@@ -181,7 +179,7 @@ gdenv installed               # Verify removal
 gdenv takes inspiration from xcodes' excellent design and adapts it for Godot:
 
 - **Simple Commands**: Clean `install`, `list`, `installed`, `use`, `uninstall` API
-- **Godot-Specific**: Proper version parsing, .NET opt-in support, GitHub integration  
+- **Godot-Specific**: Proper version parsing, .NET opt-in support, GitHub integration
 - **Modern Rust**: Async downloads, robust error handling, beautiful terminal UI
 
 ## Contributing

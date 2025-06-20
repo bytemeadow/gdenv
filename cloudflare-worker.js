@@ -73,7 +73,7 @@ async function serveInstallScript() {
         "vary": "User-Agent", // Cache varies by user-agent
         "x-content-source": "github-raw",
         "x-detected-client": "curl-like",
-        "x-user-agent": userAgent,
+        "x-user-agent": "curl-like",
         "access-control-allow-origin": "*",
       },
     });
