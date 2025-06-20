@@ -1,6 +1,50 @@
 [package]
 name = "gdm"
 version = "0.1.0"
-edition = "2024"
+edition = "2021"
+description = "A beautiful terminal tool for managing Godot installations"
+license = "MIT"
+repository = "https://github.com/dcvz/gdm"
+authors = ["dcvz"]
+
+[[bin]]
+name = "gdm"
+path = "src/main.rs"
 
 [dependencies]
+# CLI framework
+clap = { version = "4.4", features = ["derive", "color"] }
+
+# Async runtime
+tokio = { version = "1.35", features = ["full"] }
+
+# HTTP client for downloads and GitHub API
+reqwest = { version = "0.11", features = ["json", "stream"] }
+futures-util = "0.3"
+
+# JSON serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# Terminal UI
+indicatif = "0.17"
+colored = "2.1"
+
+# File system and paths
+dirs = "5.0"
+
+# Archive extraction
+zip = "0.6"
+
+# Error handling
+anyhow = "1.0"
+thiserror = "1.0"
+
+# Version parsing
+semver = { version = "1.0", features = ["serde"] }
+
+# Date/time handling
+chrono = { version = "0.4", features = ["serde"] }
+
+# Cross-platform process management
+which = "6.0"
