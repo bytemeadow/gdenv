@@ -47,9 +47,9 @@ impl UseCommand {
             }
             
             if installed_versions.is_empty() {
-                ui::info("No versions installed. Use 'gdm install <version>' to install one.");
+                ui::info("No versions installed. Use 'gdenv install <version>' to install one.");
             } else {
-                ui::info("Use 'gdm installed' to see all installed versions");
+                ui::info("Use 'gdenv installed' to see all installed versions");
             }
             
             return Ok(());
@@ -71,7 +71,7 @@ impl UseCommand {
         if !version_file.exists() {
             return Err(anyhow!(
                 "No version specified and no .godot-version file found in current directory.\n\
-                Create a .godot-version file or specify a version: gdm use <version>"
+                Create a .godot-version file or specify a version: gdenv use <version>"
             ));
         }
         

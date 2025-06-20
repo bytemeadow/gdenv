@@ -23,7 +23,7 @@ impl Default for Config {
     fn default() -> Self {
         let data_dir = dirs::data_dir()
             .unwrap_or_else(|| dirs::home_dir().unwrap_or_default().join(".local/share"))
-            .join("gdm");
+            .join("gdenv");
             
         Self {
             installations_dir: data_dir.join("installations"),

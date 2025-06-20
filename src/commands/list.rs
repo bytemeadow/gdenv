@@ -54,7 +54,7 @@ impl ListCommand {
             ui::info("Use --include-prereleases to see beta/rc versions");
         }
         
-        ui::info("Use 'gdm installed' to see installed versions");
+        ui::info("Use 'gdenv installed' to see installed versions");
         
         Ok(())
     }

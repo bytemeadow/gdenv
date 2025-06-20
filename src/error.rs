@@ -2,7 +2,7 @@ use thiserror::Error;
 
 #[derive(Error, Debug)]
 #[allow(dead_code)]
-pub enum GdmError {
+pub enum GdenvError {
     #[error("Godot version '{0}' is invalid")]
     InvalidVersion(String),
     

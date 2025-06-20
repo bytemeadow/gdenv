@@ -38,7 +38,7 @@ impl CurrentCommand {
             }
             None => {
                 ui::warning("No active Godot version set");
-                ui::info("Use 'gdm install <version>' to install and activate a version");
+                ui::info("Use 'gdenv install <version>' to install and activate a version");
             }
         }
         

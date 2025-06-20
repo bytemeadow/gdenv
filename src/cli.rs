@@ -13,7 +13,7 @@ use crate::commands::{
 };
 
 #[derive(Parser)]
-#[command(name = "gdm")]
+#[command(name = "gdenv")]
 #[command(about = "A beautiful terminal tool for managing Godot installations")]
 #[command(version)]
 pub struct Cli {

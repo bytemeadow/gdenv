@@ -93,7 +93,7 @@ impl InstallCommand {
         
         ui::success(&format!("Successfully installed Godot v{}", requested_version));
         ui::info(&format!("Installed to: {}", install_path.display()));
-        ui::info("Run 'gdm current' for PATH setup instructions");
+        ui::info("Run 'gdenv current' for PATH setup instructions");
         
         Ok(())
     }
@@ -107,7 +107,7 @@ impl InstallCommand {
         if !version_file.exists() {
             return Err(anyhow!(
                 "No version specified and no .godot-version file found in current directory.\n\
-                Create a .godot-version file or specify a version: gdm install <version>"
+                Create a .godot-version file or specify a version: gdenv install <version>"
             ));
         }
         

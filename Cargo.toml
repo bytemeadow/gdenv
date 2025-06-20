@@ -1,14 +1,14 @@
 [package]
-name = "gdm"
+name = "gdenv"
 version = "0.1.0"
 edition = "2021"
 description = "A beautiful terminal tool for managing Godot installations"
 license = "MIT"
-repository = "https://github.com/dcvz/gdm"
+repository = "https://github.com/dcvz/gdenv"
 authors = ["dcvz"]
 
 [[bin]]
-name = "gdm"
+name = "gdenv"
 path = "src/main.rs"
 
 [dependencies]

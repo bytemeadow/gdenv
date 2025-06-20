@@ -82,7 +82,7 @@ impl CacheCommand {
         } else {
             ui::info(&format!("Cache size: {}", format_size(cache_size)));
             ui::info(&format!("Cached files: {}", file_count));
-            ui::info("Run 'gdm cache --clear' to free up space");
+            ui::info("Run 'gdenv cache clear' to free up space");
         }
         
         Ok(())
