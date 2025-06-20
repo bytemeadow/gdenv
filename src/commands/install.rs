@@ -16,6 +16,14 @@ pub struct InstallCommand {
     /// Force reinstall even if version is already installed
     #[arg(long, short)]
     pub force: bool,
+
+    /// Install the latest stable release
+    #[arg(long, conflicts_with_all = ["version", "latest_prerelease"])]
+    pub latest: bool,
+
+    /// Install the latest prerelease (beta, rc, etc.)
+    #[arg(long, conflicts_with_all = ["version", "latest"])]
+    pub latest_prerelease: bool,
 }
 
 impl InstallCommand {
@@ -24,18 +32,48 @@ impl InstallCommand {
         let github_client = GitHubClient::new(config.github_api_url.clone());
         let installer = Installer::new(config.clone());
 
+        // Fetch available releases from GitHub first (needed for --latest flags)
+        let include_prereleases = self.latest_prerelease;
+        let releases = github_client
+            .get_godot_releases(include_prereleases)
+            .await?;
+
         // Get the version to install
-        let version_string = match self.version {
-            Some(v) => v,
-            None => {
-                // Try to read from .godot-version file
-                self.read_godot_version_file()?
+        let version_string = if self.latest {
+            // Find latest stable release
+            releases
+                .iter()
+                .find(|r| !r.prerelease)
+                .and_then(|r| r.version())
+                .ok_or_else(|| anyhow!("No stable releases found"))?
+        } else if self.latest_prerelease {
+            // Find latest release (including prereleases)
+            releases
+                .first()
+                .and_then(|r| r.version())
+                .ok_or_else(|| anyhow!("No releases found"))?
+        } else {
+            match self.version {
+                Some(v) => v,
+                None => {
+                    // Try to read from .godot-version file
+                    self.read_godot_version_file()?
+                }
             }
         };
 
         // Parse the requested version
         let is_dotnet = self.dotnet;
         let requested_version = GodotVersion::new(&version_string, is_dotnet)?;
+
+        if self.latest {
+            ui::info(&format!("Found latest stable version: {}", version_string));
+        } else if self.latest_prerelease {
+            ui::info(&format!(
+                "Found latest prerelease version: {}",
+                version_string
+            ));
+        }
 
         println!("🤖 Installing Godot v{}", requested_version);
 
@@ -51,9 +89,6 @@ impl InstallCommand {
             ui::info("Use --force to reinstall");
             return Ok(());
         }
-
-        // Fetch available releases from GitHub
-        let releases = github_client.get_godot_releases(true).await?;
 
         // Find the matching release
         let release = releases
