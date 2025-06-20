@@ -26,6 +26,21 @@ impl CurrentCommand {
                 } else {
                     ui::success(&format!("Active Godot version: {}", version));
                     ui::info(&format!("Location: {}", config.active_symlink.display()));
+                    
+                    // Show executable path info
+                    let godot_executable = config.bin_dir.join("godot");
+                    if godot_executable.exists() {
+                        ui::info(&format!("Executable: {}", godot_executable.display()));
+                        ui::info(&format!("Add {} to your PATH to run 'godot' from anywhere", config.bin_dir.display()));
+                    }
+                    
+                    #[cfg(target_os = "macos")]
+                    {
+                        let applications_symlink = std::path::Path::new("/Applications/Godot.app");
+                        if applications_symlink.exists() {
+                            ui::info("Available at: /Applications/Godot.app");
+                        }
+                    }
                 }
             }
             None => {
