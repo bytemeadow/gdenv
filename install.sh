@@ -194,6 +194,7 @@ main() {
     ┌──────────────────────────────┐
     │  gdenv - Godot Environment   │
     │        Manager               │
+    │  https://gdenv.bytemeadow.com │
     └──────────────────────────────┘
     "
     

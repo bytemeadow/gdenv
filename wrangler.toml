@@ -1,0 +1,12 @@
+name = "gdenv-worker"
+main = "cloudflare-worker.js"
+compatibility_date = "2024-06-20"
+
+# Route configuration for gdenv.bytemeadow.com
+[[routes]]
+pattern = "gdenv.bytemeadow.com/*"
+zone_name = "bytemeadow.com"
+
+# Environment variables (if needed)
+[vars]
+# GITHUB_RAW_BASE_URL = "https://raw.githubusercontent.com/dcvz/gdenv/main"

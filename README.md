@@ -16,11 +16,14 @@ A beautiful terminal tool for managing Godot installations, inspired by [xcodes]
 ### Quick Install (Recommended)
 
 ```bash
-# Install latest release
-curl -fsSL https://gdenv.io/install.sh | sh
+# Unix/Linux/macOS
+curl -fsSL https://gdenv.bytemeadow.com | sh
 
-# Or for Windows PowerShell
-irm https://gdenv.io/install.ps1 | iex
+# Windows PowerShell (auto-detects PowerShell)
+irm https://gdenv.bytemeadow.com | iex
+
+# Or explicit PowerShell script
+irm https://gdenv.bytemeadow.com/install.ps1 | iex
 ```
 
 ### Package Managers

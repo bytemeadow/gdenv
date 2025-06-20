@@ -165,6 +165,7 @@ function Main {
     ┌──────────────────────────────┐
     │  gdenv - Godot Environment   │
     │        Manager               │
+    │  https://gdenv.bytemeadow.com │
     └──────────────────────────────┘
 "@ -ForegroundColor Blue
     
