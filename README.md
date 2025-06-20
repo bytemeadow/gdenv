@@ -45,6 +45,7 @@ gdenv install 4.4.1
 gdenv install 4.5-beta1
 gdenv install 3.6 --dotnet
 gdenv install --latest
+gdenv install --latest-prerelease
 ```
 
 gdenv will download and install the version you asked for so that it's ready to use.
