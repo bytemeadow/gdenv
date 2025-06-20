@@ -64,3 +64,39 @@ jobs:
       - name: Test CLI help (Windows)
         run: ./target/release/gdenv.exe --help
         if: runner.os == 'Windows'
+
+  test-install:
+    name: Test Installation Script
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [blaze/ubuntu-latest, blaze/macos-latest]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Test install script syntax
+        run: |
+          chmod +x install.sh
+          sh -n install.sh
+
+      - name: Test actual user experience (curl | sh)
+        run: |
+          # Test the real command users would run
+          curl https://gdenv.bytemeadow.com/ | sh
+
+      - name: Add gdenv to PATH
+        run: echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+      - name: Verify installation
+        run: |
+          # Check if gdenv was installed and works
+          if command -v gdenv >/dev/null 2>&1; then
+            echo "✅ gdenv installed successfully and found in PATH"
+            gdenv --version || gdenv --help
+          else
+            echo "❌ gdenv not found in PATH"
+            echo "Checking if binary exists..."
+            ls -la ~/.local/bin/gdenv* || echo "No gdenv binary found"
+            exit 1
+          fi
