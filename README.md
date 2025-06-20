@@ -13,9 +13,34 @@ A beautiful terminal tool for managing Godot installations, inspired by [xcodes]
 
 ## Installation
 
+### Quick Install (Recommended)
+
 ```bash
+# Install latest release
+curl -fsSL https://gdenv.io/install.sh | sh
+
+# Or for Windows PowerShell
+irm https://gdenv.io/install.ps1 | iex
+```
+
+### Package Managers
+
+```bash
+# Homebrew (macOS/Linux)
+brew install gdenv
+
+# Cargo
+cargo install gdenv
+
+# From source
+git clone https://github.com/dcvz/gdenv
+cd gdenv
 cargo install --path .
 ```
+
+### Manual Download
+
+Download pre-built binaries from [GitHub Releases](https://github.com/dcvz/gdenv/releases)
 
 ## Usage
 
