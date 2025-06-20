@@ -12,7 +12,8 @@ use crate::{
 #[derive(Args)]
 pub struct InstallCommand {
     /// The Godot version to install (e.g., 4.2.1, 4.1.0-stable)
-    pub version: String,
+    /// If not provided, reads from .godot-version file
+    pub version: Option<String>,
     
     /// Install the .NET version of Godot
     #[arg(long)]
@@ -29,9 +30,18 @@ impl InstallCommand {
         let github_client = GitHubClient::new(config.github_api_url.clone());
         let installer = Installer::new(config.clone());
         
+        // Get the version to install
+        let version_string = match self.version {
+            Some(v) => v,
+            None => {
+                // Try to read from .godot-version file
+                self.read_godot_version_file()?
+            }
+        };
+        
         // Parse the requested version
         let is_dotnet = self.dotnet;
-        let requested_version = GodotVersion::new(&self.version, is_dotnet)?;
+        let requested_version = GodotVersion::new(&version_string, is_dotnet)?;
         
         println!("🤖 Installing Godot v{}", requested_version);
         
@@ -86,5 +96,30 @@ impl InstallCommand {
         ui::info("Run 'gdm current' for PATH setup instructions");
         
         Ok(())
+    }
+    
+    fn read_godot_version_file(&self) -> Result<String> {
+        use std::fs;
+        use std::path::Path;
+        
+        let version_file = Path::new(".godot-version");
+        
+        if !version_file.exists() {
+            return Err(anyhow!(
+                "No version specified and no .godot-version file found in current directory.\n\
+                Create a .godot-version file or specify a version: gdm install <version>"
+            ));
+        }
+        
+        let content = fs::read_to_string(version_file)?;
+        let version = content.trim();
+        
+        if version.is_empty() {
+            return Err(anyhow!(".godot-version file is empty"));
+        }
+        
+        ui::info(&format!("Reading version from .godot-version: {}", version));
+        
+        Ok(version.to_string())
     }
 }

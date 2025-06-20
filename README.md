@@ -33,6 +33,9 @@ gdm install 4.3.0-beta2
 
 # Force reinstall
 gdm install 4.2.1 --force
+
+# Install from .godot-version file
+gdm install
 ```
 
 ### List Versions
@@ -59,6 +62,9 @@ gdm use 4.2.1
 
 # Switch to .NET version
 gdm use 4.1.0 --dotnet
+
+# Switch to version from .godot-version file
+gdm use
 ```
 
 ### Check Current Version
@@ -86,6 +92,29 @@ gdm uninstall 4.1.0 --yes
 ```bash
 # Refresh available versions from GitHub
 gdm update
+```
+
+### Cache Management
+
+```bash
+# Show cache info
+gdm cache
+gdm cache info
+
+# Clear download cache
+gdm cache clear
+```
+
+### Version Files
+
+Create a `.godot-version` file in your project root:
+
+```bash
+echo "4.2.1" > .godot-version
+
+# Now these commands will use that version:
+gdm install  # Installs 4.2.1
+gdm use      # Switches to 4.2.1
 ```
 
 ## How It Works

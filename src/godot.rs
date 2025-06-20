@@ -34,6 +34,14 @@ impl GodotVersion {
             .strip_suffix("-stable")
             .unwrap_or(version_str);
         
+        // Handle short versions like "4.3" -> "4.3.0"
+        let parts: Vec<&str> = cleaned.split('.').collect();
+        let cleaned = if parts.len() == 2 && parts.iter().all(|p| p.chars().all(|c| c.is_numeric())) {
+            format!("{}.0", cleaned)
+        } else {
+            cleaned.to_string()
+        };
+        
         // Handle beta/rc versions to be semver compatible
         if cleaned.contains("-beta") && !cleaned.contains("-beta.") {
             // Convert "4.3.0-beta2" to "4.3.0-beta.2"
