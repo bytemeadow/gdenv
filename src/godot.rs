@@ -11,6 +11,25 @@ pub struct GodotVersion {
 }
 
 impl GodotVersion {
+    /// Get the platform suffix for the current OS and architecture
+    pub fn get_platform_suffix() -> &'static str {
+        let os = std::env::consts::OS;
+        let arch = std::env::consts::ARCH;
+
+        match (os, arch) {
+            ("windows", "x86_64") => "win64.exe",
+            ("windows", "x86") => "win32.exe",
+            ("macos", _) => "macos.universal", // macOS universal binaries work on both Intel and Apple Silicon
+            ("linux", "x86_64") => "linux.x86_64",
+            ("linux", "x86") => "linux.x86_32",
+            ("linux", "arm") => "linux.arm32",
+            ("linux", "aarch64") => "linux.arm64",
+            // Fallbacks for common cases
+            ("windows", _) => "win64.exe", // Default to 64-bit on Windows
+            ("linux", _) => "linux.x86_64", // Default to x86_64 on Linux
+            _ => "linux.x86_64",           // Ultimate fallback
+        }
+    }
     pub fn new(version_str: &str, is_dotnet: bool) -> Result<Self> {
         let normalized = Self::normalize_version_string(version_str)?;
         let version = Version::parse(&normalized)?;
@@ -96,14 +115,7 @@ impl GodotVersion {
 
     #[allow(dead_code)]
     pub fn archive_name(&self) -> String {
-        let platform = std::env::consts::OS;
-
-        let platform_suffix = match platform {
-            "windows" => "win64.exe",
-            "macos" => "macos.universal",
-            "linux" => "linux.x86_64",
-            _ => "linux.x86_64", // fallback
-        };
+        let platform_suffix = Self::get_platform_suffix();
 
         let version_part = if self.version.pre.is_empty() {
             format!("{}-stable", self.version)
@@ -186,5 +198,28 @@ mod tests {
         let archive = v2.archive_name();
         assert!(archive.contains("Godot_v4.3.0-beta2_mono_"));
         assert!(archive.ends_with(".zip"));
+    }
+
+    #[test]
+    fn test_platform_suffix_detection() {
+        // Test that we get a valid platform suffix (this tests the current system)
+        let suffix = GodotVersion::get_platform_suffix();
+        assert!(!suffix.is_empty());
+
+        // Should be one of the expected patterns
+        let valid_suffixes = [
+            "win64.exe",
+            "win32.exe",
+            "macos.universal",
+            "linux.x86_64",
+            "linux.x86_32",
+            "linux.arm32",
+            "linux.arm64",
+        ];
+        assert!(
+            valid_suffixes.contains(&suffix),
+            "Got unexpected suffix: {}",
+            suffix
+        );
     }
 }
