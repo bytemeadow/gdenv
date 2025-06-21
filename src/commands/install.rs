@@ -131,8 +131,13 @@ impl InstallCommand {
             .install_version_from_archive(&requested_version, &cache_file)
             .await?;
 
-        // Set as active version
-        installer.set_active_version(&requested_version)?;
+        // Only set as active version if no version is currently active
+        if installer.get_active_version()?.is_none() {
+            installer.set_active_version_with_message(&requested_version, false)?;
+            ui::info(&format!("Set Godot v{} as active version (first installation)", requested_version));
+        } else {
+            ui::info(&format!("Installation complete. Use 'gdenv use {}' to switch to this version.", requested_version.godot_version_string()));
+        }
 
         ui::success(&format!(
             "Successfully installed Godot v{}",

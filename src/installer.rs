@@ -121,6 +121,10 @@ impl Installer {
     }
 
     pub fn set_active_version(&self, version: &GodotVersion) -> Result<()> {
+        self.set_active_version_with_message(version, true)
+    }
+
+    pub fn set_active_version_with_message(&self, version: &GodotVersion, show_message: bool) -> Result<()> {
         let install_path = self
             .config
             .installations_dir
@@ -149,7 +153,9 @@ impl Installer {
         // Create executable symlink in bin directory
         self.create_executable_symlink(&install_path, version)?;
 
-        ui::success(&format!("Switched to Godot v{}", version));
+        if show_message {
+            ui::success(&format!("Switched to Godot v{}", version));
+        }
 
         Ok(())
     }
