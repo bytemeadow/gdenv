@@ -124,7 +124,11 @@ impl Installer {
         self.set_active_version_with_message(version, true)
     }
 
-    pub fn set_active_version_with_message(&self, version: &GodotVersion, show_message: bool) -> Result<()> {
+    pub fn set_active_version_with_message(
+        &self,
+        version: &GodotVersion,
+        show_message: bool,
+    ) -> Result<()> {
         let install_path = self
             .config
             .installations_dir
@@ -160,7 +164,11 @@ impl Installer {
         Ok(())
     }
 
-    fn create_executable_symlink(&self, install_path: &std::path::Path, version: &GodotVersion) -> Result<()> {
+    fn create_executable_symlink(
+        &self,
+        install_path: &std::path::Path,
+        version: &GodotVersion,
+    ) -> Result<()> {
         let godot_executable_symlink = self.config.bin_dir.join("godot");
 
         // Remove existing symlink if it exists
@@ -193,18 +201,25 @@ impl Installer {
         Ok(())
     }
 
-    fn find_godot_executable(&self, install_path: &std::path::Path, version: &GodotVersion) -> Result<PathBuf> {
+    fn find_godot_executable(
+        &self,
+        install_path: &std::path::Path,
+        version: &GodotVersion,
+    ) -> Result<PathBuf> {
         // First try the expected path based on version info
         let expected_path = version.get_executable_path();
         let expected_exe = install_path.join(&expected_path);
-        
+
         if expected_exe.exists() && expected_exe.is_file() {
             return Ok(expected_exe);
         }
-        
+
         // If the expected path doesn't work, fall back to searching
-        ui::warning(&format!("Expected executable at {} not found, searching...", expected_path));
-        
+        ui::warning(&format!(
+            "Expected executable at {} not found, searching...",
+            expected_path
+        ));
+
         #[cfg(target_os = "macos")]
         {
             // On macOS, the executable is inside Godot.app/Contents/MacOS/Godot

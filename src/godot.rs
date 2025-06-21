@@ -127,7 +127,7 @@ impl GodotVersion {
     pub fn get_executable_path(&self) -> String {
         let os = std::env::consts::OS;
         let _arch = std::env::consts::ARCH;
-        
+
         match os {
             "macos" => {
                 if self.is_dotnet {
@@ -142,10 +142,12 @@ impl GodotVersion {
                 } else {
                     self.godot_version_string()
                 };
-                
+
                 if self.is_dotnet {
-                    format!("Godot_v{}_mono_{}/Godot_v{}_mono_{}.exe", 
-                        version_part, "win64", version_part, "win64")
+                    format!(
+                        "Godot_v{}_mono_{}/Godot_v{}_mono_{}.exe",
+                        version_part, "win64", version_part, "win64"
+                    )
                 } else {
                     format!("Godot_v{}_{}.exe", version_part, "win64")
                 }
@@ -156,9 +158,9 @@ impl GodotVersion {
                 } else {
                     self.godot_version_string()
                 };
-                
+
                 let platform_suffix = Self::get_platform_suffix();
-                
+
                 if self.is_dotnet {
                     // Dotnet versions extract to a subfolder
                     let folder_name = format!("Godot_v{}_mono_{}", version_part, platform_suffix);
@@ -175,7 +177,7 @@ impl GodotVersion {
             }
         }
     }
-    
+
     pub fn installation_name(&self) -> String {
         if self.is_dotnet {
             format!("godot-{}-dotnet", self.godot_version_string())
@@ -305,11 +307,11 @@ mod tests {
         let v1 = GodotVersion::new("4.2.1", false).unwrap();
         let exe_path = v1.get_executable_path();
         assert!(!exe_path.is_empty());
-        
+
         let v2 = GodotVersion::new("4.2.1", true).unwrap();
         let dotnet_exe_path = v2.get_executable_path();
         assert!(!dotnet_exe_path.is_empty());
-        
+
         // Paths should be different for dotnet vs non-dotnet
         assert_ne!(exe_path, dotnet_exe_path);
     }

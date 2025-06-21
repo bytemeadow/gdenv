@@ -34,8 +34,13 @@ impl InstallCommand {
 
         // Fetch available releases from GitHub first (needed for --latest flags)
         // Include prereleases if we're looking for latest prerelease OR if the requested version looks like a prerelease
-        let include_prereleases = self.latest_prerelease || 
-            self.version.as_ref().map_or(false, |v| v.contains("-beta") || v.contains("-rc") || v.contains("-alpha") || v.contains("-dev"));
+        let include_prereleases = self.latest_prerelease
+            || self.version.as_ref().map_or(false, |v| {
+                v.contains("-beta")
+                    || v.contains("-rc")
+                    || v.contains("-alpha")
+                    || v.contains("-dev")
+            });
         let releases = github_client
             .get_godot_releases(include_prereleases)
             .await?;
@@ -134,9 +139,15 @@ impl InstallCommand {
         // Only set as active version if no version is currently active
         if installer.get_active_version()?.is_none() {
             installer.set_active_version_with_message(&requested_version, false)?;
-            ui::info(&format!("Set Godot v{} as active version (first installation)", requested_version));
+            ui::info(&format!(
+                "Set Godot v{} as active version (first installation)",
+                requested_version
+            ));
         } else {
-            ui::info(&format!("Installation complete. Use 'gdenv use {}' to switch to this version.", requested_version.godot_version_string()));
+            ui::info(&format!(
+                "Installation complete. Use 'gdenv use {}' to switch to this version.",
+                requested_version.godot_version_string()
+            ));
         }
 
         ui::success(&format!(
