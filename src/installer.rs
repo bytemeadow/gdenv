@@ -91,7 +91,7 @@ impl Installer {
 
             if let Some(name) = path.file_name().and_then(|n| n.to_str()) {
                 // Look for files that look like Godot executables
-                if name.starts_with("Godot") && !name.contains(".") {
+                if name.starts_with("Godot") && path.is_file() {
                     let mut perms = fs::metadata(&path)?.permissions();
                     perms.set_mode(perms.mode() | 0o755); // Add execute permissions
                     fs::set_permissions(&path, perms)?;
@@ -147,14 +147,14 @@ impl Installer {
         std::os::windows::fs::symlink_dir(&install_path, &self.config.active_symlink)?;
 
         // Create executable symlink in bin directory
-        self.create_executable_symlink(&install_path)?;
+        self.create_executable_symlink(&install_path, version)?;
 
         ui::success(&format!("Switched to Godot v{}", version));
 
         Ok(())
     }
 
-    fn create_executable_symlink(&self, install_path: &std::path::Path) -> Result<()> {
+    fn create_executable_symlink(&self, install_path: &std::path::Path, version: &GodotVersion) -> Result<()> {
         let godot_executable_symlink = self.config.bin_dir.join("godot");
 
         // Remove existing symlink if it exists
@@ -170,7 +170,7 @@ impl Installer {
         }
 
         // Find the actual Godot executable in the installation
-        let godot_exe_path = self.find_godot_executable(install_path)?;
+        let godot_exe_path = self.find_godot_executable(install_path, version)?;
 
         // Create symlink to the executable
         #[cfg(unix)]
@@ -187,7 +187,18 @@ impl Installer {
         Ok(())
     }
 
-    fn find_godot_executable(&self, install_path: &std::path::Path) -> Result<PathBuf> {
+    fn find_godot_executable(&self, install_path: &std::path::Path, version: &GodotVersion) -> Result<PathBuf> {
+        // First try the expected path based on version info
+        let expected_path = version.get_executable_path();
+        let expected_exe = install_path.join(&expected_path);
+        
+        if expected_exe.exists() && expected_exe.is_file() {
+            return Ok(expected_exe);
+        }
+        
+        // If the expected path doesn't work, fall back to searching
+        ui::warning(&format!("Expected executable at {} not found, searching...", expected_path));
+        
         #[cfg(target_os = "macos")]
         {
             // On macOS, the executable is inside Godot.app/Contents/MacOS/Godot
@@ -218,8 +229,15 @@ impl Installer {
                 let entry = entry?;
                 let path = entry.path();
                 if let Some(name) = path.file_name().and_then(|n| n.to_str()) {
-                    if name.starts_with("Godot") && !name.contains(".") {
-                        return Ok(path);
+                    // Check if it's a Godot executable (may have version info in name)
+                    if name.starts_with("Godot") && path.is_file() {
+                        // Check if it's executable
+                        use std::os::unix::fs::PermissionsExt;
+                        let metadata = fs::metadata(&path)?;
+                        let permissions = metadata.permissions();
+                        if permissions.mode() & 0o111 != 0 {
+                            return Ok(path);
+                        }
                     }
                 }
             }
