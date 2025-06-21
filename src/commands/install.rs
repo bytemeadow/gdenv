@@ -35,7 +35,7 @@ impl InstallCommand {
         // Fetch available releases from GitHub first (needed for --latest flags)
         // Include prereleases if we're looking for latest prerelease OR if the requested version looks like a prerelease
         let include_prereleases = self.latest_prerelease
-            || self.version.as_ref().map_or(false, |v| {
+            || self.version.as_ref().is_some_and(|v| {
                 v.contains("-beta")
                     || v.contains("-rc")
                     || v.contains("-alpha")

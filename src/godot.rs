@@ -56,7 +56,7 @@ impl GodotVersion {
             if second_part.chars().all(|c| c.is_numeric()) {
                 // Simple case: "4.3" -> "4.3.0"
                 format!("{}.0", cleaned)
-            } else if second_part.chars().next().map_or(false, |c| c.is_numeric()) {
+            } else if second_part.chars().next().is_some_and(|c| c.is_numeric()) {
                 // Complex case: "4.5-beta1" -> "4.5.0-beta1"
                 if let Some(dash_pos) = second_part.find('-') {
                     let (num_part, prerelease_part) = second_part.split_at(dash_pos);
