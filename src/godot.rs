@@ -48,11 +48,29 @@ impl GodotVersion {
         // Remove common suffixes that aren't standard semver
         let cleaned = version_str.strip_suffix("-stable").unwrap_or(version_str);
 
-        // Handle short versions like "4.3" -> "4.3.0"
+        // Handle short versions like "4.3" -> "4.3.0" or "4.5-beta1" -> "4.5.0-beta1"
         let parts: Vec<&str> = cleaned.split('.').collect();
-        let cleaned = if parts.len() == 2 && parts.iter().all(|p| p.chars().all(|c| c.is_numeric()))
-        {
-            format!("{}.0", cleaned)
+        let cleaned = if parts.len() == 2 {
+            // Check if the second part is numeric or starts with a number followed by a prerelease
+            let second_part = parts[1];
+            if second_part.chars().all(|c| c.is_numeric()) {
+                // Simple case: "4.3" -> "4.3.0"
+                format!("{}.0", cleaned)
+            } else if second_part.chars().next().map_or(false, |c| c.is_numeric()) {
+                // Complex case: "4.5-beta1" -> "4.5.0-beta1"
+                if let Some(dash_pos) = second_part.find('-') {
+                    let (num_part, prerelease_part) = second_part.split_at(dash_pos);
+                    if num_part.chars().all(|c| c.is_numeric()) {
+                        format!("{}.{}.0{}", parts[0], num_part, prerelease_part)
+                    } else {
+                        cleaned.to_string()
+                    }
+                } else {
+                    cleaned.to_string()
+                }
+            } else {
+                cleaned.to_string()
+            }
         } else {
             cleaned.to_string()
         };
@@ -238,6 +256,11 @@ mod tests {
         let v5 = GodotVersion::new("4.2.1", true).unwrap();
         assert_eq!(v5.to_string(), "4.2.1 (.NET)");
         assert_eq!(v5.installation_name(), "godot-4.2.1-dotnet");
+
+        // Test short prerelease versions like "4.5-beta1"
+        let v6 = GodotVersion::new("4.5-beta1", false).unwrap();
+        assert_eq!(v6.godot_version_string(), "4.5.0-beta1");
+        assert!(v6.is_prerelease());
     }
 
     #[test]

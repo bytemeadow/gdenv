@@ -33,7 +33,9 @@ impl InstallCommand {
         let installer = Installer::new(config.clone());
 
         // Fetch available releases from GitHub first (needed for --latest flags)
-        let include_prereleases = self.latest_prerelease;
+        // Include prereleases if we're looking for latest prerelease OR if the requested version looks like a prerelease
+        let include_prereleases = self.latest_prerelease || 
+            self.version.as_ref().map_or(false, |v| v.contains("-beta") || v.contains("-rc") || v.contains("-alpha") || v.contains("-dev"));
         let releases = github_client
             .get_godot_releases(include_prereleases)
             .await?;
@@ -95,7 +97,8 @@ impl InstallCommand {
             .iter()
             .find(|r| {
                 if let Some(version) = r.version() {
-                    version == requested_version.godot_version_string()
+                    // Try to match both the normalized version and the original input
+                    version == requested_version.godot_version_string() || version == version_string
                 } else {
                     false
                 }
