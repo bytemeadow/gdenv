@@ -73,7 +73,7 @@ fn show_path_instructions(bin_dir: &Path) {
                 ));
                 ui::info("Then restart your shell or run: source ~/.bashrc");
             } else if shell.contains("fish") {
-                ui::info(&format!("  fish_add_path {}", bin_path));
+                ui::info(&format!("  fish_add_path \"{}\"", bin_path));
                 ui::info("Then restart your shell");
             } else {
                 ui::info(&format!(
