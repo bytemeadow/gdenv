@@ -66,18 +66,18 @@ should_install_gdenv() {
     if ! command -v gdenv >/dev/null 2>&1; then
         return 0  # Not installed, should install
     fi
-    
+
     # Already installed, check if upgrade needed when installing latest
     if [ "$GDENV_VERSION" = "latest" ]; then
         CURRENT_VERSION=$(gdenv --version 2>/dev/null | grep -o '[0-9]\+\.[0-9]\+\.[0-9]\+' || echo "0.0.0")
-        
+
         # Get latest version from GitHub API
         if command -v curl >/dev/null 2>&1; then
             LATEST_VERSION=$(curl -fsSL https://api.github.com/repos/bytemeadow/gdenv/releases/latest | grep -o '"tag_name": *"v[^"]*"' | sed 's/"tag_name": *"v\([^"]*\)"/\1/' 2>/dev/null || echo "$CURRENT_VERSION")
         else
             LATEST_VERSION="$CURRENT_VERSION"
         fi
-        
+
         if [ "$CURRENT_VERSION" != "$LATEST_VERSION" ]; then
             info "Upgrading gdenv from $CURRENT_VERSION to $LATEST_VERSION"
             return 0  # Should upgrade
@@ -192,7 +192,7 @@ setup_path() {
             ;;
         fish)
             info "For fish shell, run:"
-            printf "  ${GREEN}fish_add_path %s${RESET}\n" "$INSTALL_DIR"
+            printf "  ${GREEN}fish_add_path %s${RESET}\n" "\"$INSTALL_DIR\""
             return
             ;;
         *)
@@ -209,15 +209,15 @@ setup_path() {
 # Main installation flow
 main() {
     printf "${BLUE}%s${RESET}\n" "
-    ┌──────────────────────────────┐
-    │  gdenv - Godot Environment   │
-    │        Manager               │
-    │  https://gdenv.bytemeadow.com │
-    └──────────────────────────────┘
+    ┌────────────────────────────────┐
+    │  gdenv - Godot Environment     │
+    │        Manager                 │
+    │  https://gdenv.bytemeadow.com  │
+    └────────────────────────────────┘
     "
 
     detect_platform
-    
+
     if should_install_gdenv; then
         get_install_dir
         download_gdenv
