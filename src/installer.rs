@@ -2,6 +2,7 @@ use crate::{config::Config, godot::GodotVersion, ui};
 use anyhow::Result;
 use std::fs;
 use std::path::{Path, PathBuf};
+use walkdir::WalkDir;
 
 pub struct Installer {
     config: Config,
@@ -232,12 +233,12 @@ impl Installer {
         #[cfg(target_os = "windows")]
         {
             // On Windows, look for .exe files
-            for entry in fs::read_dir(install_path)? {
+            for entry in WalkDir::new(install_path).max_depth(2) {
                 let entry = entry?;
                 let path = entry.path();
                 if let Some(name) = path.file_name().and_then(|n| n.to_str()) {
                     if name.starts_with("Godot") && name.ends_with(".exe") {
-                        return Ok(path);
+                        return Ok(path.into());
                     }
                 }
             }
@@ -246,7 +247,7 @@ impl Installer {
         #[cfg(target_os = "linux")]
         {
             // On Linux, look for executable files starting with Godot
-            for entry in fs::read_dir(install_path)? {
+            for entry in WalkDir::new(install_path).max_depth(2) {
                 let entry = entry?;
                 let path = entry.path();
                 if let Some(name) = path.file_name().and_then(|n| n.to_str()) {
@@ -257,7 +258,7 @@ impl Installer {
                         let metadata = fs::metadata(&path)?;
                         let permissions = metadata.permissions();
                         if permissions.mode() & 0o111 != 0 {
-                            return Ok(path);
+                            return Ok(path.into());
                         }
                     }
                 }
