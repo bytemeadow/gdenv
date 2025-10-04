@@ -34,16 +34,16 @@ impl InstalledCommand {
                 " ".normal()
             };
             let version_str = if is_active {
-                format!("{}", version).green()
+                format!("{version}").green()
             } else {
-                format!("{}", version).normal()
+                format!("{version}").normal()
             };
 
             if self.path {
                 let install_path = config.installations_dir.join(version.installation_name());
                 println!("  {} {} -> {}", marker, version_str, install_path.display());
             } else {
-                println!("  {} {}", marker, version_str);
+                println!("  {marker} {version_str}");
             }
         }
 

@@ -74,15 +74,14 @@ impl InstallCommand {
         let requested_version = GodotVersion::new(&version_string, is_dotnet)?;
 
         if self.latest {
-            ui::info(&format!("Found latest stable version: {}", version_string));
+            ui::info(&format!("Found latest stable version: {version_string}"));
         } else if self.latest_prerelease {
             ui::info(&format!(
-                "Found latest prerelease version: {}",
-                version_string
+                "Found latest prerelease version: {version_string}"
             ));
         }
 
-        println!("🤖 Installing Godot v{}", requested_version);
+        println!("🤖 Installing Godot v{requested_version}");
 
         // Check if already installed (unless force flag is set)
         let install_path = config
@@ -90,8 +89,7 @@ impl InstallCommand {
             .join(requested_version.installation_name());
         if install_path.exists() && !self.force {
             ui::warning(&format!(
-                "Godot v{} is already installed",
-                requested_version
+                "Godot v{requested_version} is already installed"
             ));
             ui::info("Use --force to reinstall");
             return Ok(());
@@ -140,8 +138,7 @@ impl InstallCommand {
         if installer.get_active_version()?.is_none() {
             installer.set_active_version_with_message(&requested_version, false)?;
             ui::info(&format!(
-                "Set Godot v{} as active version (first installation)",
-                requested_version
+                "Set Godot v{requested_version} as active version (first installation)"
             ));
         } else {
             ui::info(&format!(
@@ -151,8 +148,7 @@ impl InstallCommand {
         }
 
         ui::success(&format!(
-            "Successfully installed Godot v{}",
-            requested_version
+            "Successfully installed Godot v{requested_version}"
         ));
         ui::info(&format!("Installed to: {}", install_path.display()));
         ui::info("Run 'gdenv current' for PATH setup instructions");
@@ -180,7 +176,7 @@ impl InstallCommand {
             return Err(anyhow!(".godot-version file is empty"));
         }
 
-        ui::info(&format!("Reading version from .godot-version: {}", version));
+        ui::info(&format!("Reading version from .godot-version: {version}"));
 
         Ok(version.to_string())
     }

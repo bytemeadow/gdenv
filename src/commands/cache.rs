@@ -78,7 +78,7 @@ impl CacheCommand {
             ui::info("Cache is empty");
         } else {
             ui::info(&format!("Cache size: {}", format_size(cache_size)));
-            ui::info(&format!("Cached files: {}", file_count));
+            ui::info(&format!("Cached files: {file_count}"));
             ui::info("Run 'gdenv cache clear' to free up space");
         }
 

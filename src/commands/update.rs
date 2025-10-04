@@ -28,13 +28,13 @@ impl UpdateCommand {
 
         if let Some(latest_stable) = stable_releases.first() {
             if let Some(version) = latest_stable.version() {
-                ui::info(&format!("Latest stable: {}", version));
+                ui::info(&format!("Latest stable: {version}"));
             }
         }
 
         if let Some(latest_prerelease) = prerelease_releases.first() {
             if let Some(version) = latest_prerelease.version() {
-                ui::info(&format!("Latest prerelease: {}", version));
+                ui::info(&format!("Latest prerelease: {version}"));
             }
         }
 

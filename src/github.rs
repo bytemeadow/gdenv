@@ -212,8 +212,7 @@ mod tests {
         let has_valid_pattern = patterns.iter().any(|p| valid_patterns.contains(p));
         assert!(
             has_valid_pattern,
-            "No valid patterns found in: {:?}",
-            patterns
+            "No valid patterns found in: {patterns:?}"
         );
     }
 

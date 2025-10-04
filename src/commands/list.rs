@@ -41,7 +41,7 @@ impl ListCommand {
                     " (stable)".green()
                 };
 
-                println!("  • {}{}", version, status);
+                println!("  • {version}{status}");
             }
         }
 

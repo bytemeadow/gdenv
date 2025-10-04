@@ -55,7 +55,7 @@ impl GodotVersion {
             let second_part = parts[1];
             if second_part.chars().all(|c| c.is_numeric()) {
                 // Simple case: "4.3" -> "4.3.0"
-                format!("{}.0", cleaned)
+                format!("{cleaned}.0")
             } else if second_part.chars().next().is_some_and(|c| c.is_numeric()) {
                 // Complex case: "4.5-beta1" -> "4.5.0-beta1"
                 if let Some(dash_pos) = second_part.find('-') {
@@ -80,9 +80,9 @@ impl GodotVersion {
             // Convert "4.3.0-beta2" to "4.3.0-beta.2"
             if let Some((base, beta_part)) = cleaned.split_once("-beta") {
                 if let Ok(beta_num) = beta_part.parse::<u32>() {
-                    return Ok(format!("{}-beta.{}", base, beta_num));
+                    return Ok(format!("{base}-beta.{beta_num}"));
                 } else if beta_part.is_empty() {
-                    return Ok(format!("{}-beta", base));
+                    return Ok(format!("{base}-beta"));
                 }
             }
         }
@@ -91,9 +91,9 @@ impl GodotVersion {
             // Convert "4.1.0-rc1" to "4.1.0-rc.1"
             if let Some((base, rc_part)) = cleaned.split_once("-rc") {
                 if let Ok(rc_num) = rc_part.parse::<u32>() {
-                    return Ok(format!("{}-rc.{}", base, rc_num));
+                    return Ok(format!("{base}-rc.{rc_num}"));
                 } else if rc_part.is_empty() {
-                    return Ok(format!("{}-rc", base));
+                    return Ok(format!("{base}-rc"));
                 }
             }
         }
@@ -102,9 +102,9 @@ impl GodotVersion {
             // Convert "4.3.0-alpha1" to "4.3.0-alpha.1"
             if let Some((base, alpha_part)) = cleaned.split_once("-alpha") {
                 if let Ok(alpha_num) = alpha_part.parse::<u32>() {
-                    return Ok(format!("{}-alpha.{}", base, alpha_num));
+                    return Ok(format!("{base}-alpha.{alpha_num}"));
                 } else if alpha_part.is_empty() {
-                    return Ok(format!("{}-alpha", base));
+                    return Ok(format!("{base}-alpha"));
                 }
             }
         }
@@ -163,12 +163,12 @@ impl GodotVersion {
 
                 if self.is_dotnet {
                     // Dotnet versions extract to a subfolder
-                    let folder_name = format!("Godot_v{}_mono_{}", version_part, platform_suffix);
-                    let exe_name = format!("Godot_v{}_mono_{}", version_part, platform_suffix);
-                    format!("{}/{}", folder_name, exe_name)
+                    let folder_name = format!("Godot_v{version_part}_mono_{platform_suffix}");
+                    let exe_name = format!("Godot_v{version_part}_mono_{platform_suffix}");
+                    format!("{folder_name}/{exe_name}")
                 } else {
                     // Non-dotnet versions extract directly
-                    format!("Godot_v{}_{}", version_part, platform_suffix)
+                    format!("Godot_v{version_part}_{platform_suffix}")
                 }
             }
             _ => {
@@ -197,9 +197,9 @@ impl GodotVersion {
         };
 
         if self.is_dotnet {
-            format!("Godot_v{}_mono_{}.zip", version_part, platform_suffix)
+            format!("Godot_v{version_part}_mono_{platform_suffix}.zip")
         } else {
-            format!("Godot_v{}_{}.zip", version_part, platform_suffix)
+            format!("Godot_v{version_part}_{platform_suffix}.zip")
         }
     }
 
@@ -296,8 +296,7 @@ mod tests {
         ];
         assert!(
             valid_suffixes.contains(&suffix),
-            "Got unexpected suffix: {}",
-            suffix
+            "Got unexpected suffix: {suffix}"
         );
     }
 
