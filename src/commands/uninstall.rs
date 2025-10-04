@@ -29,7 +29,7 @@ impl UninstallCommand {
         // Check if the version is installed
         let installed_versions = installer.list_installed()?;
         if !installed_versions.contains(&target_version) {
-            ui::warning(&format!("Godot v{} is not installed", target_version));
+            ui::warning(&format!("Godot v{target_version} is not installed"));
             return Ok(());
         }
 
@@ -39,16 +39,14 @@ impl UninstallCommand {
 
         if is_active {
             ui::warning(&format!(
-                "Godot v{} is currently the active version",
-                target_version
+                "Godot v{target_version} is currently the active version"
             ));
         }
 
         // Confirmation prompt
         if !self.yes {
             print!(
-                "Are you sure you want to uninstall Godot v{}? [y/N]: ",
-                target_version
+                "Are you sure you want to uninstall Godot v{target_version}? [y/N]: "
             );
             io::stdout().flush()?;
 
@@ -71,7 +69,7 @@ impl UninstallCommand {
             if !remaining_versions.is_empty() {
                 ui::info("Available versions to switch to:");
                 for version in &remaining_versions {
-                    println!("  • {}", version);
+                    println!("  • {version}");
                 }
                 ui::info("Use 'gdenv use <version>' to set a new active version");
                 ui::info("Use 'gdenv installed' to see all remaining versions");

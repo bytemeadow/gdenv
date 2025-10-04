@@ -95,7 +95,7 @@ impl Installer {
                     let mut perms = fs::metadata(&path)?.permissions();
                     perms.set_mode(perms.mode() | 0o755); // Add execute permissions
                     fs::set_permissions(&path, perms)?;
-                    ui::info(&format!("Made {} executable", name));
+                    ui::info(&format!("Made {name} executable"));
                 }
             }
         }
@@ -110,12 +110,12 @@ impl Installer {
             .join(version.installation_name());
 
         if !install_path.exists() {
-            ui::warning(&format!("Godot v{} is not installed", version));
+            ui::warning(&format!("Godot v{version} is not installed"));
             return Ok(());
         }
 
         fs::remove_dir_all(&install_path)?;
-        ui::success(&format!("Uninstalled Godot v{}", version));
+        ui::success(&format!("Uninstalled Godot v{version}"));
 
         Ok(())
     }
@@ -158,7 +158,7 @@ impl Installer {
         self.create_executable_symlink(&install_path, version)?;
 
         if show_message {
-            ui::success(&format!("Switched to Godot v{}", version));
+            ui::success(&format!("Switched to Godot v{version}"));
         }
 
         Ok(())
@@ -216,8 +216,7 @@ impl Installer {
 
         // If the expected path doesn't work, fall back to searching
         ui::warning(&format!(
-            "Expected executable at {} not found, searching...",
-            expected_path
+            "Expected executable at {expected_path} not found, searching..."
         ));
 
         #[cfg(target_os = "macos")]
@@ -232,12 +231,12 @@ impl Installer {
         #[cfg(target_os = "windows")]
         {
             // On Windows, look for .exe files
-            for entry in fs::read_dir(install_path)? {
+            for entry in WalkDir::new(install_path).max_depth(2) {
                 let entry = entry?;
                 let path = entry.path();
                 if let Some(name) = path.file_name().and_then(|n| n.to_str()) {
                     if name.starts_with("Godot") && name.ends_with(".exe") {
-                        return Ok(path);
+                        return Ok(path.into());
                     }
                 }
             }
@@ -246,7 +245,7 @@ impl Installer {
         #[cfg(target_os = "linux")]
         {
             // On Linux, look for executable files starting with Godot
-            for entry in fs::read_dir(install_path)? {
+            for entry in WalkDir::new(install_path).max_depth(2) {
                 let entry = entry?;
                 let path = entry.path();
                 if let Some(name) = path.file_name().and_then(|n| n.to_str()) {
@@ -257,7 +256,7 @@ impl Installer {
                         let metadata = fs::metadata(&path)?;
                         let permissions = metadata.permissions();
                         if permissions.mode() & 0o111 != 0 {
-                            return Ok(path);
+                            return Ok(path.into());
                         }
                     }
                 }

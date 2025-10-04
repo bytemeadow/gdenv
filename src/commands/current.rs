@@ -21,7 +21,7 @@ impl CurrentCommand {
                 if self.path {
                     println!("{}", config.active_symlink.display());
                 } else {
-                    ui::success(&format!("Active Godot version: {}", version));
+                    ui::success(&format!("Active Godot version: {version}"));
                     ui::info(&format!("Location: {}", config.active_symlink.display()));
 
                     // Show executable path info
@@ -54,7 +54,7 @@ fn show_path_instructions(bin_dir: &Path) {
     #[cfg(not(target_os = "windows"))]
     {
         let bin_path = bin_dir.display();
-        ui::info(&format!("  export PATH=\"{}:$PATH\"", bin_path));
+        ui::info(&format!("  export PATH=\"{bin_path}:$PATH\""));
         ui::info("");
         ui::info("To add it to your shell profile, run:");
 
@@ -62,30 +62,26 @@ fn show_path_instructions(bin_dir: &Path) {
         if let Ok(shell) = std::env::var("SHELL") {
             if shell.contains("zsh") {
                 ui::info(&format!(
-                    "  echo 'export PATH=\"{}:$PATH\"' >> ~/.zshrc",
-                    bin_path
+                    "  echo 'export PATH=\"{bin_path}:$PATH\"' >> ~/.zshrc"
                 ));
                 ui::info("Then restart your shell or run: source ~/.zshrc");
             } else if shell.contains("bash") {
                 ui::info(&format!(
-                    "  echo 'export PATH=\"{}:$PATH\"' >> ~/.bashrc",
-                    bin_path
+                    "  echo 'export PATH=\"{bin_path}:$PATH\"' >> ~/.bashrc"
                 ));
                 ui::info("Then restart your shell or run: source ~/.bashrc");
             } else if shell.contains("fish") {
-                ui::info(&format!("  fish_add_path \"{}\"", bin_path));
+                ui::info(&format!("  fish_add_path \"{bin_path}\""));
                 ui::info("Then restart your shell");
             } else {
                 ui::info(&format!(
-                    "  echo 'export PATH=\"{}:$PATH\"' >> ~/.bashrc  # or ~/.zshrc",
-                    bin_path
+                    "  echo 'export PATH=\"{bin_path}:$PATH\"' >> ~/.bashrc  # or ~/.zshrc"
                 ));
                 ui::info("Then restart your shell or run: source ~/.bashrc");
             }
         } else {
             ui::info(&format!(
-                "  echo 'export PATH=\"{}:$PATH\"' >> ~/.bashrc  # or ~/.zshrc",
-                bin_path
+                "  echo 'export PATH=\"{bin_path}:$PATH\"' >> ~/.bashrc  # or ~/.zshrc"
             ));
             ui::info("Then restart your shell or run: source ~/.bashrc");
         }

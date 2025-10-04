@@ -32,10 +32,28 @@ impl GitHubRelease {
             ("windows", "x86_64") => vec!["win64"],
             ("windows", "x86") => vec!["win32", "win64"], // Fallback to 64-bit if 32-bit not available
             ("macos", _) => vec!["macos"],                // macOS universal binaries
-            ("linux", "x86_64") => vec!["linux.x86_64", "linux"], // Prefer specific, fallback to generic
-            ("linux", "x86") => vec!["linux.x86_32", "linux.x86_64", "linux"],
-            ("linux", "arm") => vec!["linux.arm32", "linux.arm64", "linux"], // ARM32 preferred, but ARM64 compatible
-            ("linux", "aarch64") => vec!["linux.arm64", "linux.x86_64", "linux"], // ARM64 preferred
+            ("linux", "x86_64") => vec!["linux.x86_64", "linux_x86_64", "linux"], // Prefer specific, fallback to generic
+            ("linux", "x86") => vec![
+                "linux.x86_32",
+                "linux_x86_32",
+                "linux.x86_64",
+                "linux_x86_64",
+                "linux",
+            ],
+            ("linux", "arm") => vec![
+                "linux.arm32",
+                "linux_arm32",
+                "linux.arm64",
+                "linux_arm64",
+                "linux",
+            ], // ARM32 preferred, but ARM64 compatible
+            ("linux", "aarch64") => vec![
+                "linux.arm64",
+                "linux_arm64",
+                "linux.x86_64",
+                "linux_x86_64",
+                "linux",
+            ], // ARM64 preferred
             // Fallbacks
             ("windows", _) => vec!["win64", "win32"],
             ("linux", _) => vec!["linux.x86_64", "linux"],
@@ -194,8 +212,7 @@ mod tests {
         let has_valid_pattern = patterns.iter().any(|p| valid_patterns.contains(p));
         assert!(
             has_valid_pattern,
-            "No valid patterns found in: {:?}",
-            patterns
+            "No valid patterns found in: {patterns:?}"
         );
     }
 
@@ -214,7 +231,7 @@ mod tests {
                 size: 1000,
             },
             GitHubAsset {
-                name: "Godot_v4.2.1-stable_mono_linux.x86_64.zip".to_string(),
+                name: "Godot_v4.2.1-stable_mono_linux_x86_64.zip".to_string(),
                 browser_download_url: "https://example.com/mono-linux".to_string(),
                 size: 1000,
             },

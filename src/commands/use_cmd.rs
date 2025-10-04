@@ -34,11 +34,11 @@ impl UseCommand {
         // Check if the version is installed
         let installed_versions = installer.list_installed()?;
         if !installed_versions.contains(&target_version) {
-            ui::error(&format!("Godot v{} is not installed", target_version));
+            ui::error(&format!("Godot v{target_version} is not installed"));
             ui::info("Available installed versions:");
 
             for version in &installed_versions {
-                println!("  • {}", version);
+                println!("  • {version}");
             }
 
             if installed_versions.is_empty() {
@@ -77,7 +77,7 @@ impl UseCommand {
             return Err(anyhow!(".godot-version file is empty"));
         }
 
-        ui::info(&format!("Reading version from .godot-version: {}", version));
+        ui::info(&format!("Reading version from .godot-version: {version}"));
 
         Ok(version.to_string())
     }
