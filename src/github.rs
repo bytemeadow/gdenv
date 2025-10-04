@@ -33,9 +33,27 @@ impl GitHubRelease {
             ("windows", "x86") => vec!["win32", "win64"], // Fallback to 64-bit if 32-bit not available
             ("macos", _) => vec!["macos"],                // macOS universal binaries
             ("linux", "x86_64") => vec!["linux.x86_64", "linux_x86_64", "linux"], // Prefer specific, fallback to generic
-            ("linux", "x86") => vec!["linux.x86_32", "linux_x86_32", "linux.x86_64", "linux_x86_64", "linux"],
-            ("linux", "arm") => vec!["linux.arm32", "linux_arm32", "linux.arm64", "linux_arm64", "linux"], // ARM32 preferred, but ARM64 compatible
-            ("linux", "aarch64") => vec!["linux.arm64", "linux_arm64", "linux.x86_64", "linux_x86_64", "linux"], // ARM64 preferred
+            ("linux", "x86") => vec![
+                "linux.x86_32",
+                "linux_x86_32",
+                "linux.x86_64",
+                "linux_x86_64",
+                "linux",
+            ],
+            ("linux", "arm") => vec![
+                "linux.arm32",
+                "linux_arm32",
+                "linux.arm64",
+                "linux_arm64",
+                "linux",
+            ], // ARM32 preferred, but ARM64 compatible
+            ("linux", "aarch64") => vec![
+                "linux.arm64",
+                "linux_arm64",
+                "linux.x86_64",
+                "linux_x86_64",
+                "linux",
+            ], // ARM64 preferred
             // Fallbacks
             ("windows", _) => vec!["win64", "win32"],
             ("linux", _) => vec!["linux.x86_64", "linux"],
