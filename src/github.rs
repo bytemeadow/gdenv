@@ -1,12 +1,14 @@
+use crate::godot_version::GodotVersion;
 use anyhow::{anyhow, Result};
 use chrono::{DateTime, Utc};
 use indicatif::{ProgressBar, ProgressStyle};
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
-use std::path::Path;
+use std::cmp::Ordering;
+use std::path::{Path, PathBuf};
 use tokio::io::AsyncWriteExt;
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
 pub struct GitHubRelease {
     pub tag_name: String,
     pub name: String,
@@ -15,7 +17,7 @@ pub struct GitHubRelease {
     pub assets: Vec<GitHubAsset>,
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
 pub struct GitHubAsset {
     pub name: String,
     pub browser_download_url: String,
@@ -113,28 +115,175 @@ impl GitHubClient {
 
     pub async fn get_godot_releases(
         &self,
+        force_refresh: bool,
         include_prereleases: bool,
     ) -> Result<Vec<GitHubRelease>> {
-        let url = format!("{}/repos/godotengine/godot-builds/releases", self.api_url);
+        let cache_file = self.get_cache_path();
 
-        println!("🔍 Fetching available Godot versions...");
-
-        let response = self.client.get(&url).send().await?;
-
-        if !response.status().is_success() {
-            return Err(anyhow!("GitHub API request failed: {}", response.status()));
+        if !force_refresh && self.is_cache_valid(&cache_file) {
+            if let Ok(releases) = self.load_cache(&cache_file) {
+                let mut filtered = releases;
+                if !include_prereleases {
+                    filtered.retain(|r| !r.prerelease);
+                }
+                return Ok(filtered);
+            }
         }
 
-        let mut releases: Vec<GitHubRelease> = response.json().await?;
+        let result = self.fetch_all_releases_from_api().await;
 
-        if !include_prereleases {
-            releases.retain(|r| !r.prerelease);
+        match result {
+            Ok(releases) => {
+                let mut sorted_releases = releases;
+                sorted_releases.sort_by(|a, b| {
+                    let v_a = GodotVersion::parse(&a.tag_name);
+                    let v_b = GodotVersion::parse(&b.tag_name);
+                    match (v_a, v_b) {
+                        (Some(a), Some(b)) => a.cmp(&b),
+                        (Some(_), None) => Ordering::Greater,
+                        (None, Some(_)) => Ordering::Less,
+                        (None, None) => a.published_at.cmp(&b.published_at),
+                    }
+                });
+
+                if let Err(e) = self.save_cache(&cache_file, &sorted_releases) {
+                    eprintln!("⚠️ Failed to save releases cache: {}", e);
+                }
+
+                let mut filtered = sorted_releases;
+                if !include_prereleases {
+                    filtered.retain(|r| !r.prerelease);
+                }
+                Ok(filtered)
+            }
+            Err(e) => {
+                if cache_file.exists() {
+                    eprintln!(
+                        "⚠️ Failed to fetch from GitHub: {}. Using expired cache.",
+                        e
+                    );
+                    let mut releases = self.load_cache(&cache_file)?;
+                    if !include_prereleases {
+                        releases.retain(|r| !r.prerelease);
+                    }
+                    Ok(releases)
+                } else {
+                    Err(e)
+                }
+            }
+        }
+    }
+
+    async fn fetch_all_releases_from_api(&self) -> Result<Vec<GitHubRelease>> {
+        let mut releases = Vec::new();
+        let mut next_url = Some(format!(
+            "{}/repos/godotengine/godot-builds/releases?per_page=100",
+            self.api_url
+        ));
+
+        let pb = ProgressBar::new_spinner();
+        pb.set_style(
+            ProgressStyle::default_spinner()
+                .template("{spinner:.green} {msg}")
+                .unwrap(),
+        );
+        pb.set_message("Fetching Godot releases from GitHub...");
+        pb.enable_steady_tick(std::time::Duration::from_millis(120));
+
+        while let Some(url) = next_url {
+            let response = self.client.get(&url).send().await?;
+
+            if !response.status().is_success() {
+                return Err(anyhow!("GitHub API request failed: {}", response.status()));
+            }
+
+            let link_header = response
+                .headers()
+                .get("link")
+                .and_then(|h| h.to_str().ok())
+                .map(|s| s.to_string());
+
+            let page_releases: Vec<GitHubRelease> = response.json().await?;
+            releases.extend(page_releases);
+
+            if releases.len() >= 1000 {
+                break;
+            }
+
+            next_url = link_header.and_then(|h| self.parse_next_link(&h));
         }
 
-        // Sort by published date (newest first)
-        releases.sort_by(|a, b| b.published_at.cmp(&a.published_at));
+        pb.finish_and_clear();
+        Ok(releases)
+    }
+
+    fn parse_next_link(&self, link_header: &str) -> Option<String> {
+        for part in link_header.split(',') {
+            if part.contains("rel=\"next\"") {
+                return part
+                    .split(';')
+                    .next()
+                    .map(|s| s.trim().trim_matches(|c| c == '<' || c == '>').to_string());
+            }
+        }
+        None
+    }
+
+    fn get_cache_path(&self) -> PathBuf {
+        let data_dir = dirs::data_dir()
+            .unwrap_or_else(|| dirs::home_dir().unwrap_or_default().join(".local/share"))
+            .join("gdenv")
+            .join("cache");
+        data_dir.join("releases.json")
+    }
+
+    fn is_cache_valid(&self, path: &Path) -> bool {
+        if !path.exists() {
+            return false;
+        }
+
+        if let Ok(metadata) = std::fs::metadata(path) {
+            if let Ok(modified) = metadata.modified() {
+                let now = std::time::SystemTime::now();
+                if let Ok(duration) = now.duration_since(modified) {
+                    // 6 months is roughly 180 days
+                    return duration.as_secs() < 180 * 24 * 60 * 60;
+                }
+            }
+        }
+        false
+    }
+
+    fn load_cache(&self, path: &Path) -> Result<Vec<GitHubRelease>> {
+        let content = std::fs::read_to_string(path)?;
+        let releases: Vec<GitHubRelease> = serde_json::from_str(&content)?;
+
+        if let Ok(metadata) = std::fs::metadata(path) {
+            if let Ok(modified) = metadata.modified() {
+                let datetime: DateTime<Utc> = modified.into();
+                let local_time = datetime.with_timezone(&chrono::Local);
+
+                let now = chrono::Local::now();
+                let days_ago = (now.signed_duration_since(local_time).num_days()).max(0);
+
+                println!(
+                    "✨ Releases cache last updated: {} ({} days ago)",
+                    local_time.format("%Y-%m-%d %I:%M%P"),
+                    days_ago
+                );
+            }
+        }
 
         Ok(releases)
+    }
+
+    fn save_cache(&self, path: &Path, releases: &[GitHubRelease]) -> Result<()> {
+        if let Some(parent) = path.parent() {
+            std::fs::create_dir_all(parent)?;
+        }
+        let content = serde_json::to_string_pretty(releases)?;
+        std::fs::write(path, content)?;
+        Ok(())
     }
 
     pub async fn download_asset_with_progress(
@@ -301,5 +450,39 @@ mod tests {
         };
 
         assert_eq!(release_v.version(), Some("4.3.0-beta2".to_string()));
+    }
+
+    #[test]
+    fn test_version_sorting() {
+        let v1 = GodotVersion::parse("3.5.3-stable").unwrap();
+        let v2 = GodotVersion::parse("4.0-alpha1").unwrap();
+        let v3 = GodotVersion::parse("4.0-beta1").unwrap();
+        let v4 = GodotVersion::parse("4.0-rc1").unwrap();
+        let v5 = GodotVersion::parse("4.0-stable").unwrap();
+        let v6 = GodotVersion::parse("4.1-stable").unwrap();
+        let v7 = GodotVersion::parse("4.2-dev1").unwrap();
+        let v8 = GodotVersion::parse("4.2").unwrap();
+
+        assert!(v1 < v2);
+        assert!(v2 < v3);
+        assert!(v3 < v4);
+        assert!(v4 < v5);
+        assert!(v5 < v6);
+        assert!(v7 > v6);
+        assert!(v8 > v7);
+
+        let mut versions = vec![
+            v6.clone(),
+            v1.clone(),
+            v5.clone(),
+            v3.clone(),
+            v2.clone(),
+            v4.clone(),
+            v7.clone(),
+            v8.clone(),
+        ];
+        versions.sort();
+
+        assert_eq!(versions, vec![v1, v2, v3, v4, v5, v6, v7, v8]);
     }
 }

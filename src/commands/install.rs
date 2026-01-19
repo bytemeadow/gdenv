@@ -42,21 +42,22 @@ impl InstallCommand {
                     || v.contains("-dev")
             });
         let releases = github_client
-            .get_godot_releases(include_prereleases)
+            .get_godot_releases(false, include_prereleases)
             .await?;
 
         // Get the version to install
         let version_string = if self.latest {
-            // Find latest stable release
+            // Find latest stable release (last one since it's sorted ascending)
             releases
                 .iter()
-                .find(|r| !r.prerelease)
+                .filter(|r| !r.prerelease)
+                .last()
                 .and_then(|r| r.version())
                 .ok_or_else(|| anyhow!("No stable releases found"))?
         } else if self.latest_prerelease {
             // Find latest release (including prereleases)
             releases
-                .first()
+                .last()
                 .and_then(|r| r.version())
                 .ok_or_else(|| anyhow!("No releases found"))?
         } else {
