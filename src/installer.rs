@@ -245,7 +245,7 @@ impl Installer {
         #[cfg(target_os = "linux")]
         {
             // On Linux, look for executable files starting with Godot
-            for entry in WalkDir::new(install_path).max_depth(2) {
+            for entry in walkdir::WalkDir::new(install_path).max_depth(2) {
                 let entry = entry?;
                 let path = entry.path();
                 if let Some(name) = path.file_name().and_then(|n| n.to_str()) {
