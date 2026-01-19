@@ -1,4 +1,4 @@
-use crate::godot_version::GodotVersion;
+use crate::godot::GodotVersion;
 use anyhow::{anyhow, Result};
 use chrono::{DateTime, Utc};
 use indicatif::{ProgressBar, ProgressStyle};
@@ -135,8 +135,8 @@ impl GitHubClient {
             Ok(releases) => {
                 let mut sorted_releases = releases;
                 sorted_releases.sort_by(|a, b| {
-                    let v_a = GodotVersion::parse(&a.tag_name);
-                    let v_b = GodotVersion::parse(&b.tag_name);
+                    let v_a = GodotVersion::new(&a.tag_name, false).ok();
+                    let v_b = GodotVersion::new(&b.tag_name, false).ok();
                     match (v_a, v_b) {
                         (Some(a), Some(b)) => a.cmp(&b),
                         (Some(_), None) => Ordering::Greater,
@@ -232,6 +232,7 @@ impl GitHubClient {
         data_dir.join("releases.json")
     }
 
+    /// A cache file is valid if it exists and was modified less than 6 months ago.
     fn is_cache_valid(&self, path: &Path) -> bool {
         if !path.exists() {
             return false;
@@ -259,7 +260,7 @@ impl GitHubClient {
                 let local_time = datetime.with_timezone(&chrono::Local);
 
                 let now = chrono::Local::now();
-                let days_ago = (now.signed_duration_since(local_time).num_days()).max(0);
+                let days_ago = now.signed_duration_since(local_time).num_days().max(0);
 
                 println!(
                     "✨ Releases cache last updated: {} ({} days ago)",
@@ -300,8 +301,7 @@ impl GitHubClient {
         let pb = ProgressBar::new(total_size);
         pb.set_style(
             ProgressStyle::default_bar()
-                .template("{spinner:.green} [{elapsed_precise}] [{wide_bar:.cyan/blue}] {bytes}/{total_bytes} ({bytes_per_sec}, {eta})")
-                .unwrap()
+                .template("{spinner:.green} [{elapsed_precise}] [{wide_bar:.cyan/blue}] {bytes}/{total_bytes} ({bytes_per_sec}, {eta})")?
                 .progress_chars("#>-"),
         );
 
@@ -404,7 +404,7 @@ mod tests {
         let release = GitHubRelease {
             tag_name: "4.2.1-stable".to_string(),
             name: "Godot 4.2.1".to_string(),
-            published_at: chrono::Utc::now(),
+            published_at: Utc::now(),
             prerelease: false,
             assets,
         };
@@ -428,7 +428,7 @@ mod tests {
         let release = GitHubRelease {
             tag_name: "4.2.1-stable".to_string(),
             name: "Godot 4.2.1".to_string(),
-            published_at: chrono::Utc::now(),
+            published_at: Utc::now(),
             prerelease: false,
             assets: vec![],
         };
@@ -439,7 +439,7 @@ mod tests {
         let release_v = GitHubRelease {
             tag_name: "v4.3.0-beta2".to_string(),
             name: "Godot 4.3.0 Beta 2".to_string(),
-            published_at: chrono::Utc::now(),
+            published_at: Utc::now(),
             prerelease: true,
             assets: vec![],
         };
@@ -449,14 +449,14 @@ mod tests {
 
     #[test]
     fn test_version_sorting() {
-        let v1 = GodotVersion::parse("3.5.3-stable").unwrap();
-        let v2 = GodotVersion::parse("4.0-alpha1").unwrap();
-        let v3 = GodotVersion::parse("4.0-beta1").unwrap();
-        let v4 = GodotVersion::parse("4.0-rc1").unwrap();
-        let v5 = GodotVersion::parse("4.0-stable").unwrap();
-        let v6 = GodotVersion::parse("4.1-stable").unwrap();
-        let v7 = GodotVersion::parse("4.2-dev1").unwrap();
-        let v8 = GodotVersion::parse("4.2").unwrap();
+        let v1 = GodotVersion::new("3.5.3-stable", false).unwrap();
+        let v2 = GodotVersion::new("4.0-alpha1", false).unwrap();
+        let v3 = GodotVersion::new("4.0-beta1", false).unwrap();
+        let v4 = GodotVersion::new("4.0-rc1", false).unwrap();
+        let v5 = GodotVersion::new("4.0-stable", false).unwrap();
+        let v6 = GodotVersion::new("4.1-stable", false).unwrap();
+        let v7 = GodotVersion::new("4.2-dev1", false).unwrap();
+        let v8 = GodotVersion::new("4.2", false).unwrap();
 
         assert!(v1 < v2);
         assert!(v2 < v3);

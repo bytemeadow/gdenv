@@ -40,9 +40,6 @@ zip = "0.6"
 anyhow = "1.0"
 thiserror = "1.0"
 
-# Version parsing
-semver = { version = "1.0", features = ["serde"] }
-
 # Date/time handling
 chrono = { version = "0.4", features = ["serde"] }
 

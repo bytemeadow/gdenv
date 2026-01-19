@@ -1,13 +1,109 @@
-use anyhow::Result;
-use semver::Version;
+use anyhow::{anyhow, Result};
 use serde::{Deserialize, Serialize};
+use std::cmp::Ordering;
 use std::fmt;
 use std::str::FromStr;
 
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
+pub enum PreReleaseTag {
+    Dev(u32),
+    Alpha(u32),
+    Beta(u32),
+    Rc(u32),
+    Stable,
+    Unknown(String),
+}
+
+impl PreReleaseTag {
+    pub fn new(version_str: &str) -> Result<Self> {
+        let parts: Vec<&str> = version_str.split('-').collect();
+        if parts.len() > 1 {
+            let pre = parts[1].to_lowercase();
+            if pre.contains("stable") {
+                Ok(PreReleaseTag::Stable)
+            } else if pre.contains("rc") {
+                Ok(PreReleaseTag::Rc(Self::extract_num(&pre, "rc")))
+            } else if pre.contains("beta") {
+                Ok(PreReleaseTag::Beta(Self::extract_num(&pre, "beta")))
+            } else if pre.contains("alpha") {
+                Ok(PreReleaseTag::Alpha(Self::extract_num(&pre, "alpha")))
+            } else if pre.contains("dev") {
+                Ok(PreReleaseTag::Dev(Self::extract_num(&pre, "dev")))
+            } else {
+                Ok(PreReleaseTag::Unknown(pre.to_string()))
+            }
+        } else {
+            Ok(PreReleaseTag::Stable)
+        }
+    }
+
+    pub fn rank(&self) -> u32 {
+        match self {
+            PreReleaseTag::Unknown(_) => 0,
+            PreReleaseTag::Dev(_) => 1,
+            PreReleaseTag::Alpha(_) => 2,
+            PreReleaseTag::Beta(_) => 3,
+            PreReleaseTag::Rc(_) => 4,
+            PreReleaseTag::Stable => 5,
+        }
+    }
+
+    fn extract_num(s: &str, prefix: &str) -> u32 {
+        if let Some(pos) = s.find(prefix) {
+            let num_str = &s[pos + prefix.len()..];
+            // Remove any dots before parsing, e.g., ".1" -> "1"
+            let num_str = num_str.trim_start_matches('.');
+            num_str.parse().ok().unwrap_or(0)
+        } else {
+            0
+        }
+    }
+}
+
+impl PartialOrd for PreReleaseTag {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for PreReleaseTag {
+    fn cmp(&self, other: &Self) -> Ordering {
+        match self.rank().cmp(&other.rank()) {
+            Ordering::Equal => match (self, other) {
+                (PreReleaseTag::Dev(a), PreReleaseTag::Dev(b)) => a.cmp(b),
+                (PreReleaseTag::Alpha(a), PreReleaseTag::Alpha(b)) => a.cmp(b),
+                (PreReleaseTag::Beta(a), PreReleaseTag::Beta(b)) => a.cmp(b),
+                (PreReleaseTag::Rc(a), PreReleaseTag::Rc(b)) => a.cmp(b),
+                _ => Ordering::Equal,
+            },
+            ord => ord,
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct GodotVersion {
-    pub version: Version,
+    pub major: u32,
+    pub minor: u32,
+    pub patch: u32,
+    pub pre_release: PreReleaseTag,
     pub is_dotnet: bool,
+}
+
+impl PartialOrd for GodotVersion {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for GodotVersion {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.major
+            .cmp(&other.major)
+            .then(self.minor.cmp(&other.minor))
+            .then(self.patch.cmp(&other.patch))
+            .then(self.pre_release.cmp(&other.pre_release))
+    }
 }
 
 impl GodotVersion {
@@ -31,102 +127,73 @@ impl GodotVersion {
         }
     }
     pub fn new(version_str: &str, is_dotnet: bool) -> Result<Self> {
-        let normalized = Self::normalize_version_string(version_str)?;
-        let version = Version::parse(&normalized)?;
-        Ok(Self { version, is_dotnet })
-    }
+        let tag = version_str.strip_prefix('v').unwrap_or(version_str);
+        let parts: Vec<&str> = tag.split('-').collect();
+        let version_part = parts[0];
 
-    /// Normalize Godot version strings to be semver compatible
-    /// Examples:
-    /// - "4.2.1" -> "4.2.1"
-    /// - "4.3.0-beta2" -> "4.3.0-beta.2"
-    /// - "4.1.0-rc.1" -> "4.1.0-rc.1"
-    /// - "4.2.1-stable" -> "4.2.1"
-    fn normalize_version_string(version_str: &str) -> Result<String> {
-        let version_str = version_str.trim();
+        let mut nums = version_part.split('.');
+        let major = nums
+            .next()
+            .and_then(|n| n.parse().ok())
+            .ok_or_else(|| anyhow!("Invalid major version"))?;
+        let minor = nums.next().and_then(|n| n.parse().ok()).unwrap_or(0);
+        let patch = nums.next().and_then(|n| n.parse().ok()).unwrap_or(0);
 
-        // Remove common suffixes that aren't standard semver
-        let cleaned = version_str.strip_suffix("-stable").unwrap_or(version_str);
+        let pre_release = PreReleaseTag::new(version_str)?;
 
-        // Handle short versions like "4.3" -> "4.3.0" or "4.5-beta1" -> "4.5.0-beta1"
-        let parts: Vec<&str> = cleaned.split('.').collect();
-        let cleaned = if parts.len() == 2 {
-            // Check if the second part is numeric or starts with a number followed by a prerelease
-            let second_part = parts[1];
-            if second_part.chars().all(|c| c.is_numeric()) {
-                // Simple case: "4.3" -> "4.3.0"
-                format!("{cleaned}.0")
-            } else if second_part.chars().next().is_some_and(|c| c.is_numeric()) {
-                // Complex case: "4.5-beta1" -> "4.5.0-beta1"
-                if let Some(dash_pos) = second_part.find('-') {
-                    let (num_part, prerelease_part) = second_part.split_at(dash_pos);
-                    if num_part.chars().all(|c| c.is_numeric()) {
-                        format!("{}.{}.0{}", parts[0], num_part, prerelease_part)
-                    } else {
-                        cleaned.to_string()
-                    }
-                } else {
-                    cleaned.to_string()
-                }
-            } else {
-                cleaned.to_string()
-            }
-        } else {
-            cleaned.to_string()
-        };
-
-        // Handle beta/rc versions to be semver compatible
-        if cleaned.contains("-beta") && !cleaned.contains("-beta.") {
-            // Convert "4.3.0-beta2" to "4.3.0-beta.2"
-            if let Some((base, beta_part)) = cleaned.split_once("-beta") {
-                if let Ok(beta_num) = beta_part.parse::<u32>() {
-                    return Ok(format!("{base}-beta.{beta_num}"));
-                } else if beta_part.is_empty() {
-                    return Ok(format!("{base}-beta"));
-                }
-            }
-        }
-
-        if cleaned.contains("-rc") && !cleaned.contains("-rc.") {
-            // Convert "4.1.0-rc1" to "4.1.0-rc.1"
-            if let Some((base, rc_part)) = cleaned.split_once("-rc") {
-                if let Ok(rc_num) = rc_part.parse::<u32>() {
-                    return Ok(format!("{base}-rc.{rc_num}"));
-                } else if rc_part.is_empty() {
-                    return Ok(format!("{base}-rc"));
-                }
-            }
-        }
-
-        if cleaned.contains("-alpha") && !cleaned.contains("-alpha.") {
-            // Convert "4.3.0-alpha1" to "4.3.0-alpha.1"
-            if let Some((base, alpha_part)) = cleaned.split_once("-alpha") {
-                if let Ok(alpha_num) = alpha_part.parse::<u32>() {
-                    return Ok(format!("{base}-alpha.{alpha_num}"));
-                } else if alpha_part.is_empty() {
-                    return Ok(format!("{base}-alpha"));
-                }
-            }
-        }
-
-        Ok(cleaned.to_string())
+        Ok(GodotVersion {
+            major,
+            minor,
+            patch,
+            pre_release,
+            is_dotnet,
+        })
     }
 
     pub fn godot_version_string(&self) -> String {
-        // Convert back to Godot's preferred format
-        let version_str = self.version.to_string();
+        let base = if self.patch == 0 {
+            format!("{}.{}", self.major, self.minor)
+        } else {
+            format!("{}.{}.{}", self.major, self.minor, self.patch)
+        };
 
-        // Convert semver format back to Godot format for display
-        version_str
-            .replace("-beta.", "-beta")
-            .replace("-rc.", "-rc")
-            .replace("-alpha.", "-alpha")
+        match &self.pre_release {
+            PreReleaseTag::Stable => base,
+            PreReleaseTag::Dev(n) => {
+                if *n == 0 {
+                    format!("{}-dev", base)
+                } else {
+                    format!("{}-dev{}", base, n)
+                }
+            }
+            PreReleaseTag::Alpha(n) => {
+                if *n == 0 {
+                    format!("{}-alpha", base)
+                } else {
+                    format!("{}-alpha{}", base, n)
+                }
+            }
+            PreReleaseTag::Beta(n) => {
+                if *n == 0 {
+                    format!("{}-beta", base)
+                } else {
+                    format!("{}-beta{}", base, n)
+                }
+            }
+            PreReleaseTag::Rc(n) => {
+                if *n == 0 {
+                    format!("{}-rc", base)
+                } else {
+                    format!("{}-rc{}", base, n)
+                }
+            }
+            PreReleaseTag::Unknown(s) => format!("{}-{}", base, s),
+        }
     }
 
     /// Get the expected executable path within the extracted directory
     pub fn get_executable_path(&self) -> String {
         let os = std::env::consts::OS;
-        let _arch = std::env::consts::ARCH;
 
         match os {
             "macos" => {
@@ -137,8 +204,8 @@ impl GodotVersion {
                 }
             }
             "windows" => {
-                let version_part = if self.version.pre.is_empty() {
-                    format!("{}-stable", self.version)
+                let version_part = if matches!(self.pre_release, PreReleaseTag::Stable) {
+                    format!("{}-stable", self.godot_version_string())
                 } else {
                     self.godot_version_string()
                 };
@@ -153,8 +220,8 @@ impl GodotVersion {
                 }
             }
             "linux" => {
-                let version_part = if self.version.pre.is_empty() {
-                    format!("{}-stable", self.version)
+                let version_part = if matches!(self.pre_release, PreReleaseTag::Stable) {
+                    format!("{}-stable", self.godot_version_string())
                 } else {
                     self.godot_version_string()
                 };
@@ -190,8 +257,8 @@ impl GodotVersion {
     pub fn archive_name(&self) -> String {
         let platform_suffix = Self::get_platform_suffix();
 
-        let version_part = if self.version.pre.is_empty() {
-            format!("{}-stable", self.version)
+        let version_part = if matches!(self.pre_release, PreReleaseTag::Stable) {
+            format!("{}-stable", self.godot_version_string())
         } else {
             self.godot_version_string()
         };
@@ -205,7 +272,7 @@ impl GodotVersion {
 
     #[allow(dead_code)]
     pub fn is_prerelease(&self) -> bool {
-        !self.version.pre.is_empty()
+        !matches!(self.pre_release, PreReleaseTag::Stable)
     }
 }
 
@@ -246,12 +313,12 @@ mod tests {
 
         // Test beta versions
         let v3 = GodotVersion::new("4.3.0-beta2", false).unwrap();
-        assert_eq!(v3.godot_version_string(), "4.3.0-beta2");
+        assert_eq!(v3.godot_version_string(), "4.3-beta2");
         assert!(v3.is_prerelease());
 
         // Test rc versions
         let v4 = GodotVersion::new("4.1.0-rc.1", false).unwrap();
-        assert_eq!(v4.godot_version_string(), "4.1.0-rc1");
+        assert_eq!(v4.godot_version_string(), "4.1-rc1");
         assert!(v4.is_prerelease());
 
         // Test .NET versions
@@ -261,7 +328,7 @@ mod tests {
 
         // Test short prerelease versions like "4.5-beta1"
         let v6 = GodotVersion::new("4.5-beta1", false).unwrap();
-        assert_eq!(v6.godot_version_string(), "4.5.0-beta1");
+        assert_eq!(v6.godot_version_string(), "4.5-beta1");
         assert!(v6.is_prerelease());
     }
 
@@ -274,7 +341,7 @@ mod tests {
 
         let v2 = GodotVersion::new("4.3.0-beta2", true).unwrap();
         let archive = v2.archive_name();
-        assert!(archive.contains("Godot_v4.3.0-beta2_mono_"));
+        assert!(archive.contains("Godot_v4.3-beta2_mono_"));
         assert!(archive.ends_with(".zip"));
     }
 
