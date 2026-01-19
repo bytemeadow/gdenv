@@ -99,7 +99,7 @@ impl InstallCommand {
             .find(|r| {
                 if let Some(version) = r.version() {
                     // Try to match both the normalized version and the original input
-                    version == requested_version.godot_version_string() || version == version_string
+                    version == requested_version.as_str() || version == version_string
                 } else {
                     false
                 }
@@ -141,7 +141,7 @@ impl InstallCommand {
         } else {
             ui::info(&format!(
                 "Installation complete. Use 'gdenv use {}' to switch to this version.",
-                requested_version.godot_version_string()
+                requested_version.as_str()
             ));
         }
 

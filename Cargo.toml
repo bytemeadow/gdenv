@@ -36,6 +36,10 @@ dirs = "5.0"
 # Archive extraction
 zip = "0.6"
 
+# Regex for version parsing
+regex = "1.10"
+once_cell = "1.18"
+
 # Error handling
 anyhow = "1.0"
 thiserror = "1.0"
