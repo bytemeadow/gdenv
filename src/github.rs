@@ -1,3 +1,4 @@
+use crate::config::Config;
 use crate::godot_version::GodotVersion;
 use anyhow::{anyhow, Result};
 use chrono::{DateTime, Utc};
@@ -5,7 +6,7 @@ use indicatif::{ProgressBar, ProgressStyle};
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use std::cmp::Ordering;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use tokio::io::AsyncWriteExt;
 
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
@@ -112,65 +113,32 @@ impl GitHubClient {
         Self { client }
     }
 
-    pub async fn get_godot_releases(
-        &self,
-        force_refresh: bool,
-        include_prereleases: bool,
-    ) -> Result<Vec<GitHubRelease>> {
-        let cache_file = self.get_cache_path();
+    pub async fn get_godot_releases(&self, force_refresh: bool) -> Result<Vec<GitHubRelease>> {
+        let cache_file = Config::new()?.cache_dir.join("releases_cache.json");
 
         if !force_refresh && self.is_cache_valid(&cache_file) {
-            if let Ok(releases) = self.load_cache(&cache_file) {
-                let mut filtered = releases;
-                if !include_prereleases {
-                    filtered.retain(|r| !r.prerelease);
-                }
-                return Ok(filtered);
-            }
+            return self.load_cache(&cache_file);
         }
 
-        let result = self.fetch_all_releases_from_api().await;
+        let releases = self.fetch_all_releases_from_api().await?;
 
-        match result {
-            Ok(releases) => {
-                let mut sorted_releases = releases;
-                sorted_releases.sort_by(|a, b| {
-                    let v_a = GodotVersion::new(&a.tag_name, false).ok();
-                    let v_b = GodotVersion::new(&b.tag_name, false).ok();
-                    match (v_a, v_b) {
-                        (Some(a), Some(b)) => a.cmp(&b),
-                        (Some(_), None) => Ordering::Greater,
-                        (None, Some(_)) => Ordering::Less,
-                        (None, None) => a.published_at.cmp(&b.published_at),
-                    }
-                });
-
-                if let Err(e) = self.save_cache(&cache_file, &sorted_releases) {
-                    eprintln!("⚠️ Failed to save releases cache: {}", e);
-                }
-
-                let mut filtered = sorted_releases;
-                if !include_prereleases {
-                    filtered.retain(|r| !r.prerelease);
-                }
-                Ok(filtered)
+        let mut sorted_releases = releases;
+        sorted_releases.sort_by(|a, b| {
+            let v_a = GodotVersion::new(&a.tag_name, false).ok();
+            let v_b = GodotVersion::new(&b.tag_name, false).ok();
+            match (v_a, v_b) {
+                (Some(a), Some(b)) => a.cmp(&b),
+                (Some(_), None) => Ordering::Greater,
+                (None, Some(_)) => Ordering::Less,
+                (None, None) => a.published_at.cmp(&b.published_at),
             }
-            Err(e) => {
-                if cache_file.exists() {
-                    eprintln!(
-                        "⚠️ Failed to fetch from GitHub: {}. Using expired cache.",
-                        e
-                    );
-                    let mut releases = self.load_cache(&cache_file)?;
-                    if !include_prereleases {
-                        releases.retain(|r| !r.prerelease);
-                    }
-                    Ok(releases)
-                } else {
-                    Err(e)
-                }
-            }
+        });
+
+        if let Err(e) = self.save_cache(&cache_file, &sorted_releases) {
+            eprintln!("⚠️ Failed to save releases cache: {}", e);
         }
+
+        Ok(sorted_releases)
     }
 
     async fn fetch_all_releases_from_api(&self) -> Result<Vec<GitHubRelease>> {
@@ -222,14 +190,6 @@ impl GitHubClient {
             }
         }
         None
-    }
-
-    fn get_cache_path(&self) -> PathBuf {
-        let data_dir = dirs::data_dir()
-            .unwrap_or_else(|| dirs::home_dir().unwrap_or_default().join(".local/share"))
-            .join("gdenv")
-            .join("cache");
-        data_dir.join("releases.json")
     }
 
     /// A cache file is valid if it exists and was modified less than 6 months ago.

@@ -44,9 +44,8 @@ impl InstallCommand {
                     || v.contains("-alpha")
                     || v.contains("-dev")
             });
-        let releases = github_client
-            .get_godot_releases(false, include_prereleases)
-            .await?;
+        let mut releases = github_client.get_godot_releases(false).await?;
+        releases.retain(|r| include_prereleases || !r.prerelease);
 
         // Get the version to install
         let version_string = if self.latest {

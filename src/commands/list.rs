@@ -13,16 +13,9 @@ pub struct ListCommand {
 
 impl ListCommand {
     pub async fn run(self) -> Result<()> {
-        self.list_available_versions().await
-    }
-
-    async fn list_available_versions(&self) -> Result<()> {
-        ui::info("Fetching available Godot versions...");
-
         let github_client = GitHubClient::new();
-        let releases = github_client
-            .get_godot_releases(false, self.include_prereleases)
-            .await?;
+        let mut releases = github_client.get_godot_releases(false).await?;
+        releases.retain(|r| self.include_prereleases || !r.prerelease);
 
         println!("\n📋 Available Godot versions:");
 

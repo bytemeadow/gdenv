@@ -17,7 +17,7 @@ impl UpdateCommand {
         ui::info("Updating available Godot versions...");
 
         // Fetch releases from GitHub
-        let releases = github_client.get_godot_releases(true, true).await?;
+        let releases = github_client.get_godot_releases(true).await?;
 
         ui::success(&format!("Found {} Godot releases", releases.len()));
 
