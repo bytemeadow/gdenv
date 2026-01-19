@@ -1,4 +1,4 @@
-use crate::godot::GodotVersion;
+use crate::godot_version::GodotVersion;
 use anyhow::{anyhow, Result};
 use chrono::{DateTime, Utc};
 use indicatif::{ProgressBar, ProgressStyle};

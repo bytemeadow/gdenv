@@ -4,6 +4,7 @@ mod config;
 mod error;
 mod github;
 mod godot;
+mod godot_version;
 mod installer;
 mod ui;
 

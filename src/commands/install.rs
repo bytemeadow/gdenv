@@ -1,7 +1,10 @@
 use anyhow::{anyhow, Result};
 use clap::Args;
 
-use crate::{config::Config, github::GitHubClient, godot::GodotVersion, installer::Installer, ui};
+use crate::godot::godot_installation_name;
+use crate::{
+    config::Config, github::GitHubClient, godot_version::GodotVersion, installer::Installer, ui,
+};
 
 #[derive(Args)]
 pub struct InstallCommand {
@@ -86,7 +89,7 @@ impl InstallCommand {
         // Check if already installed (unless force flag is set)
         let install_path = config
             .installations_dir
-            .join(requested_version.installation_name());
+            .join(godot_installation_name(&requested_version));
         if install_path.exists() && !self.force {
             ui::warning(&format!("Godot v{requested_version} is already installed"));
             ui::info("Use --force to reinstall");

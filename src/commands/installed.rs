@@ -2,6 +2,7 @@ use anyhow::Result;
 use clap::Args;
 use colored::*;
 
+use crate::godot::godot_installation_name;
 use crate::{config::Config, installer::Installer, ui};
 
 #[derive(Args)]
@@ -40,7 +41,9 @@ impl InstalledCommand {
             };
 
             if self.path {
-                let install_path = config.installations_dir.join(version.installation_name());
+                let install_path = config
+                    .installations_dir
+                    .join(godot_installation_name(version));
                 println!("  {} {} -> {}", marker, version_str, install_path.display());
             } else {
                 println!("  {marker} {version_str}");

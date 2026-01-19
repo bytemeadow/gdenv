@@ -1,4 +1,5 @@
-use crate::{config::Config, godot::GodotVersion, ui};
+use crate::godot::{godot_executable_path, godot_installation_name};
+use crate::{config::Config, godot_version::GodotVersion, ui};
 use anyhow::Result;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -20,7 +21,7 @@ impl Installer {
         let install_path = self
             .config
             .installations_dir
-            .join(version.installation_name());
+            .join(godot_installation_name(version));
 
         // Remove existing installation if it exists
         if install_path.exists() {
@@ -107,7 +108,7 @@ impl Installer {
         let install_path = self
             .config
             .installations_dir
-            .join(version.installation_name());
+            .join(godot_installation_name(version));
 
         if !install_path.exists() {
             ui::warning(&format!("Godot v{version} is not installed"));
@@ -132,7 +133,7 @@ impl Installer {
         let install_path = self
             .config
             .installations_dir
-            .join(version.installation_name());
+            .join(godot_installation_name(version));
 
         if !install_path.exists() {
             return Err(anyhow::anyhow!("Godot v{} is not installed", version));
@@ -207,7 +208,7 @@ impl Installer {
         version: &GodotVersion,
     ) -> Result<PathBuf> {
         // First try the expected path based on version info
-        let expected_path = version.get_executable_path();
+        let expected_path = godot_executable_path(version);
         let expected_exe = install_path.join(&expected_path);
 
         if expected_exe.exists() && expected_exe.is_file() {

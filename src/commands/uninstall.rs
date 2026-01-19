@@ -2,7 +2,7 @@ use anyhow::Result;
 use clap::Args;
 use std::io::{self, Write};
 
-use crate::{config::Config, godot::GodotVersion, installer::Installer, ui};
+use crate::{config::Config, godot_version::GodotVersion, installer::Installer, ui};
 
 #[derive(Args)]
 pub struct UninstallCommand {
