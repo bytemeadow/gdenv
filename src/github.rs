@@ -100,17 +100,16 @@ impl GitHubRelease {
 
 pub struct GitHubClient {
     client: Client,
-    api_url: String,
 }
 
 impl GitHubClient {
-    pub fn new(api_url: String) -> Self {
+    pub fn new() -> Self {
         let client = Client::builder()
             .user_agent("gdenv/0.1.0")
             .build()
             .expect("Failed to create HTTP client");
 
-        Self { client, api_url }
+        Self { client }
     }
 
     pub async fn get_godot_releases(
@@ -176,17 +175,13 @@ impl GitHubClient {
 
     async fn fetch_all_releases_from_api(&self) -> Result<Vec<GitHubRelease>> {
         let mut releases = Vec::new();
-        let mut next_url = Some(format!(
-            "{}/repos/godotengine/godot-builds/releases?per_page=100",
-            self.api_url
-        ));
+        let mut next_url = Some(
+            "https://api.github.com/repos/godotengine/godot-builds/releases?per_page=100"
+                .to_string(),
+        );
 
         let pb = ProgressBar::new_spinner();
-        pb.set_style(
-            ProgressStyle::default_spinner()
-                .template("{spinner:.green} {msg}")
-                .unwrap(),
-        );
+        pb.set_style(ProgressStyle::default_spinner().template("{spinner:.green} {msg}")?);
         pb.set_message("Fetching Godot releases from GitHub...");
         pb.enable_steady_tick(std::time::Duration::from_millis(120));
 

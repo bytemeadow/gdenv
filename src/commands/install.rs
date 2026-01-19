@@ -29,7 +29,7 @@ pub struct InstallCommand {
 impl InstallCommand {
     pub async fn run(self) -> Result<()> {
         let config = Config::new()?;
-        let github_client = GitHubClient::new(config.github_api_url.clone());
+        let github_client = GitHubClient::new();
         let installer = Installer::new(config.clone());
 
         // Fetch available releases from GitHub first (needed for --latest flags)
@@ -50,8 +50,7 @@ impl InstallCommand {
             // Find latest stable release (last one since it's sorted ascending)
             releases
                 .iter()
-                .filter(|r| !r.prerelease)
-                .last()
+                .rfind(|r| !r.prerelease)
                 .and_then(|r| r.version())
                 .ok_or_else(|| anyhow!("No stable releases found"))?
         } else if self.latest_prerelease {
@@ -89,9 +88,7 @@ impl InstallCommand {
             .installations_dir
             .join(requested_version.installation_name());
         if install_path.exists() && !self.force {
-            ui::warning(&format!(
-                "Godot v{requested_version} is already installed"
-            ));
+            ui::warning(&format!("Godot v{requested_version} is already installed"));
             ui::info("Use --force to reinstall");
             return Ok(());
         }

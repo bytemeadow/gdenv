@@ -45,9 +45,7 @@ impl UninstallCommand {
 
         // Confirmation prompt
         if !self.yes {
-            print!(
-                "Are you sure you want to uninstall Godot v{target_version}? [y/N]: "
-            );
+            print!("Are you sure you want to uninstall Godot v{target_version}? [y/N]: ");
             io::stdout().flush()?;
 
             let mut input = String::new();

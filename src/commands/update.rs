@@ -1,7 +1,7 @@
 use anyhow::Result;
 use clap::Args;
 
-use crate::{config::Config, github::GitHubClient, ui};
+use crate::{github::GitHubClient, ui};
 
 #[derive(Args)]
 pub struct UpdateCommand {
@@ -12,8 +12,7 @@ pub struct UpdateCommand {
 
 impl UpdateCommand {
     pub async fn run(self) -> Result<()> {
-        let config = Config::new()?;
-        let github_client = GitHubClient::new(config.github_api_url);
+        let github_client = GitHubClient::new();
 
         ui::info("Updating available Godot versions...");
 

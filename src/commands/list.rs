@@ -2,7 +2,7 @@ use anyhow::Result;
 use clap::Args;
 use colored::*;
 
-use crate::{config::Config, github::GitHubClient, ui};
+use crate::{github::GitHubClient, ui};
 
 #[derive(Args)]
 pub struct ListCommand {
@@ -13,14 +13,13 @@ pub struct ListCommand {
 
 impl ListCommand {
     pub async fn run(self) -> Result<()> {
-        let config = Config::new()?;
-        self.list_available_versions(&config).await
+        self.list_available_versions().await
     }
 
-    async fn list_available_versions(&self, config: &Config) -> Result<()> {
+    async fn list_available_versions(&self) -> Result<()> {
         ui::info("Fetching available Godot versions...");
 
-        let github_client = GitHubClient::new(config.github_api_url.clone());
+        let github_client = GitHubClient::new();
         let releases = github_client
             .get_godot_releases(false, self.include_prereleases)
             .await?;

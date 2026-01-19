@@ -253,7 +253,7 @@ impl Installer {
                     if name.starts_with("Godot") && path.is_file() {
                         // Check if it's executable
                         use std::os::unix::fs::PermissionsExt;
-                        let metadata = fs::metadata(&path)?;
+                        let metadata = fs::metadata(path)?;
                         let permissions = metadata.permissions();
                         if permissions.mode() & 0o111 != 0 {
                             return Ok(path.into());

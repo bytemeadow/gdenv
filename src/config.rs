@@ -14,9 +14,6 @@ pub struct Config {
 
     /// Directory for executable symlinks (to be added to PATH)
     pub bin_dir: PathBuf,
-
-    /// GitHub API base URL
-    pub github_api_url: String,
 }
 
 impl Default for Config {
@@ -30,7 +27,6 @@ impl Default for Config {
             cache_dir: data_dir.join("cache"),
             active_symlink: data_dir.join("current"),
             bin_dir: data_dir.join("bin"),
-            github_api_url: "https://api.github.com".to_string(),
         }
     }
 }
