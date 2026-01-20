@@ -71,7 +71,7 @@ pub fn godot_executable_path(version: &GodotVersion) -> String {
             }
         }
         "windows" => {
-            let version_part = version.as_str();
+            let version_part = version.as_full_version_str();
             if version.is_dotnet {
                 format!(
                     "Godot_v{}_mono_{}/Godot_v{}_mono_{}.exe",
@@ -82,7 +82,7 @@ pub fn godot_executable_path(version: &GodotVersion) -> String {
             }
         }
         "linux" => {
-            let version_part = version.as_str();
+            let version_part = version.as_full_version_str();
             let platform_suffix = platform_suffix();
             if version.is_dotnet {
                 // Dotnet versions extract to a subfolder
@@ -103,16 +103,16 @@ pub fn godot_executable_path(version: &GodotVersion) -> String {
 
 pub fn godot_installation_name(version: &GodotVersion) -> String {
     if version.is_dotnet {
-        format!("godot-{}-dotnet", version.as_str())
+        format!("godot-{}-dotnet", version.as_full_version_str())
     } else {
-        format!("godot-{}", version.as_str())
+        format!("godot-{}", version.as_full_version_str())
     }
 }
 
 #[allow(dead_code)]
 pub fn godot_archive_name(version: &GodotVersion) -> String {
     let platform_suffix = platform_suffix();
-    let version_part = version.as_str();
+    let version_part = version.as_full_version_str();
 
     if version.is_dotnet {
         format!("Godot_v{version_part}_mono_{platform_suffix}.zip")
@@ -134,7 +134,12 @@ mod tests {
 
         let v2 = GodotVersion::new("4.3.0-beta2", true).unwrap();
         let archive = godot_archive_name(&v2);
-        assert!(archive.contains("Godot_v4.3.0-beta2_mono_"));
+        assert!(archive.contains("Godot_v4.3-beta2_mono_"));
+        assert!(archive.ends_with(".zip"));
+
+        let v2 = GodotVersion::new("4.0.0-rc5", true).unwrap();
+        let archive = godot_archive_name(&v2);
+        assert!(archive.contains("Godot_v4.0-rc5_mono_"));
         assert!(archive.ends_with(".zip"));
     }
 

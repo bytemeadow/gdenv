@@ -26,7 +26,7 @@ impl ListCommand {
 
         for release in releases.iter().rev().take(20) {
             // Show only latest 20 (they are sorted ascending, so rev() for latest)
-            let version = release.version.as_str();
+            let version = release.version.as_full_version_str();
             let status = if release.version.is_prerelease() {
                 " (prerelease)".yellow()
             } else {

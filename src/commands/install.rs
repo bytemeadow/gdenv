@@ -137,7 +137,7 @@ impl InstallCommand {
         } else {
             ui::info(&format!(
                 "Installation complete. Use 'gdenv use {}' to switch to this version.",
-                requested_version.as_str()
+                requested_version.as_full_version_str()
             ));
         }
 

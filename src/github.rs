@@ -97,7 +97,9 @@ impl GitHubClient {
         let cache_file = Config::new()?.cache_dir.join("releases_cache.json");
 
         if !force_refresh && self.is_cache_valid(&cache_file) {
-            return self.load_cache(&cache_file);
+            return self
+                .load_cache(&cache_file)
+                .context("Failed to load releases cache. Use `gdenv update` to refresh it.");
         }
 
         let releases = self.fetch_all_releases_from_api().await?;
