@@ -15,7 +15,7 @@ impl ListCommand {
     pub async fn run(self) -> Result<()> {
         let github_client = GitHubClient::new();
         let mut releases = github_client.get_godot_releases(false).await?;
-        releases.retain(|r| self.include_prereleases || !r.prerelease);
+        releases.retain(|r| self.include_prereleases || !r.version.is_prerelease());
 
         println!("\n📋 Available Godot versions:");
 
@@ -26,15 +26,13 @@ impl ListCommand {
 
         for release in releases.iter().rev().take(20) {
             // Show only latest 20 (they are sorted ascending, so rev() for latest)
-            if let Some(version) = release.version() {
-                let status = if release.prerelease {
-                    " (prerelease)".yellow()
-                } else {
-                    " (stable)".green()
-                };
-
-                println!("  • {version}{status}");
-            }
+            let version = release.version.as_str();
+            let status = if release.version.is_prerelease() {
+                " (prerelease)".yellow()
+            } else {
+                " (stable)".green()
+            };
+            println!("  • {version}{status}");
         }
 
         if releases.len() > 20 {

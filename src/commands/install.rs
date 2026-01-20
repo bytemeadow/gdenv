@@ -45,41 +45,39 @@ impl InstallCommand {
                     || v.contains("-dev")
             });
         let mut releases = github_client.get_godot_releases(false).await?;
-        releases.retain(|r| include_prereleases || !r.prerelease);
+        releases.retain(|r| include_prereleases || !r.version.is_prerelease());
 
         // Get the version to install
-        let version_string = if self.latest {
+        let requested_version = if self.latest {
             // Find latest stable release (last one since it's sorted ascending)
             releases
                 .iter()
-                .rfind(|r| !r.prerelease)
-                .and_then(|r| r.version())
+                .rfind(|r| !r.version.is_prerelease())
+                .map(|r| r.version.clone())
                 .ok_or_else(|| anyhow!("No stable releases found"))?
         } else if self.latest_prerelease {
             // Find latest release (including prereleases)
             releases
                 .last()
-                .and_then(|r| r.version())
+                .map(|r| r.version.clone())
                 .ok_or_else(|| anyhow!("No releases found"))?
         } else {
-            match self.version {
-                Some(v) => v,
-                None => {
+            match GodotVersion::new(&self.version.clone().unwrap_or("".to_string()), self.dotnet) {
+                Ok(v) => v,
+                Err(_) => {
                     // Try to read from .godot-version file
-                    self.read_godot_version_file()?
+                    GodotVersion::new(&self.read_godot_version_file()?, self.dotnet)?
                 }
             }
         };
 
         // Parse the requested version
         let is_dotnet = self.dotnet;
-        let requested_version = GodotVersion::new(&version_string, is_dotnet)?;
-
         if self.latest {
-            ui::info(&format!("Found latest stable version: {version_string}"));
+            ui::info(&format!("Found latest stable version: {requested_version}"));
         } else if self.latest_prerelease {
             ui::info(&format!(
-                "Found latest prerelease version: {version_string}"
+                "Found latest prerelease version: {requested_version}"
             ));
         }
 
@@ -99,12 +97,8 @@ impl InstallCommand {
         let release = releases
             .iter()
             .find(|r| {
-                if let Some(version) = r.version() {
-                    // Try to match both the normalized version and the original input
-                    version == requested_version.as_str() || version == version_string
-                } else {
-                    false
-                }
+                // Try to match both the normalized version and the original input
+                r.version == requested_version
             })
             .ok_or_else(|| anyhow!("Godot version {} not found", requested_version))?;
 

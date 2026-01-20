@@ -1,6 +1,7 @@
 use crate::config::Config;
+use crate::godot::get_platform_patterns;
 use crate::godot_version::GodotVersion;
-use anyhow::{anyhow, Result};
+use anyhow::{anyhow, Context, Result};
 use chrono::{DateTime, Utc};
 use indicatif::{ProgressBar, ProgressStyle};
 use reqwest::Client;
@@ -11,10 +12,7 @@ use tokio::io::AsyncWriteExt;
 
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
 pub struct GitHubRelease {
-    pub tag_name: String,
-    pub name: String,
-    pub published_at: DateTime<Utc>,
-    pub prerelease: bool,
+    pub version: GodotVersion,
     pub assets: Vec<GitHubAsset>,
 }
 
@@ -25,61 +23,25 @@ pub struct GitHubAsset {
     pub size: u64,
 }
 
+/// Matches the GitHub API JSON response for a single release
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
+struct GitHubReleaseJson {
+    pub tag_name: String,
+    pub assets: Vec<GitHubAssetJson>,
+}
+
+/// Matches the GitHub API JSON response for a single release asset
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
+struct GitHubAssetJson {
+    pub name: String,
+    pub browser_download_url: String,
+    pub size: u64,
+}
+
 impl GitHubRelease {
-    /// Get platform patterns for asset matching, in order of preference
-    pub fn get_platform_patterns() -> Vec<&'static str> {
-        let os = std::env::consts::OS;
-        let arch = std::env::consts::ARCH;
-
-        match (os, arch) {
-            ("windows", "x86_64") => vec!["win64"],
-            ("windows", "x86") => vec!["win32", "win64"], // Fallback to 64-bit if 32-bit not available
-            ("macos", _) => vec!["macos"],                // macOS universal binaries
-            ("linux", "x86_64") => vec!["linux.x86_64", "linux_x86_64", "linux"], // Prefer specific, fallback to generic
-            ("linux", "x86") => vec![
-                "linux.x86_32",
-                "linux_x86_32",
-                "linux.x86_64",
-                "linux_x86_64",
-                "linux",
-            ],
-            ("linux", "arm") => vec![
-                "linux.arm32",
-                "linux_arm32",
-                "linux.arm64",
-                "linux_arm64",
-                "linux",
-            ], // ARM32 preferred, but ARM64 compatible
-            ("linux", "aarch64") => vec![
-                "linux.arm64",
-                "linux_arm64",
-                "linux.x86_64",
-                "linux_x86_64",
-                "linux",
-            ], // ARM64 preferred
-            // Fallbacks
-            ("windows", _) => vec!["win64", "win32"],
-            ("linux", _) => vec!["linux.x86_64", "linux"],
-            _ => vec!["linux.x86_64", "linux"], // Ultimate fallback
-        }
-    }
-    /// Parse the version from the tag name (e.g., "4.2.1-stable" -> "4.2.1")
-    pub fn version(&self) -> Option<String> {
-        // Godot release tags are typically like "4.2.1-stable", "4.3.0-beta2", etc.
-        let tag = self.tag_name.strip_prefix("v").unwrap_or(&self.tag_name);
-
-        // For stable releases, remove "-stable" suffix
-        if let Some(version) = tag.strip_suffix("-stable") {
-            Some(version.to_string())
-        } else {
-            // For pre-releases, keep the full tag
-            Some(tag.to_string())
-        }
-    }
-
     /// Find a Godot asset for the current platform
     pub fn find_godot_asset(&self, is_dotnet: bool) -> Option<&GitHubAsset> {
-        let platform_patterns = Self::get_platform_patterns();
+        let platform_patterns = get_platform_patterns();
 
         // Try to find an asset matching our platform patterns (in order of preference)
         for pattern in platform_patterns {
@@ -97,6 +59,21 @@ impl GitHubRelease {
         }
         None
     }
+
+    fn from_json_struct(json: &GitHubReleaseJson) -> Result<Self> {
+        let version =
+            GodotVersion::new(&json.tag_name, false).context("Failed to parse Godot version")?;
+        let assets = json
+            .assets
+            .iter()
+            .map(|a| GitHubAsset {
+                name: a.name.clone(),
+                browser_download_url: a.browser_download_url.clone(),
+                size: a.size,
+            })
+            .collect();
+        Ok(GitHubRelease { version, assets })
+    }
 }
 
 pub struct GitHubClient {
@@ -113,6 +90,9 @@ impl GitHubClient {
         Self { client }
     }
 
+    /// Returns a sorted list of all available Godot releases.
+    /// If `force_refresh` is true, fetches the latest list from GitHub.
+    /// Otherwise, uses a cached list if it exists and was modified less than 6 months ago.
     pub async fn get_godot_releases(&self, force_refresh: bool) -> Result<Vec<GitHubRelease>> {
         let cache_file = Config::new()?.cache_dir.join("releases_cache.json");
 
@@ -123,16 +103,7 @@ impl GitHubClient {
         let releases = self.fetch_all_releases_from_api().await?;
 
         let mut sorted_releases = releases;
-        sorted_releases.sort_by(|a, b| {
-            let v_a = GodotVersion::new(&a.tag_name, false).ok();
-            let v_b = GodotVersion::new(&b.tag_name, false).ok();
-            match (v_a, v_b) {
-                (Some(a), Some(b)) => a.cmp(&b),
-                (Some(_), None) => Ordering::Greater,
-                (None, Some(_)) => Ordering::Less,
-                (None, None) => a.published_at.cmp(&b.published_at),
-            }
-        });
+        sorted_releases.sort();
 
         if let Err(e) = self.save_cache(&cache_file, &sorted_releases) {
             eprintln!("⚠️ Failed to save releases cache: {}", e);
@@ -166,7 +137,7 @@ impl GitHubClient {
                 .and_then(|h| h.to_str().ok())
                 .map(|s| s.to_string());
 
-            let page_releases: Vec<GitHubRelease> = response.json().await?;
+            let page_releases: Vec<GitHubReleaseJson> = response.json().await?;
             releases.extend(page_releases);
 
             if releases.len() >= 1000 {
@@ -177,7 +148,15 @@ impl GitHubClient {
         }
 
         pb.finish_and_clear();
-        Ok(releases)
+        Ok(releases.iter().filter_map(|json| {
+            match GitHubRelease::from_json_struct(json) {
+                Ok(release) => Some(release),
+                Err(e) => {
+                    eprintln!("Warn: Failed to parse release from GitHub API response; this release will be unavailable to download: {}, reason: {}", json.tag_name, e);
+                    None
+                }
+            }
+        }).collect())
     }
 
     fn parse_next_link(&self, link_header: &str) -> Option<String> {
@@ -286,88 +265,68 @@ impl GitHubClient {
     }
 }
 
+impl Ord for GitHubRelease {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.version.cmp(&other.version)
+    }
+}
+
+impl PartialOrd for GitHubRelease {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
-    fn test_platform_patterns_detection() {
-        // Test that we get valid platform patterns (this tests the current system)
-        let patterns = GitHubRelease::get_platform_patterns();
-        assert!(!patterns.is_empty());
-
-        // All patterns should be non-empty strings
-        for pattern in &patterns {
-            assert!(!pattern.is_empty());
-        }
-
-        // Should contain at least one valid pattern
-        let valid_patterns = [
-            "win64",
-            "win32",
-            "macos",
-            "linux.x86_64",
-            "linux.x86_32",
-            "linux.arm32",
-            "linux.arm64",
-            "linux",
-        ];
-
-        let has_valid_pattern = patterns.iter().any(|p| valid_patterns.contains(p));
-        assert!(
-            has_valid_pattern,
-            "No valid patterns found in: {patterns:?}"
-        );
-    }
-
-    #[test]
     fn test_find_godot_asset() {
         // Create a mock release with various assets for all platforms
         let assets = vec![
-            GitHubAsset {
+            GitHubAssetJson {
                 name: "Godot_v4.2.1-stable_linux.x86_64.zip".to_string(),
                 browser_download_url: "https://example.com/linux64".to_string(),
                 size: 1000,
             },
-            GitHubAsset {
+            GitHubAssetJson {
                 name: "Godot_v4.2.1-stable_linux.arm32.zip".to_string(),
                 browser_download_url: "https://example.com/arm32".to_string(),
                 size: 1000,
             },
-            GitHubAsset {
+            GitHubAssetJson {
                 name: "Godot_v4.2.1-stable_mono_linux_x86_64.zip".to_string(),
                 browser_download_url: "https://example.com/mono-linux".to_string(),
                 size: 1000,
             },
-            GitHubAsset {
+            GitHubAssetJson {
                 name: "Godot_v4.2.1-stable_win64.exe.zip".to_string(),
                 browser_download_url: "https://example.com/win64".to_string(),
                 size: 1000,
             },
-            GitHubAsset {
+            GitHubAssetJson {
                 name: "Godot_v4.2.1-stable_mono_win64.exe.zip".to_string(),
                 browser_download_url: "https://example.com/mono-win".to_string(),
                 size: 1000,
             },
-            GitHubAsset {
+            GitHubAssetJson {
                 name: "Godot_v4.2.1-stable_macos.universal.zip".to_string(),
                 browser_download_url: "https://example.com/macos".to_string(),
                 size: 1000,
             },
-            GitHubAsset {
+            GitHubAssetJson {
                 name: "Godot_v4.2.1-stable_mono_macos.universal.zip".to_string(),
                 browser_download_url: "https://example.com/mono-macos".to_string(),
                 size: 1000,
             },
         ];
 
-        let release = GitHubRelease {
+        let release = GitHubRelease::from_json_struct(&GitHubReleaseJson {
             tag_name: "4.2.1-stable".to_string(),
-            name: "Godot 4.2.1".to_string(),
-            published_at: Utc::now(),
-            prerelease: false,
             assets,
-        };
+        })
+        .unwrap();
 
         // Test finding regular asset
         let asset = release.find_godot_asset(false);
@@ -381,30 +340,6 @@ mod tests {
         assert!(dotnet_asset.is_some());
         let dotnet_asset = dotnet_asset.unwrap();
         assert!(dotnet_asset.name.to_lowercase().contains("mono"));
-    }
-
-    #[test]
-    fn test_version_parsing() {
-        let release = GitHubRelease {
-            tag_name: "4.2.1-stable".to_string(),
-            name: "Godot 4.2.1".to_string(),
-            published_at: Utc::now(),
-            prerelease: false,
-            assets: vec![],
-        };
-
-        assert_eq!(release.version(), Some("4.2.1".to_string()));
-
-        // Test with v prefix
-        let release_v = GitHubRelease {
-            tag_name: "v4.3.0-beta2".to_string(),
-            name: "Godot 4.3.0 Beta 2".to_string(),
-            published_at: Utc::now(),
-            prerelease: true,
-            assets: vec![],
-        };
-
-        assert_eq!(release_v.version(), Some("4.3.0-beta2".to_string()));
     }
 
     #[test]

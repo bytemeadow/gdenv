@@ -20,6 +20,44 @@ pub fn platform_suffix() -> &'static str {
     }
 }
 
+/// Get platform patterns for asset matching, in order of preference
+pub fn get_platform_patterns() -> Vec<&'static str> {
+    let os = std::env::consts::OS;
+    let arch = std::env::consts::ARCH;
+
+    match (os, arch) {
+        ("windows", "x86_64") => vec!["win64"],
+        ("windows", "x86") => vec!["win32", "win64"], // Fallback to 64-bit if 32-bit not available
+        ("macos", _) => vec!["macos"],                // macOS universal binaries
+        ("linux", "x86_64") => vec!["linux.x86_64", "linux_x86_64", "linux"], // Prefer specific, fallback to generic
+        ("linux", "x86") => vec![
+            "linux.x86_32",
+            "linux_x86_32",
+            "linux.x86_64",
+            "linux_x86_64",
+            "linux",
+        ],
+        ("linux", "arm") => vec![
+            "linux.arm32",
+            "linux_arm32",
+            "linux.arm64",
+            "linux_arm64",
+            "linux",
+        ], // ARM32 preferred, but ARM64 compatible
+        ("linux", "aarch64") => vec![
+            "linux.arm64",
+            "linux_arm64",
+            "linux.x86_64",
+            "linux_x86_64",
+            "linux",
+        ], // ARM64 preferred
+        // Fallbacks
+        ("windows", _) => vec!["win64", "win32"],
+        ("linux", _) => vec!["linux.x86_64", "linux"],
+        _ => vec!["linux.x86_64", "linux"], // Ultimate fallback
+    }
+}
+
 /// Get the expected executable path within the extracted directory
 pub fn godot_executable_path(version: &GodotVersion) -> String {
     let os = std::env::consts::OS;
@@ -119,6 +157,36 @@ mod tests {
         assert!(
             valid_suffixes.contains(&suffix),
             "Got unexpected suffix: {suffix}"
+        );
+    }
+
+    #[test]
+    fn test_platform_patterns_detection() {
+        // Test that we get valid platform patterns (this tests the current system)
+        let patterns = get_platform_patterns();
+        assert!(!patterns.is_empty());
+
+        // All patterns should be non-empty strings
+        for pattern in &patterns {
+            assert!(!pattern.is_empty());
+        }
+
+        // Should contain at least one valid pattern
+        let valid_patterns = [
+            "win64",
+            "win32",
+            "macos",
+            "linux.x86_64",
+            "linux.x86_32",
+            "linux.arm32",
+            "linux.arm64",
+            "linux",
+        ];
+
+        let has_valid_pattern = patterns.iter().any(|p| valid_patterns.contains(p));
+        assert!(
+            has_valid_pattern,
+            "No valid patterns found in: {patterns:?}"
         );
     }
 
