@@ -51,7 +51,7 @@ impl UseCommand {
         }
 
         // Switch to the version
-        installer.set_active_version(&target_version)?;
+        installer.set_active_version(&target_version, true)?;
 
         Ok(())
     }

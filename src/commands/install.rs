@@ -130,7 +130,7 @@ impl InstallCommand {
 
         // Only set as active version if no version is currently active
         if installer.get_active_version()?.is_none() {
-            installer.set_active_version_with_message(&requested_version, false)?;
+            installer.set_active_version(&requested_version, false)?;
             ui::info(&format!(
                 "Set Godot v{requested_version} as active version (first installation)"
             ));

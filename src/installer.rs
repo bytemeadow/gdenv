@@ -121,11 +121,7 @@ impl Installer {
         Ok(())
     }
 
-    pub fn set_active_version(&self, version: &GodotVersion) -> Result<()> {
-        self.set_active_version_with_message(version, true)
-    }
-
-    pub fn set_active_version_with_message(
+    pub fn set_active_version(
         &self,
         version: &GodotVersion,
         show_message: bool,
