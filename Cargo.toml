@@ -13,13 +13,13 @@ path = "src/main.rs"
 
 [dependencies]
 # CLI framework
-clap = { version = "4.4", features = ["derive", "color"] }
+clap = { version = "4.5", features = ["derive", "color"] }
 
 # Async runtime
-tokio = { version = "1.35", features = ["full"] }
+tokio = { version = "1.49", features = ["full"] }
 
 # HTTP client for downloads and GitHub API
-reqwest = { version = "0.11", features = ["json", "stream"] }
+reqwest = { version = "0.13", features = ["json", "stream"] }
 futures-util = "0.3"
 
 # JSON serialization
@@ -27,31 +27,28 @@ serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 
 # Terminal UI
-indicatif = "0.17"
-colored = "2.1"
+indicatif = "0.18"
+colored = "3.1"
 
 # File system and paths
-dirs = "5.0"
+dirs = "6.0"
 
 # Archive extraction
-zip = "0.6"
+zip = "7.2"
 
 # Regex for version parsing
-regex = "1.10"
-once_cell = "1.18"
+regex = "1.12"
+once_cell = "1.21"
 
 # Error handling
 anyhow = "1.0"
-thiserror = "1.0"
+thiserror = "2.0"
 
 # Version parsing
 semver = { version = "1.0", features = ["serde"] }
 
 # Date/time handling
 chrono = { version = "0.4", features = ["serde"] }
-
-# Cross-platform process management
-which = "6.0"
 
 # Cross-platform recursive directory navigation
 walkdir = "2.5.0"
