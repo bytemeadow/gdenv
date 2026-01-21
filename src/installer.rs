@@ -202,9 +202,11 @@ impl Installer {
                 let entry = entry?;
                 let path = entry.path();
                 if let Some(name) = path.file_name().and_then(|n| n.to_str())
-                    && name.starts_with("Godot") && name.ends_with(".exe") {
-                        return Ok(path.into());
-                    }
+                    && name.starts_with("Godot")
+                    && name.ends_with(".exe")
+                {
+                    return Ok(path.into());
+                }
             }
         }
 
