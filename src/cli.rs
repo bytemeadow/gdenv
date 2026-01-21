@@ -2,9 +2,8 @@ use anyhow::Result;
 use clap::{Parser, Subcommand};
 
 use crate::commands::{
-    cache::CacheCommand, current::CurrentCommand, install::InstallCommand,
-    installed::InstalledCommand, list::ListCommand, uninstall::UninstallCommand,
-    update::UpdateCommand, use_cmd::UseCommand,
+    cache::CacheCommand, current::CurrentCommand, install::InstallCommand, list::ListCommand,
+    uninstall::UninstallCommand, update::UpdateCommand, use_cmd::UseCommand,
 };
 
 #[derive(Parser)]
@@ -22,15 +21,12 @@ pub enum Commands {
     #[command(alias = "update")]
     Fetch(UpdateCommand),
 
-    /// List available Godot versions
+    /// List installed and available Godot versions
     #[command(alias = "ls")]
     List(ListCommand),
 
     /// Download and install a specific version of Godot
     Install(InstallCommand),
-
-    /// List installed Godot versions
-    Installed(InstalledCommand),
 
     /// Switch to a specific Godot version
     Use(UseCommand),
@@ -51,7 +47,6 @@ impl Cli {
         match self.command {
             Commands::Install(cmd) => cmd.run().await,
             Commands::List(cmd) => cmd.run().await,
-            Commands::Installed(cmd) => cmd.run().await,
             Commands::Use(cmd) => cmd.run().await,
             Commands::Uninstall(cmd) => cmd.run().await,
             Commands::Current(cmd) => cmd.run().await,
