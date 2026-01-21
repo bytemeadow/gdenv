@@ -297,14 +297,16 @@ impl Installer {
     }
 
     pub fn update_symlink(original: &Path, link: &Path) -> Result<()> {
-        if fs::symlink_metadata(link).is_ok() {
-            fs::remove_file(link)?;
-        } else {
-            ui::warning(&format!(
-                "Won't create symlink: Found non-symlink '{}' not overwriting",
-                link.to_str().unwrap_or("<unknown_path>")
-            ));
-            return Ok(());
+        if let Ok(metadata) = fs::symlink_metadata(link) {
+            if metadata.file_type().is_symlink() {
+                fs::remove_file(link)?;
+            } else {
+                ui::warning(&format!(
+                    "Won't create symlink: Found non-symlink '{}' not overwriting",
+                    link.to_str().unwrap_or("<unknown_path>")
+                ));
+                return Ok(());
+            }
         }
 
         #[cfg(unix)]
@@ -318,6 +320,86 @@ impl Installer {
                 std::os::windows::fs::symlink_file(original, link)?;
             }
         }
+
+        Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::fs::File;
+    use tempdir::TempDir;
+
+    #[test]
+    fn test_update_symlink_create_new() -> Result<()> {
+        let tmp_dir = TempDir::new("gdenv-test")?;
+        let dir = tmp_dir.path();
+
+        let original = dir.join("original");
+        let link = dir.join("link");
+
+        File::create(&original)?;
+
+        Installer::update_symlink(&original, &link)?;
+
+        assert!(link.exists());
+        assert!(fs::symlink_metadata(&link)?.file_type().is_symlink());
+        assert_eq!(
+            fs::read_link(&link)?.canonicalize()?,
+            original.canonicalize()?
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_update_symlink_no_overwrite_regular_file() -> Result<()> {
+        let tmp_dir = TempDir::new("gdenv-test")?;
+        let dir = tmp_dir.path();
+
+        let original = dir.join("original");
+        let link = dir.join("link");
+
+        File::create(&original)?;
+        File::create(&link)?;
+
+        Installer::update_symlink(&original, &link)?;
+
+        assert!(link.exists());
+        assert!(!fs::symlink_metadata(&link)?.file_type().is_symlink());
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_update_symlink_replace_existing() -> Result<()> {
+        let tmp_dir = TempDir::new("gdenv-test")?;
+        let dir = tmp_dir.path();
+
+        let original = dir.join("original");
+        let other = dir.join("other");
+        let link = dir.join("link");
+
+        File::create(&original)?;
+        File::create(&other)?;
+
+        // Create initial symlink
+        #[cfg(unix)]
+        std::os::unix::fs::symlink(&other, &link)?;
+        #[cfg(windows)]
+        std::os::windows::fs::symlink_file(&other, &link)?;
+
+        assert_eq!(fs::read_link(&link)?.canonicalize()?, other.canonicalize()?);
+
+        Installer::update_symlink(&original, &link)?;
+
+        assert!(link.exists());
+        assert!(fs::symlink_metadata(&link)?.file_type().is_symlink());
+        assert_eq!(
+            fs::read_link(&link)?.canonicalize()?,
+            original.canonicalize()?
+        );
 
         Ok(())
     }
