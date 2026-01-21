@@ -17,7 +17,7 @@ pub struct GodotVersion {
     pub minor: Option<u32>,
     pub patch: Option<u32>,
     pub sub_patch: Option<u32>,
-    pub release_tag: String,
+    pub release_tag: Option<String>,
     pub tag_version: Option<u32>,
     pub extra: Option<String>,
     pub is_dotnet: bool,
@@ -37,10 +37,10 @@ impl GodotVersion {
         let minor_opt = caps.get(2).map(|m| m.as_str().parse()).transpose()?;
         let patch_opt = caps.get(3).map(|m| m.as_str().parse()).transpose()?;
         let sub_patch_opt = caps.get(4).map(|m| m.as_str().parse()).transpose()?;
-        let release_tag = caps
-            .get(5)
-            .map(|m| m.as_str().to_string())
-            .unwrap_or_else(|| "stable".to_string());
+        let release_tag = Some(
+            caps.get(5)
+                .map_or("stable".to_string(), |m| m.as_str().to_string()),
+        );
         let tag_version = caps.get(6).map(|m| m.as_str().parse()).transpose()?;
         let extra = caps
             .get(7)
@@ -67,9 +67,11 @@ impl GodotVersion {
     /// Example outputs:
     /// - 4.0-stable
     /// - 4.2.1-rc5
-    pub fn as_full_version_str(&self) -> String {
+    pub fn as_godot_version_str(&self) -> String {
         let mut out = self.as_str_no_release_tag();
-        out.push_str(&format!("-{}", self.release_tag));
+        if let Some(release_tag) = &self.release_tag {
+            out.push_str(&format!("-{}", release_tag));
+        }
         if let Some(tag_v) = self.tag_version {
             out.push_str(&tag_v.to_string());
         }
@@ -95,7 +97,7 @@ impl GodotVersion {
 
     #[allow(dead_code)]
     pub fn is_prerelease(&self) -> bool {
-        self.release_tag != "stable"
+        self.release_tag.as_ref().is_none_or(|tag| tag != "stable")
     }
 }
 
@@ -107,8 +109,13 @@ impl PartialOrd for GodotVersion {
 
 impl Ord for GodotVersion {
     fn cmp(&self, other: &Self) -> Ordering {
-        fn get_tag_rank(tag: &str) -> u32 {
-            match tag.to_lowercase().as_str() {
+        fn get_tag_rank(tag: &Option<String>) -> u32 {
+            match tag
+                .clone()
+                .unwrap_or("stable".to_string())
+                .to_lowercase()
+                .as_str()
+            {
                 "stable" => 100,
                 "rc" => 80,
                 "beta" => 60,
@@ -149,9 +156,9 @@ impl FromStr for GodotVersion {
 impl fmt::Display for GodotVersion {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         if self.is_dotnet {
-            write!(f, "{} (.NET)", self.as_full_version_str())
+            write!(f, "{} (.NET)", self.as_godot_version_str())
         } else {
-            write!(f, "{}", self.as_full_version_str())
+            write!(f, "{}", self.as_godot_version_str())
         }
     }
 }
@@ -164,27 +171,27 @@ mod tests {
     fn test_version_parsing() {
         // Test stable versions
         let v1 = GodotVersion::new("4.2.1", false).unwrap();
-        assert_eq!(v1.as_full_version_str(), "4.2.1-stable");
+        assert_eq!(v1.as_godot_version_str(), "4.2.1-stable");
         assert!(!v1.is_prerelease());
 
         // Test stable with suffix
         let v2 = GodotVersion::new("4.2.1-stable", false).unwrap();
-        assert_eq!(v2.as_full_version_str(), "4.2.1-stable");
+        assert_eq!(v2.as_godot_version_str(), "4.2.1-stable");
         assert!(!v2.is_prerelease());
 
         // Test beta versions
         let v3 = GodotVersion::new("4.3.0-beta2", false).unwrap();
-        assert_eq!(v3.as_full_version_str(), "4.3-beta2");
+        assert_eq!(v3.as_godot_version_str(), "4.3-beta2");
         assert!(v3.is_prerelease());
 
         // Test rc versions
         let v4 = GodotVersion::new("4.1.0-rc.1", false).unwrap();
-        assert_eq!(v4.as_full_version_str(), "4.1-rc.1");
+        assert_eq!(v4.as_godot_version_str(), "4.1-rc.1");
         assert!(v4.is_prerelease());
 
         // Test four part version
         let v7 = GodotVersion::new("4.3.0.1", false).unwrap();
-        assert_eq!(v7.as_full_version_str(), "4.3.0.1-stable");
+        assert_eq!(v7.as_godot_version_str(), "4.3.0.1-stable");
         assert_eq!(v7.major, 4);
         assert_eq!(v7.minor, Some(3));
         assert_eq!(v7.patch, Some(0));
@@ -193,14 +200,14 @@ mod tests {
         // Test extra info
         let v8 = GodotVersion::new("4.4.stable.official.8981fd6c1", false).unwrap();
         assert_eq!(
-            v8.as_full_version_str(),
+            v8.as_godot_version_str(),
             "4.4-stable.stable.official.8981fd6c1"
         );
         assert_eq!(v8.extra, Some(".stable.official.8981fd6c1".to_string()));
 
         // Test short prerelease versions like "4.5-beta1"
         let v6 = GodotVersion::new("4.5-beta1", false).unwrap();
-        assert_eq!(v6.as_full_version_str(), "4.5-beta1");
+        assert_eq!(v6.as_godot_version_str(), "4.5-beta1");
         assert!(v6.is_prerelease());
     }
 
