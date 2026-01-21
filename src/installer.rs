@@ -198,14 +198,13 @@ impl Installer {
         #[cfg(target_os = "windows")]
         {
             // On Windows, look for .exe files
-            for entry in WalkDir::new(install_path).max_depth(2) {
+            for entry in walkdir::WalkDir::new(install_path).max_depth(2) {
                 let entry = entry?;
                 let path = entry.path();
-                if let Some(name) = path.file_name().and_then(|n| n.to_str()) {
-                    if name.starts_with("Godot") && name.ends_with(".exe") {
+                if let Some(name) = path.file_name().and_then(|n| n.to_str())
+                    && name.starts_with("Godot") && name.ends_with(".exe") {
                         return Ok(path.into());
                     }
-                }
             }
         }
 
