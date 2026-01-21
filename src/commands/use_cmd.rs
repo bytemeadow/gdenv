@@ -1,7 +1,7 @@
 use anyhow::Result;
 use clap::Args;
 
-use crate::{config::Config, godot::GodotVersion, installer::Installer, ui};
+use crate::{config::Config, godot_version::GodotVersion, installer::Installer, ui};
 
 #[derive(Args)]
 pub struct UseCommand {
@@ -51,7 +51,7 @@ impl UseCommand {
         }
 
         // Switch to the version
-        installer.set_active_version(&target_version)?;
+        installer.set_active_version(&target_version, true)?;
 
         Ok(())
     }

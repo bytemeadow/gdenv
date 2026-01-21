@@ -1,0 +1,47 @@
+use anyhow::Result;
+use clap::Args;
+
+use crate::{github::GitHubClient, ui};
+
+#[derive(Args)]
+pub struct FetchCommand {
+    /// Force update even if cache is recent
+    #[arg(long, short)]
+    pub force: bool,
+}
+
+impl FetchCommand {
+    pub async fn run(self) -> Result<()> {
+        let github_client = GitHubClient::new();
+
+        ui::info("Fetching available Godot versions from GitHub...");
+
+        // Fetch releases from GitHub
+        let releases = github_client.get_godot_releases(true).await?;
+
+        ui::success(&format!("Found {} Godot releases", releases.len()));
+
+        // Show the latest stable and prerelease versions (sorted ascending, so last is latest)
+        let stable_releases: Vec<_> = releases
+            .iter()
+            .filter(|r| !r.version.is_prerelease())
+            .collect();
+        let prerelease_releases: Vec<_> = releases
+            .iter()
+            .filter(|r| r.version.is_prerelease())
+            .collect();
+
+        if let Some(latest_stable) = stable_releases.last() {
+            ui::info(&format!("Latest stable: {}", latest_stable.version));
+        }
+
+        if let Some(latest_prerelease) = prerelease_releases.last() {
+            ui::info(&format!("Latest prerelease: {}", latest_prerelease.version));
+        }
+
+        ui::success("Update complete!\n");
+        ui::info("Use 'gdenv list' to see available versions.");
+
+        Ok(())
+    }
+}

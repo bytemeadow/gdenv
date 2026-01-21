@@ -1,7 +1,10 @@
-use anyhow::{anyhow, Result};
+use anyhow::{Result, anyhow};
 use clap::Args;
 
-use crate::{config::Config, github::GitHubClient, godot::GodotVersion, installer::Installer, ui};
+use crate::godot::godot_installation_name;
+use crate::{
+    config::Config, github::GitHubClient, godot_version::GodotVersion, installer::Installer, ui,
+};
 
 #[derive(Args)]
 pub struct InstallCommand {
@@ -29,7 +32,7 @@ pub struct InstallCommand {
 impl InstallCommand {
     pub async fn run(self) -> Result<()> {
         let config = Config::new()?;
-        let github_client = GitHubClient::new(config.github_api_url.clone());
+        let github_client = GitHubClient::new();
         let installer = Installer::new(config.clone());
 
         // Fetch available releases from GitHub first (needed for --latest flags)
@@ -41,43 +44,40 @@ impl InstallCommand {
                     || v.contains("-alpha")
                     || v.contains("-dev")
             });
-        let releases = github_client
-            .get_godot_releases(include_prereleases)
-            .await?;
+        let mut releases = github_client.get_godot_releases(false).await?;
+        releases.retain(|r| include_prereleases || !r.version.is_prerelease());
 
         // Get the version to install
-        let version_string = if self.latest {
-            // Find latest stable release
+        let requested_version = if self.latest {
+            // Find latest stable release (last one since it's sorted ascending)
             releases
                 .iter()
-                .find(|r| !r.prerelease)
-                .and_then(|r| r.version())
+                .rfind(|r| !r.version.is_prerelease())
+                .map(|r| r.version.clone())
                 .ok_or_else(|| anyhow!("No stable releases found"))?
         } else if self.latest_prerelease {
             // Find latest release (including prereleases)
             releases
-                .first()
-                .and_then(|r| r.version())
+                .last()
+                .map(|r| r.version.clone())
                 .ok_or_else(|| anyhow!("No releases found"))?
         } else {
-            match self.version {
-                Some(v) => v,
-                None => {
+            match GodotVersion::new(&self.version.clone().unwrap_or("".to_string()), self.dotnet) {
+                Ok(v) => v,
+                Err(_) => {
                     // Try to read from .godot-version file
-                    self.read_godot_version_file()?
+                    GodotVersion::new(&self.read_godot_version_file()?, self.dotnet)?
                 }
             }
         };
 
         // Parse the requested version
         let is_dotnet = self.dotnet;
-        let requested_version = GodotVersion::new(&version_string, is_dotnet)?;
-
         if self.latest {
-            ui::info(&format!("Found latest stable version: {version_string}"));
+            ui::info(&format!("Found latest stable version: {requested_version}"));
         } else if self.latest_prerelease {
             ui::info(&format!(
-                "Found latest prerelease version: {version_string}"
+                "Found latest prerelease version: {requested_version}"
             ));
         }
 
@@ -86,11 +86,9 @@ impl InstallCommand {
         // Check if already installed (unless force flag is set)
         let install_path = config
             .installations_dir
-            .join(requested_version.installation_name());
+            .join(godot_installation_name(&requested_version));
         if install_path.exists() && !self.force {
-            ui::warning(&format!(
-                "Godot v{requested_version} is already installed"
-            ));
+            ui::warning(&format!("Godot v{requested_version} is already installed"));
             ui::info("Use --force to reinstall");
             return Ok(());
         }
@@ -99,12 +97,8 @@ impl InstallCommand {
         let release = releases
             .iter()
             .find(|r| {
-                if let Some(version) = r.version() {
-                    // Try to match both the normalized version and the original input
-                    version == requested_version.godot_version_string() || version == version_string
-                } else {
-                    false
-                }
+                // Try to match both the normalized version and the original input
+                r.version == requested_version
             })
             .ok_or_else(|| anyhow!("Godot version {} not found", requested_version))?;
 
@@ -136,14 +130,14 @@ impl InstallCommand {
 
         // Only set as active version if no version is currently active
         if installer.get_active_version()?.is_none() {
-            installer.set_active_version_with_message(&requested_version, false)?;
+            installer.set_active_version(&requested_version, false)?;
             ui::info(&format!(
                 "Set Godot v{requested_version} as active version (first installation)"
             ));
         } else {
             ui::info(&format!(
                 "Installation complete. Use 'gdenv use {}' to switch to this version.",
-                requested_version.godot_version_string()
+                requested_version.as_godot_version_str()
             ));
         }
 

@@ -2,9 +2,8 @@ use anyhow::Result;
 use clap::{Parser, Subcommand};
 
 use crate::commands::{
-    cache::CacheCommand, current::CurrentCommand, install::InstallCommand,
-    installed::InstalledCommand, list::ListCommand, uninstall::UninstallCommand,
-    update::UpdateCommand, use_cmd::UseCommand,
+    cache::CacheCommand, current::CurrentCommand, fetch::FetchCommand, install::InstallCommand,
+    list::ListCommand, uninstall::UninstallCommand, use_cmd::UseCommand,
 };
 
 #[derive(Parser)]
@@ -18,26 +17,26 @@ pub struct Cli {
 
 #[derive(Subcommand)]
 pub enum Commands {
-    /// Download and install a specific version of Godot
-    Install(InstallCommand),
+    /// Update the cache of available Godot versions
+    #[command(alias = "update")]
+    Fetch(FetchCommand),
 
-    /// List available Godot versions from remote
+    /// List installed and available Godot versions
+    #[command(alias = "ls")]
     List(ListCommand),
 
-    /// List installed Godot versions
-    Installed(InstalledCommand),
+    /// Download and install a specific version of Godot
+    Install(InstallCommand),
 
     /// Switch to a specific Godot version
     Use(UseCommand),
 
-    /// Uninstall a specific Godot version
-    Uninstall(UninstallCommand),
-
     /// Show the currently active Godot version
     Current(CurrentCommand),
 
-    /// Update the cache of available Godot versions
-    Update(UpdateCommand),
+    /// Uninstall a specific Godot version
+    #[command(alias = "remove")]
+    Uninstall(UninstallCommand),
 
     /// Manage download cache
     Cache(CacheCommand),
@@ -48,11 +47,10 @@ impl Cli {
         match self.command {
             Commands::Install(cmd) => cmd.run().await,
             Commands::List(cmd) => cmd.run().await,
-            Commands::Installed(cmd) => cmd.run().await,
             Commands::Use(cmd) => cmd.run().await,
             Commands::Uninstall(cmd) => cmd.run().await,
             Commands::Current(cmd) => cmd.run().await,
-            Commands::Update(cmd) => cmd.run().await,
+            Commands::Fetch(cmd) => cmd.run().await,
             Commands::Cache(cmd) => cmd.run().await,
         }
     }
