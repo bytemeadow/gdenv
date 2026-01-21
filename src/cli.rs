@@ -2,8 +2,8 @@ use anyhow::Result;
 use clap::{Parser, Subcommand};
 
 use crate::commands::{
-    cache::CacheCommand, current::CurrentCommand, install::InstallCommand, list::ListCommand,
-    uninstall::UninstallCommand, update::UpdateCommand, use_cmd::UseCommand,
+    cache::CacheCommand, current::CurrentCommand, fetch::FetchCommand, install::InstallCommand,
+    list::ListCommand, uninstall::UninstallCommand, use_cmd::UseCommand,
 };
 
 #[derive(Parser)]
@@ -19,7 +19,7 @@ pub struct Cli {
 pub enum Commands {
     /// Update the cache of available Godot versions
     #[command(alias = "update")]
-    Fetch(UpdateCommand),
+    Fetch(FetchCommand),
 
     /// List installed and available Godot versions
     #[command(alias = "ls")]

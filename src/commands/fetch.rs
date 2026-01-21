@@ -4,24 +4,24 @@ use clap::Args;
 use crate::{github::GitHubClient, ui};
 
 #[derive(Args)]
-pub struct UpdateCommand {
+pub struct FetchCommand {
     /// Force update even if cache is recent
     #[arg(long, short)]
     pub force: bool,
 }
 
-impl UpdateCommand {
+impl FetchCommand {
     pub async fn run(self) -> Result<()> {
         let github_client = GitHubClient::new();
 
-        ui::info("Updating available Godot versions...");
+        ui::info("Fetching available Godot versions from GitHub...");
 
         // Fetch releases from GitHub
         let releases = github_client.get_godot_releases(true).await?;
 
         ui::success(&format!("Found {} Godot releases", releases.len()));
 
-        // Show latest stable and prerelease versions (sorted ascending, so last is latest)
+        // Show the latest stable and prerelease versions (sorted ascending, so last is latest)
         let stable_releases: Vec<_> = releases
             .iter()
             .filter(|r| !r.version.is_prerelease())
@@ -39,9 +39,8 @@ impl UpdateCommand {
             ui::info(&format!("Latest prerelease: {}", latest_prerelease.version));
         }
 
-        ui::success(
-            "Update complete! Use 'gdenv list' to see stable versions or 'gdenv list --include-prereleases' for all versions",
-        );
+        ui::success("Update complete!\n");
+        ui::info("Use 'gdenv list' to see available versions.");
 
         Ok(())
     }
