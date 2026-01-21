@@ -14,6 +14,9 @@ pub struct Config {
 
     /// Directory for executable symlinks (to be added to PATH)
     pub bin_dir: PathBuf,
+
+    /// Path to the gdenv version file (used to detect if migration is needed)
+    pub data_dir_format_version_file: PathBuf,
 }
 
 impl Default for Config {
@@ -27,6 +30,7 @@ impl Default for Config {
             cache_dir: data_dir.join("cache"),
             active_symlink: data_dir.join("current"),
             bin_dir: data_dir.join("bin"),
+            data_dir_format_version_file: data_dir.join("gdenv_version.txt"),
         }
     }
 }

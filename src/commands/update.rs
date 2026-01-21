@@ -39,7 +39,9 @@ impl UpdateCommand {
             ui::info(&format!("Latest prerelease: {}", latest_prerelease.version));
         }
 
-        ui::success("Update complete! Use 'gdenv list' to see stable versions or 'gdenv list --include-prereleases' for all versions");
+        ui::success(
+            "Update complete! Use 'gdenv list' to see stable versions or 'gdenv list --include-prereleases' for all versions",
+        );
 
         Ok(())
     }

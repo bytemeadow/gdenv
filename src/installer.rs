@@ -59,10 +59,10 @@ impl Installer {
                 fs::create_dir_all(&outpath)?;
             } else {
                 // File
-                if let Some(p) = outpath.parent() {
-                    if !p.exists() {
-                        fs::create_dir_all(p)?;
-                    }
+                if let Some(p) = outpath.parent()
+                    && !p.exists()
+                {
+                    fs::create_dir_all(p)?;
                 }
                 let mut outfile = fs::File::create(&outpath)?;
                 std::io::copy(&mut file, &mut outfile)?;
@@ -121,11 +121,7 @@ impl Installer {
         Ok(())
     }
 
-    pub fn set_active_version(
-        &self,
-        version: &GodotVersion,
-        show_message: bool,
-    ) -> Result<()> {
+    pub fn set_active_version(&self, version: &GodotVersion, show_message: bool) -> Result<()> {
         let install_path = self
             .config
             .installations_dir
@@ -135,24 +131,11 @@ impl Installer {
             return Err(anyhow::anyhow!("Godot v{} is not installed", version));
         }
 
-        // Remove existing symlink if it exists
-        if self.config.active_symlink.exists() {
-            if self.config.active_symlink.is_symlink() {
-                fs::remove_file(&self.config.active_symlink)?;
-            } else {
-                fs::remove_dir_all(&self.config.active_symlink)?;
-            }
-        }
-
         // Create new symlink
-        #[cfg(unix)]
-        std::os::unix::fs::symlink(&install_path, &self.config.active_symlink)?;
-
-        #[cfg(windows)]
-        std::os::windows::fs::symlink_dir(&install_path, &self.config.active_symlink)?;
+        Self::update_symlink(&install_path, &self.config.active_symlink)?;
 
         // Create executable symlink in bin directory
-        self.create_executable_symlink(&install_path, version)?;
+        self.create_executable_symlink(&install_path, version, show_message)?;
 
         if show_message {
             ui::success(&format!("Switched to Godot v{version}"));
@@ -165,35 +148,22 @@ impl Installer {
         &self,
         install_path: &std::path::Path,
         version: &GodotVersion,
+        show_message: bool,
     ) -> Result<()> {
         let godot_executable_symlink = self.config.bin_dir.join("godot");
-
-        // Remove existing symlink if it exists
-        if godot_executable_symlink.exists() {
-            if godot_executable_symlink.is_symlink() {
-                fs::remove_file(&godot_executable_symlink)?;
-            } else {
-                ui::warning(
-                    "Found non-symlink 'godot' executable in bin directory - not overwriting",
-                );
-                return Ok(());
-            }
-        }
 
         // Find the actual Godot executable in the installation
         let godot_exe_path = self.find_godot_executable(install_path, version)?;
 
         // Create symlink to the executable
-        #[cfg(unix)]
-        std::os::unix::fs::symlink(&godot_exe_path, &godot_executable_symlink)?;
+        Self::update_symlink(&godot_exe_path, &godot_executable_symlink)?;
 
-        #[cfg(windows)]
-        std::os::windows::fs::symlink_file(&godot_exe_path, &godot_executable_symlink)?;
-
-        ui::info(&format!(
-            "Created 'godot' executable symlink in {}",
-            self.config.bin_dir.display()
-        ));
+        if show_message {
+            ui::info(&format!(
+                "Created 'godot' executable symlink in {}",
+                self.config.bin_dir.display()
+            ));
+        }
 
         Ok(())
     }
@@ -274,18 +244,18 @@ impl Installer {
         let target = fs::read_link(&self.config.active_symlink)?;
 
         // Parse version from the directory name
-        if let Some(dir_name) = target.file_name().and_then(|n| n.to_str()) {
-            if let Some(version_part) = dir_name.strip_prefix("godot-") {
-                let is_dotnet = version_part.ends_with("-dotnet");
-                let version_str = if is_dotnet {
-                    version_part.strip_suffix("-dotnet").unwrap()
-                } else {
-                    version_part
-                };
+        if let Some(dir_name) = target.file_name().and_then(|n| n.to_str())
+            && let Some(version_part) = dir_name.strip_prefix("godot-")
+        {
+            let is_dotnet = version_part.ends_with("-dotnet");
+            let version_str = if is_dotnet {
+                version_part.strip_suffix("-dotnet").unwrap()
+            } else {
+                version_part
+            };
 
-                if let Ok(version) = GodotVersion::new(version_str, is_dotnet) {
-                    return Ok(Some(version));
-                }
+            if let Ok(version) = GodotVersion::new(version_str, is_dotnet) {
+                return Ok(Some(version));
             }
         }
 
@@ -305,23 +275,49 @@ impl Installer {
                 continue;
             }
 
-            if let Some(dir_name) = entry.file_name().to_str() {
-                if let Some(version_part) = dir_name.strip_prefix("godot-") {
-                    let is_dotnet = version_part.ends_with("-dotnet");
-                    let version_str = if is_dotnet {
-                        version_part.strip_suffix("-dotnet").unwrap()
-                    } else {
-                        version_part
-                    };
+            if let Some(dir_name) = entry.file_name().to_str()
+                && let Some(version_part) = dir_name.strip_prefix("godot-")
+            {
+                let is_dotnet = version_part.ends_with("-dotnet");
+                let version_str = if is_dotnet {
+                    version_part.strip_suffix("-dotnet").unwrap()
+                } else {
+                    version_part
+                };
 
-                    if let Ok(version) = GodotVersion::new(version_str, is_dotnet) {
-                        versions.push(version);
-                    }
+                if let Ok(version) = GodotVersion::new(version_str, is_dotnet) {
+                    versions.push(version);
                 }
             }
         }
 
         versions.sort();
         Ok(versions)
+    }
+
+    pub fn update_symlink(original: &Path, link: &Path) -> Result<()> {
+        if fs::symlink_metadata(link).is_ok() {
+            fs::remove_file(link)?;
+        } else {
+            ui::warning(&format!(
+                "Won't create symlink: Found non-symlink '{}' not overwriting",
+                link.to_str().unwrap_or("<unknown_path>")
+            ));
+            return Ok(());
+        }
+
+        #[cfg(unix)]
+        std::os::unix::fs::symlink(original, link)?;
+
+        #[cfg(windows)]
+        {
+            if original.is_dir() {
+                std::os::windows::fs::symlink_dir(original, link)?;
+            } else {
+                std::os::windows::fs::symlink_file(original, link)?;
+            }
+        }
+
+        Ok(())
     }
 }

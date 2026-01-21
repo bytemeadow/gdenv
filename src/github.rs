@@ -1,7 +1,7 @@
 use crate::config::Config;
 use crate::godot::get_platform_patterns;
 use crate::godot_version::GodotVersion;
-use anyhow::{anyhow, Context, Result};
+use anyhow::{Context, Result, anyhow};
 use chrono::{DateTime, Utc};
 use indicatif::{ProgressBar, ProgressStyle};
 use reqwest::Client;
@@ -179,13 +179,13 @@ impl GitHubClient {
             return false;
         }
 
-        if let Ok(metadata) = std::fs::metadata(path) {
-            if let Ok(modified) = metadata.modified() {
-                let now = std::time::SystemTime::now();
-                if let Ok(duration) = now.duration_since(modified) {
-                    // 6 months is roughly 180 days
-                    return duration.as_secs() < 180 * 24 * 60 * 60;
-                }
+        if let Ok(metadata) = std::fs::metadata(path)
+            && let Ok(modified) = metadata.modified()
+        {
+            let now = std::time::SystemTime::now();
+            if let Ok(duration) = now.duration_since(modified) {
+                // 6 months is roughly 180 days
+                return duration.as_secs() < 180 * 24 * 60 * 60;
             }
         }
         false
@@ -195,20 +195,20 @@ impl GitHubClient {
         let content = std::fs::read_to_string(path)?;
         let releases: Vec<GitHubRelease> = serde_json::from_str(&content)?;
 
-        if let Ok(metadata) = std::fs::metadata(path) {
-            if let Ok(modified) = metadata.modified() {
-                let datetime: DateTime<Utc> = modified.into();
-                let local_time = datetime.with_timezone(&chrono::Local);
+        if let Ok(metadata) = std::fs::metadata(path)
+            && let Ok(modified) = metadata.modified()
+        {
+            let datetime: DateTime<Utc> = modified.into();
+            let local_time = datetime.with_timezone(&chrono::Local);
 
-                let now = chrono::Local::now();
-                let days_ago = now.signed_duration_since(local_time).num_days().max(0);
+            let now = chrono::Local::now();
+            let days_ago = now.signed_duration_since(local_time).num_days().max(0);
 
-                println!(
-                    "✨ Releases cache last updated: {} ({} days ago)",
-                    local_time.format("%Y-%m-%d %I:%M%P"),
-                    days_ago
-                );
-            }
+            println!(
+                "✨ Releases cache last updated: {} ({} days ago)",
+                local_time.format("%Y-%m-%d %I:%M%P"),
+                days_ago
+            );
         }
 
         Ok(releases)
