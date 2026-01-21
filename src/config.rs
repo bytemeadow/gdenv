@@ -3,6 +3,9 @@ use std::path::PathBuf;
 
 #[derive(Debug, Clone)]
 pub struct Config {
+    /// Root directory for gdenv data (installations, cache, symlinks, etc.)
+    pub data_dir: PathBuf,
+
     /// Directory where Godot installations are stored
     pub installations_dir: PathBuf,
 
@@ -26,6 +29,7 @@ impl Default for Config {
             .join("gdenv");
 
         Self {
+            data_dir: data_dir.clone(),
             installations_dir: data_dir.join("installations"),
             cache_dir: data_dir.join("cache"),
             active_symlink: data_dir.join("current"),

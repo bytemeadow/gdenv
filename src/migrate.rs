@@ -2,13 +2,21 @@
 
 use crate::config::Config;
 use crate::ui;
-use anyhow::Result;
+use anyhow::{Context, Result};
 use semver::Version;
 use std::fs;
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 pub fn migrate() -> Result<()> {
+    let new_version = Version::parse(VERSION)?;
+
+    // No need to migrate if the data directory doesn't exist
+    if !Config::default().data_dir.exists() {
+        write_data_format_version(&new_version)?;
+        return Ok(());
+    }
+
     struct Migration {
         to_version: Version,
         migrate_fn: fn() -> Result<()>,
@@ -21,7 +29,6 @@ pub fn migrate() -> Result<()> {
         // Add future migrations here
     ];
 
-    let new_version = Version::parse(VERSION)?;
     let old_version = get_data_format_version();
 
     if old_version == Some(new_version.clone()) {
@@ -55,14 +62,16 @@ pub fn migrate() -> Result<()> {
 }
 
 fn write_data_format_version(version: &Version) -> Result<()> {
-    let config = Config::default();
+    let config = Config::new()?;
     let data_format_version_file = config.data_dir_format_version_file;
-    fs::write(data_format_version_file, version.to_string())?;
-    Ok(())
+    fs::write(&data_format_version_file, version.to_string()).context(format!(
+        "Could not write the data format version file: {}",
+        &data_format_version_file.to_str().unwrap_or("?")
+    ))
 }
 
 fn get_data_format_version() -> Option<Version> {
-    let config = Config::default();
+    let config = Config::new().ok()?;
     let data_format_version_file = config.data_dir_format_version_file;
     if data_format_version_file.exists() {
         fs::read_to_string(data_format_version_file)
@@ -89,7 +98,7 @@ mod v0_1_6_to_v0_2_0 {
     }
 
     pub fn migrate_installations_dir() -> Result<()> {
-        let config = Config::default();
+        let config = Config::new()?;
         let installations_dir = &config.installations_dir;
 
         for entry_result in fs::read_dir(installations_dir)? {
@@ -138,15 +147,13 @@ mod v0_1_6_to_v0_2_0 {
     }
 
     fn migrate_symlinks() -> Result<()> {
-        let config = Config::default();
+        let config = Config::new()?;
         let bin_dir = &config.bin_dir;
         let godot_symlink = bin_dir.join("godot");
 
-        if !godot_symlink.exists() {
+        let Ok(target) = fs::read_link(&godot_symlink) else {
             return Ok(());
-        }
-
-        let target = fs::read_link(&godot_symlink)?;
+        };
 
         if let Some(target_str) = target.to_str()
             && let Some(version_str) = extract_godot_version(target_str)

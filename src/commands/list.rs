@@ -118,7 +118,7 @@ impl ListCommand {
 
         if installed.is_empty() {
             ui::warning("    No Godot versions installed");
-            ui::info("    Use 'gdenv install <version>' to install a version");
+            ui::info("    Use 'gdenv install <version>' to install a version\n");
             return Ok(());
         }
 
