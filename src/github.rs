@@ -184,8 +184,8 @@ impl GitHubClient {
         {
             let now = std::time::SystemTime::now();
             if let Ok(duration) = now.duration_since(modified) {
-                // 6 months is roughly 180 days
-                return duration.as_secs() < 180 * 24 * 60 * 60;
+                // 1 month is roughly 30 days
+                return duration.as_secs() < 30 * 24 * 60 * 60;
             }
         }
         false
