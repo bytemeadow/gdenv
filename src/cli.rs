@@ -18,11 +18,16 @@ pub struct Cli {
 
 #[derive(Subcommand)]
 pub enum Commands {
+    /// Update the cache of available Godot versions
+    #[command(alias = "update")]
+    Fetch(UpdateCommand),
+
+    /// List available Godot versions
+    #[command(alias = "ls")]
+    List(ListCommand),
+
     /// Download and install a specific version of Godot
     Install(InstallCommand),
-
-    /// List available Godot versions from remote
-    List(ListCommand),
 
     /// List installed Godot versions
     Installed(InstalledCommand),
@@ -30,14 +35,12 @@ pub enum Commands {
     /// Switch to a specific Godot version
     Use(UseCommand),
 
-    /// Uninstall a specific Godot version
-    Uninstall(UninstallCommand),
-
     /// Show the currently active Godot version
     Current(CurrentCommand),
 
-    /// Update the cache of available Godot versions
-    Update(UpdateCommand),
+    /// Uninstall a specific Godot version
+    #[command(alias = "remove")]
+    Uninstall(UninstallCommand),
 
     /// Manage download cache
     Cache(CacheCommand),
@@ -52,7 +55,7 @@ impl Cli {
             Commands::Use(cmd) => cmd.run().await,
             Commands::Uninstall(cmd) => cmd.run().await,
             Commands::Current(cmd) => cmd.run().await,
-            Commands::Update(cmd) => cmd.run().await,
+            Commands::Fetch(cmd) => cmd.run().await,
             Commands::Cache(cmd) => cmd.run().await,
         }
     }
