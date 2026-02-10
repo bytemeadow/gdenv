@@ -4,6 +4,42 @@ The best command-line tool to install and switch between multiple versions of Go
 
 _Inspired by [xcodes](https://github.com/XcodesOrg/xcodes) and built with ❤️ in Rust._
 
+---
+
+<div align="left" valign="middle">
+<a href="https://runblaze.dev">
+ <picture>
+   <source media="(prefers-color-scheme: dark)" srcset="https://www.runblaze.dev/logo_dark.png">
+   <img align="right" src="https://www.runblaze.dev/logo_light.png" height="102px"/>
+ </picture>
+</a>
+
+<br style="display: none;"/>
+
+_Special thanks to [Blaze](https://runblaze.dev) for their support of this project. They provide high-performance Linux (AMD64 & ARM64) and Apple Silicon macOS runners for GitHub Actions, greatly reducing our automated build times._
+
+</div>
+
+---
+
+## Usage
+
+```txt
+A beautiful terminal tool for managing Godot installations
+
+Usage: gdenv <COMMAND>
+
+Commands:
+fetch      Update the cache of available Godot versions
+list       List installed and available Godot versions
+install    Download and install a specific version of Godot
+use        Switch to a specific Godot version
+current    Show the currently active Godot version
+uninstall  Uninstall a specific Godot version
+cache      Manage download cache
+help       Print this message or the help of the given subcommand(s)
+```
+
 ## Installation
 
 ### Quick Install (Recommended)
@@ -29,23 +65,7 @@ cargo install gdenv
 
 Download pre-built binaries from [GitHub Releases](https://github.com/bytemeadow/gdenv/releases)
 
----
-
-<div align="left" valign="middle">
-<a href="https://runblaze.dev">
- <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="https://www.runblaze.dev/logo_dark.png">
-   <img align="right" src="https://www.runblaze.dev/logo_light.png" height="102px"/>
- </picture>
-</a>
-
-<br style="display: none;"/>
-
-_Special thanks to [Blaze](https://runblaze.dev) for their support of this project. They provide high-performance Linux (AMD64 & ARM64) and Apple Silicon macOS runners for GitHub Actions, greatly reducing our automated build times._
-
-</div>
-
-## Usage
+## Examples
 
 Install a specific version of Godot using commands like:
 
@@ -59,7 +79,7 @@ gdenv install --latest-prerelease
 
 gdenv will download and install the version you asked for so that it's ready to use.
 
-### `.godot-version`
+## .godot-version
 
 We recommend creating a `.godot-version` file to explicitly declare the Godot version for your project:
 
@@ -72,17 +92,6 @@ Then run:
 gdenv install  # Installs 4.2.1
 gdenv use      # Switches to 4.2.1
 ```
-
-### Commands
-
-- `install <version>`: Download and install a specific version of Godot
-- `installed`: List the versions of Godot that are installed
-- `list`: List all versions of Godot that are available to install
-- `use <version>`: Switch to a specific version of Godot
-- `current`: Show the currently active version
-- `uninstall <version>`: Uninstall a specific version of Godot
-- `update`: Update the list of available versions of Godot
-- `cache`: Manage download cache
 
 ## GitHub Action
 
