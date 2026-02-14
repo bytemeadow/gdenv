@@ -1,0 +1,220 @@
+name: "Setup gdenv"
+description: "Install gdenv and provision a Godot version on GitHub Actions runners."
+
+inputs:
+  version:
+    description: "Godot version to install (for example: 4.5.1, 4.6-beta1)."
+    required: true
+  use-dotnet:
+    description: "Install and use the .NET Godot build."
+    default: "false"
+  include-templates:
+    description: "Install export templates for the selected Godot version."
+    default: "false"
+  cache:
+    description: "Enable caching for gdenv data and templates."
+    default: "true"
+  gdenv-version:
+    description: "gdenv version to install (default: latest)."
+    default: "latest"
+
+outputs:
+  godot-bin:
+    description: "Absolute path to the Godot executable."
+    value: ${{ steps.resolve_unix.outputs.godot_bin || steps.resolve_windows.outputs.godot_bin }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Restore gdenv cache (Unix)
+      if: runner.os != 'Windows' && inputs.cache == 'true'
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.local/share/gdenv
+          ~/Library/Application Support/gdenv
+          ~/.local/share/godot/export_templates
+          ~/Library/Application Support/Godot/export_templates
+        key: gdenv-${{ runner.os }}-${{ runner.arch }}-${{ inputs.gdenv-version }}-${{ inputs.version }}-${{ inputs.use-dotnet }}-${{ inputs.include-templates }}-v1
+
+    - name: Restore gdenv cache (Windows)
+      if: runner.os == 'Windows' && inputs.cache == 'true'
+      uses: actions/cache@v4
+      with:
+        path: |
+          ${{ env.LOCALAPPDATA }}\Programs\gdenv
+          ${{ env.APPDATA }}\gdenv
+          ${{ env.APPDATA }}\Godot\export_templates
+        key: gdenv-${{ runner.os }}-${{ runner.arch }}-${{ inputs.gdenv-version }}-${{ inputs.version }}-${{ inputs.use-dotnet }}-${{ inputs.include-templates }}-v1
+
+    - name: Install gdenv (Unix)
+      if: runner.os != 'Windows'
+      shell: bash
+      run: |
+        set -euo pipefail
+        export CI=true
+        GDENV_VERSION="${{ inputs.gdenv-version }}" sh "${{ github.action_path }}/install.sh"
+        printf '%s\n' "$HOME/.local/bin" >> "$GITHUB_PATH"
+        export PATH="$HOME/.local/bin:$PATH"
+        gdenv --version
+
+    - name: Install gdenv (Windows)
+      if: runner.os == 'Windows'
+      shell: pwsh
+      run: |
+        $ErrorActionPreference = "Stop"
+        & "${{ github.action_path }}\install.ps1" -Version "${{ inputs.gdenv-version }}"
+
+        $candidatePaths = @(
+          "$env:LOCALAPPDATA\Programs\gdenv",
+          "$env:USERPROFILE\.local\bin"
+        )
+        foreach ($candidate in $candidatePaths) {
+          if (Test-Path (Join-Path $candidate "gdenv.exe")) {
+            $candidate | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+            $env:PATH = "$candidate;$env:PATH"
+          }
+        }
+
+        gdenv --version
+
+    - name: Install and activate Godot (Unix)
+      if: runner.os != 'Windows'
+      shell: bash
+      run: |
+        set -euo pipefail
+
+        export PATH="$HOME/.local/bin:$PATH"
+
+        dotnet_flag=()
+        if [ "${{ inputs.use-dotnet }}" = "true" ]; then
+          dotnet_flag+=(--dotnet)
+        fi
+
+        gdenv install "${{ inputs.version }}" "${dotnet_flag[@]}"
+        gdenv use "${{ inputs.version }}" "${dotnet_flag[@]}"
+
+        case "$RUNNER_OS" in
+          macOS)
+            godot_bin_dir="$HOME/Library/Application Support/gdenv/bin"
+            ;;
+          Linux)
+            godot_bin_dir="$HOME/.local/share/gdenv/bin"
+            ;;
+          *)
+            echo "Unsupported runner OS: $RUNNER_OS"
+            exit 1
+            ;;
+        esac
+
+        printf '%s\n' "$godot_bin_dir" >> "$GITHUB_PATH"
+        export PATH="$godot_bin_dir:$PATH"
+
+        echo "GODOT=godot" >> "$GITHUB_ENV"
+        echo "GODOT4=godot" >> "$GITHUB_ENV"
+        echo "GODOT4_BIN=godot" >> "$GITHUB_ENV"
+
+        godot --version
+
+    - name: Install and activate Godot (Windows)
+      if: runner.os == 'Windows'
+      shell: pwsh
+      run: |
+        $ErrorActionPreference = "Stop"
+
+        $candidatePaths = @(
+          "$env:LOCALAPPDATA\Programs\gdenv",
+          "$env:USERPROFILE\.local\bin"
+        )
+        foreach ($candidate in $candidatePaths) {
+          if (Test-Path (Join-Path $candidate "gdenv.exe")) {
+            $env:PATH = "$candidate;$env:PATH"
+          }
+        }
+
+        $dotnetEnabled = "${{ inputs.use-dotnet }}" -eq "true"
+        $installArgs = @("install", "${{ inputs.version }}")
+        $useArgs = @("use", "${{ inputs.version }}")
+        if ($dotnetEnabled) {
+          $installArgs += "--dotnet"
+          $useArgs += "--dotnet"
+        }
+
+        & gdenv @installArgs
+        & gdenv @useArgs
+
+        $godotBinDir = Join-Path $env:APPDATA "gdenv\bin"
+        $godotBinDir | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+        $env:PATH = "$godotBinDir;$env:PATH"
+
+        "GODOT=godot" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+        "GODOT4=godot" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+        "GODOT4_BIN=godot" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+        & godot --version
+
+    - name: Install export templates (Unix)
+      if: runner.os != 'Windows' && inputs.include-templates == 'true'
+      shell: bash
+      run: |
+        set -euo pipefail
+
+        export PATH="$HOME/.local/bin:$PATH"
+        case "$RUNNER_OS" in
+          macOS)
+            godot_bin_dir="$HOME/Library/Application Support/gdenv/bin"
+            ;;
+          Linux)
+            godot_bin_dir="$HOME/.local/share/gdenv/bin"
+            ;;
+          *)
+            echo "Unsupported runner OS: $RUNNER_OS"
+            exit 1
+            ;;
+        esac
+        export PATH="$godot_bin_dir:$PATH"
+
+        bash "${{ github.action_path }}/install-templates.sh" "${{ inputs.version }}"
+
+    - name: Install export templates (Windows)
+      if: runner.os == 'Windows' && inputs.include-templates == 'true'
+      shell: pwsh
+      run: |
+        $ErrorActionPreference = "Stop"
+
+        $candidatePaths = @(
+          "$env:LOCALAPPDATA\Programs\gdenv",
+          "$env:USERPROFILE\.local\bin",
+          (Join-Path $env:APPDATA "gdenv\bin")
+        )
+        foreach ($candidate in $candidatePaths) {
+          if (Test-Path $candidate) {
+            $env:PATH = "$candidate;$env:PATH"
+          }
+        }
+
+        & "${{ github.action_path }}\install-templates.ps1" -Version "${{ inputs.version }}"
+
+    - id: resolve_unix
+      name: Resolve Godot executable path (Unix)
+      if: runner.os != 'Windows'
+      shell: bash
+      run: |
+        set -euo pipefail
+
+        if [ "$RUNNER_OS" = "macOS" ]; then
+          godot_bin="$HOME/Library/Application Support/gdenv/bin/godot"
+        else
+          godot_bin="$HOME/.local/share/gdenv/bin/godot"
+        fi
+
+        echo "godot_bin=$godot_bin" >> "$GITHUB_OUTPUT"
+
+    - id: resolve_windows
+      name: Resolve Godot executable path (Windows)
+      if: runner.os == 'Windows'
+      shell: pwsh
+      run: |
+        $ErrorActionPreference = "Stop"
+        $godotBin = Join-Path $env:APPDATA "gdenv\bin\godot.exe"
+        "godot_bin=$godotBin" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
