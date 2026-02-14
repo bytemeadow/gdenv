@@ -81,10 +81,36 @@ runs:
     - name: Install and activate Godot (Unix)
       if: runner.os != 'Windows'
       shell: bash
+      env:
+        GITHUB_TOKEN: ${{ github.token }}
       run: |
         set -euo pipefail
 
         export PATH="$HOME/.local/bin:$PATH"
+
+        case "$RUNNER_OS" in
+          macOS)
+            gdenv_data_dir="$HOME/Library/Application Support/gdenv"
+            ;;
+          Linux)
+            gdenv_data_dir="$HOME/.local/share/gdenv"
+            ;;
+          *)
+            echo "Unsupported runner OS: $RUNNER_OS"
+            exit 1
+            ;;
+        esac
+
+        cache_file="$gdenv_data_dir/cache/releases_cache.json"
+        if command -v python3 >/dev/null 2>&1; then
+          if python3 "${{ github.action_path }}/scripts/seed-release-cache.py" "${{ inputs.version }}" "$cache_file"; then
+            echo "Seeded gdenv release cache at $cache_file"
+          else
+            echo "Warning: Failed to seed gdenv release cache, continuing with gdenv install fallback."
+          fi
+        else
+          echo "Warning: python3 is unavailable, skipping release cache seeding."
+        fi
 
         if [ "${{ inputs.use-dotnet }}" = "true" ]; then
           gdenv install "${{ inputs.version }}" --dotnet
@@ -119,6 +145,8 @@ runs:
     - name: Install and activate Godot (Windows)
       if: runner.os == 'Windows'
       shell: pwsh
+      env:
+        GITHUB_TOKEN: ${{ github.token }}
       run: |
         $ErrorActionPreference = "Stop"
         $PSNativeCommandUseErrorActionPreference = $false
@@ -131,6 +159,24 @@ runs:
           if (Test-Path (Join-Path $candidate "gdenv.exe")) {
             $env:PATH = "$candidate;$env:PATH"
           }
+        }
+
+        $cacheFile = Join-Path $env:APPDATA "gdenv\cache\releases_cache.json"
+        $seeded = $false
+        if (Get-Command python -ErrorAction SilentlyContinue) {
+          & python "${{ github.action_path }}\scripts\seed-release-cache.py" "${{ inputs.version }}" "$cacheFile"
+          if ($LASTEXITCODE -eq 0) {
+            $seeded = $true
+          }
+        } elseif (Get-Command py -ErrorAction SilentlyContinue) {
+          & py -3 "${{ github.action_path }}\scripts\seed-release-cache.py" "${{ inputs.version }}" "$cacheFile"
+          if ($LASTEXITCODE -eq 0) {
+            $seeded = $true
+          }
+        }
+
+        if (-not $seeded) {
+          Write-Warning "Failed to seed gdenv release cache, continuing with gdenv install fallback."
         }
 
         $dotnetEnabled = "${{ inputs.use-dotnet }}" -eq "true"
@@ -155,7 +201,7 @@ runs:
 
         if (-not (Test-Path $godotExe)) {
           if ($useSucceeded) {
-            Write-Warning "godot.exe symlink was not created, falling back to a copied shim."
+            Write-Warning "godot.exe symlink was not created, falling back to a command shim."
           }
 
           $installRoot = Join-Path $env:APPDATA "gdenv\installations"
@@ -177,8 +223,15 @@ runs:
 
           $shimDir = Join-Path $env:RUNNER_TEMP "gdenv-shims"
           New-Item -ItemType Directory -Path $shimDir -Force | Out-Null
-          $godotExe = Join-Path $shimDir "godot.exe"
-          Copy-Item -Path $selected.FullName -Destination $godotExe -Force
+
+          $wrapper = Join-Path $shimDir "godot.cmd"
+          $wrapperContent = @(
+            "@echo off",
+            "`"$($selected.FullName)`" %*"
+          ) -join "`r`n"
+          Set-Content -Path $wrapper -Value $wrapperContent -Encoding ascii
+
+          $godotExe = $selected.FullName
           $godotBinDir = $shimDir
         }
 
@@ -189,7 +242,7 @@ runs:
         "GODOT4=godot" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
         "GODOT4_BIN=godot" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
-        & $godotExe --version
+        & godot --version
 
     - name: Install export templates (Unix)
       if: runner.os != 'Windows' && inputs.include-templates == 'true'
