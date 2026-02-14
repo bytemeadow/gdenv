@@ -2,7 +2,7 @@ use anyhow::Result;
 use clap::Args;
 use std::io::{self, Write};
 
-use crate::{config::Config, godot_version::GodotVersion, installer, ui};
+use crate::{data_dir_config::DataDirConfig, godot_version::GodotVersion, installer, ui};
 
 #[derive(Args)]
 pub struct UninstallCommand {
@@ -20,7 +20,7 @@ pub struct UninstallCommand {
 
 impl UninstallCommand {
     pub async fn run(self) -> Result<()> {
-        let config = Config::new()?;
+        let config = DataDirConfig::setup()?;
 
         let is_dotnet = self.dotnet;
         let target_version = GodotVersion::new(&self.version, is_dotnet)?;

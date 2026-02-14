@@ -1,4 +1,4 @@
-use crate::config::Config;
+use crate::data_dir_config::DataDirConfig;
 use crate::godot::godot_installation_name;
 use crate::installer;
 use crate::{
@@ -120,7 +120,7 @@ impl ListCommand {
     }
 
     fn print_installed_versions(show_paths: bool) -> Result<()> {
-        let config = Config::new()?;
+        let config = DataDirConfig::setup()?;
         let installed = installer::list_installed(&config)?;
         let active_version = installer::get_active_version(&config)?;
 

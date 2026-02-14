@@ -3,7 +3,7 @@ use clap::Args;
 
 use crate::godot::godot_installation_name;
 use crate::project_specification::read_godot_version_file;
-use crate::{config::Config, github::GitHubClient, godot_version::GodotVersion, installer, ui};
+use crate::{data_dir_config::DataDirConfig, github::GitHubClient, godot_version::GodotVersion, installer, ui};
 
 #[derive(Args)]
 pub struct InstallCommand {
@@ -30,7 +30,7 @@ pub struct InstallCommand {
 
 impl InstallCommand {
     pub async fn run(self) -> Result<()> {
-        let config = Config::new()?;
+        let config = DataDirConfig::setup()?;
         let github_client = GitHubClient::new();
 
         // Fetch available releases from GitHub first (needed for --latest flags)

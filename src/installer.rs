@@ -1,11 +1,11 @@
 use crate::godot::{godot_executable_path, godot_installation_name};
-use crate::{config::Config, godot_version::GodotVersion, ui};
+use crate::{data_dir_config::DataDirConfig, godot_version::GodotVersion, ui};
 use anyhow::Result;
 use std::fs;
 use std::path::{Path, PathBuf};
 
 pub async fn install_version_from_archive(
-    config: &Config,
+    config: &DataDirConfig,
     version: &GodotVersion,
     archive_path: &Path,
 ) -> Result<PathBuf> {
@@ -94,7 +94,7 @@ fn make_executable(install_path: &Path) -> Result<()> {
     Ok(())
 }
 
-pub fn uninstall_version(config: &Config, version: &GodotVersion) -> Result<()> {
+pub fn uninstall_version(config: &DataDirConfig, version: &GodotVersion) -> Result<()> {
     let install_path = config
         .installations_dir
         .join(godot_installation_name(version));
@@ -111,7 +111,7 @@ pub fn uninstall_version(config: &Config, version: &GodotVersion) -> Result<()> 
 }
 
 pub fn set_active_version(
-    config: &Config,
+    config: &DataDirConfig,
     version: &GodotVersion,
     show_message: bool,
 ) -> Result<()> {
@@ -137,7 +137,7 @@ pub fn set_active_version(
 }
 
 fn create_executable_symlink(
-    config: &Config,
+    config: &DataDirConfig,
     install_path: &Path,
     version: &GodotVersion,
     show_message: bool,
@@ -224,7 +224,7 @@ fn find_godot_executable(install_path: &Path, version: &GodotVersion) -> Result<
     ))
 }
 
-pub fn get_active_version(config: &Config) -> Result<Option<GodotVersion>> {
+pub fn get_active_version(config: &DataDirConfig) -> Result<Option<GodotVersion>> {
     if !config.active_symlink.exists() {
         return Ok(None);
     }
@@ -251,7 +251,7 @@ pub fn get_active_version(config: &Config) -> Result<Option<GodotVersion>> {
     Ok(None)
 }
 
-pub fn list_installed(config: &Config) -> Result<Vec<GodotVersion>> {
+pub fn list_installed(config: &DataDirConfig) -> Result<Vec<GodotVersion>> {
     let mut versions = Vec::new();
 
     if !config.installations_dir.exists() {
@@ -284,7 +284,7 @@ pub fn list_installed(config: &Config) -> Result<Vec<GodotVersion>> {
     Ok(versions)
 }
 
-pub fn get_executable_path(config: &Config, version: &GodotVersion) -> Result<PathBuf> {
+pub fn get_executable_path(config: &DataDirConfig, version: &GodotVersion) -> Result<PathBuf> {
     let install_path = config
         .installations_dir
         .join(godot_installation_name(version));
