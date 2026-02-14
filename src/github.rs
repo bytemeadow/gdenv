@@ -193,7 +193,8 @@ impl GitHubClient {
 
     fn load_cache(&self, path: &Path) -> Result<Vec<GitHubRelease>> {
         let content = std::fs::read_to_string(path)?;
-        let releases: Vec<GitHubRelease> = serde_json::from_str(&content)?;
+        let mut releases: Vec<GitHubRelease> = serde_json::from_str(&content)?;
+        releases.sort();
 
         if let Ok(metadata) = std::fs::metadata(path)
             && let Ok(modified) = metadata.modified()

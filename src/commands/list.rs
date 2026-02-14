@@ -68,10 +68,10 @@ impl ListCommand {
             ));
         } else {
             ui::info(&format!(
-                "Found {} matches for query '{}' {}.",
+                "Found {} matches for query: '{}'{}",
                 count_all,
                 query,
-                if all { "" } else { "(pre-releases excluded)" }
+                if all { "" } else { " (pre-releases excluded)" }
             ));
         }
         println!();
@@ -81,7 +81,15 @@ impl ListCommand {
         println!("🔽 Recent GitHub release versions:");
         if all_releases.last().is_some() {
             let mut most_recent_top: Vec<&GitHubRelease> = all_releases.iter().rev().collect();
-            most_recent_top.dedup_by(|a, b| a.version.minor == b.version.minor);
+            // Reduce to the most recent minor version, except when there is a newer
+            // pre-release version, then show both stable and pre-release versions.
+            most_recent_top.dedup_by(|a, b| {
+                a.version.minor == b.version.minor
+                    && b.version
+                        .release_tag
+                        .as_ref()
+                        .is_some_and(|tag| tag == "stable")
+            });
 
             let mut major = 3; // Most users won't care about versions before 3.0
             while let major_releases = most_recent_top.iter().filter(|r| r.version.major == major)
