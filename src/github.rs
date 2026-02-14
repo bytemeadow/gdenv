@@ -3,12 +3,15 @@ use crate::godot::get_platform_patterns;
 use crate::godot_version::GodotVersion;
 use anyhow::{Context, Result, anyhow};
 use chrono::{DateTime, Utc};
+use colored::Colorize;
 use indicatif::{ProgressBar, ProgressStyle};
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use std::cmp::Ordering;
 use std::path::Path;
 use tokio::io::AsyncWriteExt;
+
+const CACHE_VALIDITY_DAYS: u64 = 7;
 
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
 pub struct GitHubRelease {
@@ -173,7 +176,7 @@ impl GitHubClient {
         None
     }
 
-    /// A cache file is valid if it exists and was modified less than 6 months ago.
+    /// A cache file is valid if it exists and was modified less than CACHE_VALIDITY_DAYS days ago.
     fn is_cache_valid(&self, path: &Path) -> bool {
         if !path.exists() {
             return false;
@@ -184,8 +187,7 @@ impl GitHubClient {
         {
             let now = std::time::SystemTime::now();
             if let Ok(duration) = now.duration_since(modified) {
-                // 1 month is roughly 30 days
-                return duration.as_secs() < 30 * 24 * 60 * 60;
+                return duration.as_secs() < CACHE_VALIDITY_DAYS * 24 * 60 * 60;
             }
         }
         false
@@ -204,11 +206,12 @@ impl GitHubClient {
 
             let now = chrono::Local::now();
             let days_ago = now.signed_duration_since(local_time).num_days().max(0);
+            let days_next = CACHE_VALIDITY_DAYS as i64 - days_ago;
 
             println!(
-                "✨ Releases cache last updated: {} ({} days ago)",
-                local_time.format("%Y-%m-%d %I:%M%P"),
-                days_ago
+                "✨ GitHub release cache: Last fetch: {} days ago. Next fetch in: {} days. Refresh cache with `gdenv fetch`.",
+                format!("{days_ago}").green().bold(),
+                format!("{days_next}").green().bold(),
             );
         }
 
