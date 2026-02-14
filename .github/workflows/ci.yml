@@ -68,6 +68,49 @@ jobs:
         run: ./target/release/gdenv.exe --help
         if: runner.os == 'Windows'
 
+  action-smoke:
+    name: action-smoke (${{ matrix.platform }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            platform: linux
+          - os: macos-latest
+            platform: macos
+          - os: windows-latest
+            platform: windows
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Godot via local action
+        uses: ./
+        with:
+          version: 4.5.1
+          gdenv-version: 0.2.1
+          use-dotnet: false
+          include-templates: false
+          cache: false
+
+      - name: Verify Godot setup (Unix)
+        if: runner.os != 'Windows'
+        run: |
+          command -v gdenv
+          command -v godot
+          gdenv current
+          godot --version
+
+      - name: Verify Godot setup (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          Get-Command gdenv
+          Get-Command godot
+          gdenv current
+          godot --version
+
   install:
     runs-on: ${{ matrix.os }}
     strategy:

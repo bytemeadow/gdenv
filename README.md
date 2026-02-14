@@ -84,6 +84,32 @@ gdenv use      # Switches to 4.2.1
 - `update`: Update the list of available versions of Godot
 - `cache`: Manage download cache
 
+## GitHub Action
+
+`gdenv` can be used directly as a GitHub Action:
+
+```yaml
+- name: Setup Godot
+  uses: bytemeadow/gdenv@v0.2.1
+  with:
+    version: 4.5.1
+    gdenv-version: 0.2.1
+    use-dotnet: false
+    include-templates: false
+    cache: true
+```
+
+### Action inputs
+
+- `version` (required): Godot version to install and activate.
+- `use-dotnet` (default: `false`): install/use .NET Godot builds.
+- `include-templates` (default: `false`): install export templates for the selected version.
+- `cache` (default: `true`): cache gdenv data and templates between runs.
+- `gdenv-version` (default: `latest`): gdenv version to install.
+- output `godot-bin`: absolute path to the resolved Godot executable.
+
+The action adds `godot` to `PATH` and sets `GODOT`, `GODOT4`, and `GODOT4_BIN` to `godot`.
+
 ## License
 
 gdenv is distributed under the terms of both the MIT license and the Apache License (Version 2.0).
