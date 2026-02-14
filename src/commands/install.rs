@@ -13,7 +13,7 @@ pub struct InstallCommand {
     pub version: Option<String>,
 
     /// Install the .NET version of Godot
-    #[arg(long)]
+    #[arg(long, alias = "mono")]
     pub dotnet: bool,
 
     /// Force reinstall even if version is already installed

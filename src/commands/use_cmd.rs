@@ -10,7 +10,7 @@ pub struct UseCommand {
     pub version: Option<String>,
 
     /// Use the .NET version
-    #[arg(long)]
+    #[arg(long, alias = "mono")]
     pub dotnet: bool,
 }
 

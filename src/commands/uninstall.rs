@@ -10,7 +10,7 @@ pub struct UninstallCommand {
     pub version: String,
 
     /// Uninstall the .NET version
-    #[arg(long)]
+    #[arg(long, alias = "mono")]
     pub dotnet: bool,
 
     /// Skip confirmation prompt

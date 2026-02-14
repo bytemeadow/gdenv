@@ -296,6 +296,19 @@ impl Installer {
         Ok(versions)
     }
 
+    pub fn get_executable_path(&self, version: &GodotVersion) -> Result<PathBuf> {
+        let install_path = self
+            .config
+            .installations_dir
+            .join(godot_installation_name(version));
+
+        if !install_path.exists() {
+            return Err(anyhow::anyhow!("Godot v{} is not installed", version));
+        }
+
+        self.find_godot_executable(&install_path, version)
+    }
+
     pub fn update_symlink(original: &Path, link: &Path) -> Result<()> {
         if let Ok(metadata) = fs::symlink_metadata(link) {
             if metadata.file_type().is_symlink() {
