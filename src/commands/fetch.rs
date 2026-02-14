@@ -1,6 +1,7 @@
 use anyhow::Result;
 use clap::Args;
 
+use crate::download_client::DownloadClient;
 use crate::{github::GitHubClient, ui};
 
 #[derive(Args)]

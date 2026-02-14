@@ -1,8 +1,44 @@
+use crate::download_client::DownloadClient;
 use crate::godot::{godot_executable_path, godot_installation_name};
 use crate::{data_dir_config::DataDirConfig, godot_version::GodotVersion, ui};
-use anyhow::Result;
+use anyhow::{Result, anyhow};
 use std::fs;
 use std::path::{Path, PathBuf};
+
+pub async fn ensure_installed<D: DownloadClient>(
+    config: &DataDirConfig,
+    version: &GodotVersion,
+    download_client: &D,
+    force: bool,
+) -> Result<PathBuf> {
+    if !force && list_installed(config)?.contains(version) {
+        return get_executable_path(config, version);
+    }
+
+    // 1. Fetch releases
+    let releases = download_client.get_godot_releases(false).await?;
+
+    // 2. Find release & asset
+    let release = releases
+        .iter()
+        .find(|r| r.version == *version)
+        .ok_or_else(|| anyhow!("Version {} not found", version))?;
+
+    let asset = release
+        .find_godot_asset(version.is_dotnet)
+        .ok_or_else(|| anyhow!("No compatible build found"))?;
+
+    // 3. Download to cache
+    let cache_path = config.cache_dir.join(&asset.name);
+    if !cache_path.exists() {
+        download_client
+            .download_asset_with_progress(asset, &cache_path)
+            .await?;
+    }
+
+    // 4. Install
+    install_version_from_archive(config, version, &cache_path).await
+}
 
 pub async fn install_version_from_archive(
     config: &DataDirConfig,
@@ -327,8 +363,78 @@ pub fn update_symlink(original: &Path, link: &Path) -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::github::{GitHubAsset, GitHubRelease};
+    use anyhow::Context;
     use std::fs::File;
+    use std::io::Cursor;
     use tempdir::TempDir;
+    use zip::ZipWriter;
+    use zip::write::SimpleFileOptions;
+
+    struct TestDownloadClient;
+    impl DownloadClient for TestDownloadClient {
+        async fn get_godot_releases(&self, _force_refresh: bool) -> Result<Vec<GitHubRelease>> {
+            Ok(vec![GitHubRelease {
+                version: GodotVersion::new("4.2.1-stable", false)?,
+                assets: vec![GitHubAsset {
+                    name: "Godot_v4.2.1-stable_linux.x86_64.zip".to_string(),
+                    browser_download_url: "https://example.com/linux64".to_string(),
+                    size: 1000,
+                }],
+            }])
+        }
+
+        async fn download_asset_with_progress(
+            &self,
+            asset: &GitHubAsset,
+            output_path: &Path,
+        ) -> Result<()> {
+            // We'll use a Vec<u8> to store the zip in memory,
+            // but you could use a std::fs::File instead.
+            let mut zip_buffer = Vec::new();
+            let mut zip = ZipWriter::new(Cursor::new(&mut zip_buffer));
+
+            // Define the options.
+            // 0o755 is a standard permission for an executable (rwxr-xr-x).
+            #[cfg(unix)]
+            let options = SimpleFileOptions::default().unix_permissions(0o755);
+
+            #[cfg(not(unix))]
+            let options = SimpleFileOptions::default();
+
+            // Create the 'godot' file inside the zip
+            zip.start_file("Godot_v4.2.1-stable_linux.x86_64", options)?;
+
+            // The file content is empty, so we don't need to write anything here.
+            // If you wanted content, you'd do: zip.write_all(b"content")?;
+            zip.finish()?;
+
+            // For testing: Write the result to an actual file to verify
+            fs::write(&output_path, zip_buffer)
+                .context(format!("Failed to write zip file: {:?}", output_path))?;
+
+            Ok(())
+        }
+    }
+
+    #[tokio::test]
+    async fn test_installation_lifecycle() -> Result<()> {
+        let tmp_dir = TempDir::new("gdenv-test")?;
+        let config = DataDirConfig::setup_for_path(tmp_dir.path())?;
+        let client = TestDownloadClient;
+        let version = GodotVersion::new("4.2.1", false)?;
+        assert_eq!(list_installed(&config)?.len(), 0);
+        ensure_installed(&config, &version, &client, false).await?;
+        assert_eq!(list_installed(&config)?.len(), 1);
+        ensure_installed(&config, &version, &client, false).await?;
+        assert_eq!(list_installed(&config)?.len(), 1);
+        set_active_version(&config, &version, true)?;
+        assert!(get_active_version(&config)?.is_some());
+        get_executable_path(&config, &version)?;
+        uninstall_version(&config, &version)?;
+        assert_eq!(list_installed(&config)?.len(), 0);
+        Ok(())
+    }
 
     #[test]
     fn test_update_symlink_create_new() -> Result<()> {
@@ -358,7 +464,7 @@ mod tests {
         let dir = tmp_dir.path();
 
         let original = dir.join("original");
-        let link = dir.join("link");
+        let link = dir.join("non-symlink-file-test");
 
         File::create(&original)?;
         File::create(&link)?;

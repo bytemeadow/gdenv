@@ -4,6 +4,7 @@ use clap::Args;
 use crate::github::GitHubClient;
 use crate::project_specification::read_godot_version_file;
 use crate::{data_dir_config::DataDirConfig, godot_version::GodotVersion, installer, ui};
+use crate::installer::ensure_installed;
 
 #[derive(Args)]
 pub struct RunCommand {
@@ -40,43 +41,7 @@ impl RunCommand {
         let is_dotnet = self.dotnet;
         let target_version = GodotVersion::new(&version_string, is_dotnet)?;
 
-        // Check if the version is installed
-        let installed_versions = installer::list_installed(&config)?;
-        if !installed_versions.contains(&target_version) {
-            let releases = github_client.get_godot_releases(false).await?;
-
-            // Find the matching release
-            let release = releases
-                .iter()
-                .find(|r| {
-                    // Try to match both the normalized version and the original input
-                    r.version == target_version
-                })
-                .ok_or_else(|| anyhow!("Godot version {} not found", target_version))?;
-
-            // Find the appropriate asset for our platform
-            let asset = release
-                .find_godot_asset(is_dotnet)
-                .ok_or_else(|| anyhow!("No compatible Godot build found for this platform"))?;
-
-            ui::info(&format!("Found: {}", asset.name));
-            ui::info(&format!("Size: {} MB", asset.size / 1024 / 1024));
-
-            // Create cache directory
-            let archive_file = config.cache_dir.join(&asset.name);
-
-            // Download if not cached
-            if !archive_file.exists() {
-                ui::info("Downloading Godot...");
-                github_client
-                    .download_asset_with_progress(asset, &archive_file)
-                    .await?;
-            } else {
-                ui::info("Using cached download");
-            }
-            installer::install_version_from_archive(&config, &target_version, &archive_file)
-                .await?;
-        }
+        ensure_installed(&config, &target_version, &github_client, false).await?;
 
         let executable_path = installer::get_executable_path(&config, &target_version)?;
 

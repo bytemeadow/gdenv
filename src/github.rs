@@ -1,7 +1,7 @@
 use crate::data_dir_config::DataDirConfig;
+use crate::download_client::DownloadClient;
 use crate::godot::get_platform_patterns;
 use crate::godot_version::GodotVersion;
-use crate::ui;
 use anyhow::{Context, Result, anyhow};
 use chrono::{DateTime, Utc};
 use colored::Colorize;
@@ -84,20 +84,11 @@ pub struct GitHubClient {
     client: Client,
 }
 
-impl GitHubClient {
-    pub fn new() -> Self {
-        let client = Client::builder()
-            .user_agent("gdenv/0.1.0")
-            .build()
-            .expect("Failed to create HTTP client");
-
-        Self { client }
-    }
-
+impl DownloadClient for GitHubClient {
     /// Returns a sorted list of all available Godot releases.
     /// If `force_refresh` is true, fetches the latest list from GitHub.
     /// Otherwise, uses a cached list if it exists and was modified less than 6 months ago.
-    pub async fn get_godot_releases(&self, force_refresh: bool) -> Result<Vec<GitHubRelease>> {
+    async fn get_godot_releases(&self, force_refresh: bool) -> Result<Vec<GitHubRelease>> {
         let cache_file = DataDirConfig::setup()?
             .cache_dir
             .join("releases_cache.json");
@@ -114,14 +105,84 @@ impl GitHubClient {
         sorted_releases.sort();
 
         if let Err(e) = self.save_cache(&cache_file, &sorted_releases) {
-            eprintln!(
-                "{} Failed to save releases cache: {}",
-                ui::Marker::Warning.auto(),
-                e
-            );
+            eprintln!("⚠️ Failed to save releases cache: {}", e);
         }
 
         Ok(sorted_releases)
+    }
+
+    async fn download_asset_with_progress(&self, asset: &GitHubAsset, path: &Path) -> Result<()> {
+        println!("📥 Downloading {}", asset.name);
+
+        let response = self.client.get(&asset.browser_download_url).send().await?;
+
+        if !response.status().is_success() {
+            return Err(anyhow!("Download failed: {}", response.status()));
+        }
+
+        let total_size = asset.size;
+
+        // Create progress bar
+        let pb = ProgressBar::new(total_size);
+        pb.set_style(
+            ProgressStyle::default_bar()
+                .template("{spinner:.green} [{elapsed_precise}] [{wide_bar:.cyan/blue}] {bytes}/{total_bytes} ({bytes_per_sec}, {eta})")?
+                .progress_chars("#>-"),
+        );
+
+        // Create the file
+        let mut file = tokio::fs::File::create(path).await?;
+        let mut downloaded = 0u64;
+        let mut stream = response.bytes_stream();
+
+        use futures_util::StreamExt;
+
+        while let Some(chunk) = stream.next().await {
+            let chunk = chunk?;
+            file.write_all(&chunk).await?;
+            downloaded += chunk.len() as u64;
+            pb.set_position(downloaded);
+        }
+
+        file.flush().await?;
+        pb.finish_with_message("✅ Download complete");
+
+        Ok(())
+    }
+}
+
+impl GitHubClient {
+    pub fn new() -> Self {
+        let client = Client::builder()
+            .user_agent("gdenv/0.1.0")
+            .build()
+            .expect("Failed to create HTTP client");
+        Self { client }
+    }
+
+    pub fn cache_status_message(&self) -> String {
+        let cache_file = DataDirConfig::default()
+            .cache_dir
+            .join("releases_cache.json");
+
+        if let Ok(metadata) = std::fs::metadata(cache_file)
+            && let Ok(modified) = metadata.modified()
+        {
+            let datetime: DateTime<Utc> = modified.into();
+            let local_time = datetime.with_timezone(&chrono::Local);
+
+            let now = chrono::Local::now();
+            let days_ago = now.signed_duration_since(local_time).num_days().max(0);
+            let days_next = CACHE_VALIDITY_DAYS as i64 - days_ago;
+
+            format!(
+                "✨ GitHub release cache: Last fetch: {} days ago. Next fetch in: {} days. Refresh cache with `gdenv fetch`.",
+                format!("{days_ago}").green().bold(),
+                format!("{days_next}").green().bold(),
+            )
+        } else {
+            "".to_string()
+        }
     }
 
     async fn fetch_all_releases_from_api(&self) -> Result<Vec<GitHubRelease>> {
@@ -205,23 +266,6 @@ impl GitHubClient {
         let mut releases: Vec<GitHubRelease> = serde_json::from_str(&content)?;
         releases.sort();
 
-        if let Ok(metadata) = std::fs::metadata(path)
-            && let Ok(modified) = metadata.modified()
-        {
-            let datetime: DateTime<Utc> = modified.into();
-            let local_time = datetime.with_timezone(&chrono::Local);
-
-            let now = chrono::Local::now();
-            let days_ago = now.signed_duration_since(local_time).num_days().max(0);
-            let days_next = CACHE_VALIDITY_DAYS as i64 - days_ago;
-
-            println!(
-                "✨ GitHub release cache: Last fetch: {} days ago. Next fetch in: {} days. Refresh cache with `gdenv fetch`.",
-                format!("{days_ago}").green().bold(),
-                format!("{days_next}").green().bold(),
-            );
-        }
-
         Ok(releases)
     }
 
@@ -231,49 +275,6 @@ impl GitHubClient {
         }
         let content = serde_json::to_string_pretty(releases)?;
         std::fs::write(path, content)?;
-        Ok(())
-    }
-
-    pub async fn download_asset_with_progress(
-        &self,
-        asset: &GitHubAsset,
-        path: &Path,
-    ) -> Result<()> {
-        println!("📥 Downloading {}", asset.name);
-
-        let response = self.client.get(&asset.browser_download_url).send().await?;
-
-        if !response.status().is_success() {
-            return Err(anyhow!("Download failed: {}", response.status()));
-        }
-
-        let total_size = asset.size;
-
-        // Create progress bar
-        let pb = ProgressBar::new(total_size);
-        pb.set_style(
-            ProgressStyle::default_bar()
-                .template("{spinner:.green} [{elapsed_precise}] [{wide_bar:.cyan/blue}] {bytes}/{total_bytes} ({bytes_per_sec}, {eta})")?
-                .progress_chars("#>-"),
-        );
-
-        // Create the file
-        let mut file = tokio::fs::File::create(path).await?;
-        let mut downloaded = 0u64;
-        let mut stream = response.bytes_stream();
-
-        use futures_util::StreamExt;
-
-        while let Some(chunk) = stream.next().await {
-            let chunk = chunk?;
-            file.write_all(&chunk).await?;
-            downloaded += chunk.len() as u64;
-            pb.set_position(downloaded);
-        }
-
-        file.flush().await?;
-        pb.finish_with_message(format!("{} Download complete", ui::Marker::Success.auto()));
-
         Ok(())
     }
 }

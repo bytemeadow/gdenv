@@ -1,4 +1,5 @@
 use crate::data_dir_config::DataDirConfig;
+use crate::download_client::DownloadClient;
 use crate::godot::godot_installation_name;
 use crate::installer;
 use crate::{

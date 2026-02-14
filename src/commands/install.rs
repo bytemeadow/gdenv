@@ -1,9 +1,12 @@
 use anyhow::{Result, anyhow};
 use clap::Args;
 
-use crate::godot::godot_installation_name;
+use crate::download_client::DownloadClient;
 use crate::project_specification::read_godot_version_file;
-use crate::{data_dir_config::DataDirConfig, github::GitHubClient, godot_version::GodotVersion, installer, ui};
+use crate::{
+    data_dir_config::DataDirConfig, github::GitHubClient, godot_version::GodotVersion, installer,
+    ui,
+};
 
 #[derive(Args)]
 pub struct InstallCommand {
@@ -32,18 +35,10 @@ impl InstallCommand {
     pub async fn run(self) -> Result<()> {
         let config = DataDirConfig::setup()?;
         let github_client = GitHubClient::new();
+        ui::info(&github_client.cache_status_message());
 
         // Fetch available releases from GitHub first (needed for --latest flags)
-        // Include prereleases if we're looking for latest prerelease OR if the requested version looks like a prerelease
-        let include_prereleases = self.latest_prerelease
-            || self.version.as_ref().is_some_and(|v| {
-                v.contains("-beta")
-                    || v.contains("-rc")
-                    || v.contains("-alpha")
-                    || v.contains("-dev")
-            });
-        let mut releases = github_client.get_godot_releases(false).await?;
-        releases.retain(|r| include_prereleases || !r.version.is_prerelease());
+        let releases = github_client.get_godot_releases(false).await?;
 
         // Get the version to install
         let requested_version = if self.latest {
@@ -69,65 +64,9 @@ impl InstallCommand {
             }
         };
 
-        // Parse the requested version
-        let is_dotnet = self.dotnet;
-        if self.latest {
-            ui::info(&format!("Found latest stable version: {requested_version}"));
-        } else if self.latest_prerelease {
-            ui::info(&format!(
-                "Found latest prerelease version: {requested_version}"
-            ));
-        }
+        ui::info(&format!("🤖 Installing Godot v{requested_version}"));
 
-        println!(
-            "{} Installing Godot v{requested_version}",
-            ui::Marker::Robot.auto()
-        );
-
-        // Check if already installed (unless force flag is set)
-        let install_path = config
-            .installations_dir
-            .join(godot_installation_name(&requested_version));
-        if install_path.exists() && !self.force {
-            ui::warning(&format!("Godot v{requested_version} is already installed"));
-            ui::info("Use --force to reinstall");
-            return Ok(());
-        }
-
-        // Find the matching release
-        let release = releases
-            .iter()
-            .find(|r| {
-                // Try to match both the normalized version and the original input
-                r.version == requested_version
-            })
-            .ok_or_else(|| anyhow!("Godot version {} not found", requested_version))?;
-
-        // Find the appropriate asset for our platform
-        let asset = release
-            .find_godot_asset(is_dotnet)
-            .ok_or_else(|| anyhow!("No compatible Godot build found for this platform"))?;
-
-        ui::info(&format!("Found: {}", asset.name));
-        ui::info(&format!("Size: {} MB", asset.size / 1024 / 1024));
-
-        // Create cache directory
-        let cache_file = config.cache_dir.join(&asset.name);
-
-        // Download if not cached
-        if !cache_file.exists() {
-            ui::info("Downloading Godot...");
-            github_client
-                .download_asset_with_progress(asset, &cache_file)
-                .await?;
-        } else {
-            ui::info("Using cached download");
-        }
-
-        // Install the version
-        let install_path =
-            installer::install_version_from_archive(&config, &requested_version, &cache_file)
-                .await?;
+        let install_path = installer::ensure_installed(&config, &requested_version, &github_client, self.force).await?;
 
         // Only set as active version if no version is currently active
         if installer::get_active_version(&config)?.is_none() {
