@@ -90,10 +90,10 @@ gdenv use      # Switches to 4.2.1
 
 ```yaml
 - name: Setup Godot
-  uses: bytemeadow/gdenv@v0.2.1
+  uses: bytemeadow/gdenv@v0.2.2
   with:
     version: 4.5.1
-    gdenv-version: 0.2.1
+    gdenv-version: 0.2.2
     use-dotnet: false
     include-templates: false
     cache: true

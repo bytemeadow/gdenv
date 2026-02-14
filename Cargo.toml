@@ -1,6 +1,6 @@
 [package]
 name = "gdenv"
-version = "0.2.1"
+version = "0.2.2"
 edition = "2024"
 description = "The best command-line tool to install and switch between multiple versions of Godot."
 license = "MIT OR Apache-2.0"

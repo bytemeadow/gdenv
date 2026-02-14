@@ -89,7 +89,7 @@ jobs:
         uses: ./
         with:
           version: 4.5.1
-          gdenv-version: 0.2.1
+          gdenv-version: 0.2.2
           use-dotnet: false
           include-templates: false
           cache: false
