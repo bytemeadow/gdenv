@@ -2,10 +2,8 @@ use anyhow::{Result, anyhow};
 use clap::Args;
 
 use crate::godot::godot_installation_name;
-use crate::{
-    config::Config, github::GitHubClient, godot_version::GodotVersion, installer::Installer, ui,
-};
 use crate::project_specification::read_godot_version_file;
+use crate::{config::Config, github::GitHubClient, godot_version::GodotVersion, installer, ui};
 
 #[derive(Args)]
 pub struct InstallCommand {
@@ -34,7 +32,6 @@ impl InstallCommand {
     pub async fn run(self) -> Result<()> {
         let config = Config::new()?;
         let github_client = GitHubClient::new();
-        let installer = Installer::new(config.clone());
 
         // Fetch available releases from GitHub first (needed for --latest flags)
         // Include prereleases if we're looking for latest prerelease OR if the requested version looks like a prerelease
@@ -128,13 +125,13 @@ impl InstallCommand {
         }
 
         // Install the version
-        let install_path = installer
-            .install_version_from_archive(&requested_version, &cache_file)
-            .await?;
+        let install_path =
+            installer::install_version_from_archive(&config, &requested_version, &cache_file)
+                .await?;
 
         // Only set as active version if no version is currently active
-        if installer.get_active_version()?.is_none() {
-            installer.set_active_version(&requested_version, false)?;
+        if installer::get_active_version(&config)?.is_none() {
+            installer::set_active_version(&config, &requested_version, false)?;
             ui::info(&format!(
                 "Set Godot v{requested_version} as active version (first installation)"
             ));
@@ -153,5 +150,4 @@ impl InstallCommand {
 
         Ok(())
     }
-
 }

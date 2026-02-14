@@ -9,9 +9,9 @@ pub fn read_godot_version_file() -> anyhow::Result<String> {
 
     if !version_file.exists() {
         return Err(anyhow!(
-                "No version specified and no .godot-version file found in current directory.\n\
+            "No version specified and no .godot-version file found in current directory.\n\
                 Create a .godot-version file or specify a version: gdenv use <version>"
-            ));
+        ));
     }
 
     let content = fs::read_to_string(version_file)?;

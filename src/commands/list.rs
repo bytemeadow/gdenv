@@ -1,6 +1,6 @@
 use crate::config::Config;
 use crate::godot::godot_installation_name;
-use crate::installer::Installer;
+use crate::installer;
 use crate::{
     github::{GitHubClient, GitHubRelease},
     ui,
@@ -121,9 +121,8 @@ impl ListCommand {
 
     fn print_installed_versions(show_paths: bool) -> Result<()> {
         let config = Config::new()?;
-        let installer = Installer::new(config.clone());
-        let installed = installer.list_installed()?;
-        let active_version = installer.get_active_version()?;
+        let installed = installer::list_installed(&config)?;
+        let active_version = installer::get_active_version(&config)?;
 
         println!("{} Installed versions:", ui::Marker::Package.auto());
 

@@ -1,7 +1,7 @@
 use anyhow::Result;
 use clap::Args;
 
-use crate::{config::Config, godot_version::GodotVersion, installer::Installer, ui};
+use crate::{config::Config, godot_version::GodotVersion, installer, ui};
 
 #[derive(Args)]
 pub struct UseCommand {
@@ -17,7 +17,6 @@ pub struct UseCommand {
 impl UseCommand {
     pub async fn run(self) -> Result<()> {
         let config = Config::new()?;
-        let installer = Installer::new(config);
 
         // Get the version to use
         let version_string = match self.version {
@@ -32,7 +31,7 @@ impl UseCommand {
         let target_version = GodotVersion::new(&version_string, is_dotnet)?;
 
         // Check if the version is installed
-        let installed_versions = installer.list_installed()?;
+        let installed_versions = installer::list_installed(&config)?;
         if !installed_versions.contains(&target_version) {
             ui::error(&format!("Godot v{target_version} is not installed"));
             ui::info("Available installed versions:");
@@ -51,7 +50,7 @@ impl UseCommand {
         }
 
         // Switch to the version
-        installer.set_active_version(&target_version, true)?;
+        installer::set_active_version(&config, &target_version, true)?;
 
         Ok(())
     }

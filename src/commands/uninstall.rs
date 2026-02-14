@@ -2,7 +2,7 @@ use anyhow::Result;
 use clap::Args;
 use std::io::{self, Write};
 
-use crate::{config::Config, godot_version::GodotVersion, installer::Installer, ui};
+use crate::{config::Config, godot_version::GodotVersion, installer, ui};
 
 #[derive(Args)]
 pub struct UninstallCommand {
@@ -21,20 +21,19 @@ pub struct UninstallCommand {
 impl UninstallCommand {
     pub async fn run(self) -> Result<()> {
         let config = Config::new()?;
-        let installer = Installer::new(config);
 
         let is_dotnet = self.dotnet;
         let target_version = GodotVersion::new(&self.version, is_dotnet)?;
 
         // Check if the version is installed
-        let installed_versions = installer.list_installed()?;
+        let installed_versions = installer::list_installed(&config)?;
         if !installed_versions.contains(&target_version) {
             ui::warning(&format!("Godot v{target_version} is not installed"));
             return Ok(());
         }
 
         // Check if it's the active version
-        let active_version = installer.get_active_version()?;
+        let active_version = installer::get_active_version(&config)?;
         let is_active = active_version.as_ref() == Some(&target_version);
 
         if is_active {
@@ -59,11 +58,11 @@ impl UninstallCommand {
         }
 
         // Uninstall the version
-        installer.uninstall_version(&target_version)?;
+        installer::uninstall_version(&config, &target_version)?;
 
         // If it was the active version, suggest setting a new one
         if is_active {
-            let remaining_versions = installer.list_installed()?;
+            let remaining_versions = installer::list_installed(&config)?;
             if !remaining_versions.is_empty() {
                 ui::info("Available versions to switch to:");
                 for version in &remaining_versions {

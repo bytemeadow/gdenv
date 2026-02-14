@@ -2,8 +2,8 @@ use anyhow::{Result, anyhow};
 use clap::Args;
 
 use crate::github::GitHubClient;
-use crate::{config::Config, godot_version::GodotVersion, installer::Installer, ui};
 use crate::project_specification::read_godot_version_file;
+use crate::{config::Config, godot_version::GodotVersion, installer, ui};
 
 #[derive(Args)]
 pub struct RunCommand {
@@ -26,7 +26,6 @@ pub struct RunCommand {
 impl RunCommand {
     pub async fn run(self) -> Result<()> {
         let config = Config::new()?;
-        let installer = Installer::new(config.clone());
         let github_client = GitHubClient::new();
 
         // Get the version to use
@@ -42,7 +41,7 @@ impl RunCommand {
         let target_version = GodotVersion::new(&version_string, is_dotnet)?;
 
         // Check if the version is installed
-        let installed_versions = installer.list_installed()?;
+        let installed_versions = installer::list_installed(&config)?;
         if !installed_versions.contains(&target_version) {
             let releases = github_client.get_godot_releases(false).await?;
 
@@ -75,12 +74,11 @@ impl RunCommand {
             } else {
                 ui::info("Using cached download");
             }
-            installer
-                .install_version_from_archive(&target_version, &archive_file)
+            installer::install_version_from_archive(&config, &target_version, &archive_file)
                 .await?;
         }
 
-        let executable_path = installer.get_executable_path(&target_version)?;
+        let executable_path = installer::get_executable_path(&config, &target_version)?;
 
         if !executable_path.exists() {
             return Err(anyhow!(
@@ -104,5 +102,4 @@ impl RunCommand {
 
         Ok(())
     }
-
 }

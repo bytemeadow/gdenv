@@ -87,7 +87,7 @@ mod v0_1_6_to_v0_2_0 {
     use crate::config::Config;
     use crate::godot::godot_installation_name;
     use crate::godot_version::GodotVersion;
-    use crate::installer::Installer;
+    use crate::installer;
     use anyhow::Result;
     use regex::Regex;
     use std::fs;
@@ -159,11 +159,10 @@ mod v0_1_6_to_v0_2_0 {
             && let Some(version_str) = extract_godot_version(target_str)
         {
             let version = GodotVersion::new(&version_str, false)?;
-            let installer = Installer::new(config);
             // It's possible that the installation directory hasn't been migrated yet if we are in the middle of migrations,
             // but migrate_installations_dir() is called before migrate_simlinks() in migrate().
             // However, Installer::set_active_version checks if the directory exists.
-            installer.set_active_version(&version, false)?;
+            installer::set_active_version(&config, &version, false)?;
         }
 
         Ok(())

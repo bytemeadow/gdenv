@@ -2,7 +2,7 @@ use anyhow::Result;
 use clap::Args;
 use std::path::Path;
 
-use crate::{config::Config, installer::Installer, ui};
+use crate::{config::Config, installer, ui};
 
 #[derive(Args)]
 pub struct CurrentCommand {
@@ -14,9 +14,8 @@ pub struct CurrentCommand {
 impl CurrentCommand {
     pub async fn run(self) -> Result<()> {
         let config = Config::new()?;
-        let installer = Installer::new(config.clone());
 
-        match installer.get_active_version()? {
+        match installer::get_active_version(&config)? {
             Some(version) => {
                 if self.path {
                     println!("{}", config.active_symlink.display());
