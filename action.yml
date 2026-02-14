@@ -86,13 +86,13 @@ runs:
 
         export PATH="$HOME/.local/bin:$PATH"
 
-        dotnet_flag=()
         if [ "${{ inputs.use-dotnet }}" = "true" ]; then
-          dotnet_flag+=(--dotnet)
+          gdenv install "${{ inputs.version }}" --dotnet
+          gdenv use "${{ inputs.version }}" --dotnet
+        else
+          gdenv install "${{ inputs.version }}"
+          gdenv use "${{ inputs.version }}"
         fi
-
-        gdenv install "${{ inputs.version }}" "${dotnet_flag[@]}"
-        gdenv use "${{ inputs.version }}" "${dotnet_flag[@]}"
 
         case "$RUNNER_OS" in
           macOS)
@@ -121,6 +121,7 @@ runs:
       shell: pwsh
       run: |
         $ErrorActionPreference = "Stop"
+        $PSNativeCommandUseErrorActionPreference = $false
 
         $candidatePaths = @(
           "$env:LOCALAPPDATA\Programs\gdenv",
@@ -141,9 +142,46 @@ runs:
         }
 
         & gdenv @installArgs
+
+        $useSucceeded = $true
         & gdenv @useArgs
+        if ($LASTEXITCODE -ne 0) {
+          $useSucceeded = $false
+          Write-Warning "gdenv use failed, continuing with fallback executable resolution."
+        }
 
         $godotBinDir = Join-Path $env:APPDATA "gdenv\bin"
+        $godotExe = Join-Path $godotBinDir "godot.exe"
+
+        if (-not (Test-Path $godotExe)) {
+          if ($useSucceeded) {
+            Write-Warning "godot.exe symlink was not created, falling back to a copied shim."
+          }
+
+          $installRoot = Join-Path $env:APPDATA "gdenv\installations"
+          if (-not (Test-Path $installRoot)) {
+            throw "gdenv installations directory not found at $installRoot"
+          }
+
+          $candidates = Get-ChildItem -Path $installRoot -Recurse -File -Filter "Godot*.exe"
+          if ($dotnetEnabled) {
+            $candidates = $candidates | Where-Object { $_.FullName -match "mono" }
+          } else {
+            $candidates = $candidates | Where-Object { $_.FullName -notmatch "mono" }
+          }
+
+          $selected = $candidates | Sort-Object FullName | Select-Object -First 1
+          if (-not $selected) {
+            throw "Failed to locate a Godot executable under $installRoot"
+          }
+
+          $shimDir = Join-Path $env:RUNNER_TEMP "gdenv-shims"
+          New-Item -ItemType Directory -Path $shimDir -Force | Out-Null
+          $godotExe = Join-Path $shimDir "godot.exe"
+          Copy-Item -Path $selected.FullName -Destination $godotExe -Force
+          $godotBinDir = $shimDir
+        }
+
         $godotBinDir | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
         $env:PATH = "$godotBinDir;$env:PATH"
 
@@ -151,7 +189,7 @@ runs:
         "GODOT4=godot" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
         "GODOT4_BIN=godot" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
-        & godot --version
+        & $godotExe --version
 
     - name: Install export templates (Unix)
       if: runner.os != 'Windows' && inputs.include-templates == 'true'
@@ -201,13 +239,7 @@ runs:
       shell: bash
       run: |
         set -euo pipefail
-
-        if [ "$RUNNER_OS" = "macOS" ]; then
-          godot_bin="$HOME/Library/Application Support/gdenv/bin/godot"
-        else
-          godot_bin="$HOME/.local/share/gdenv/bin/godot"
-        fi
-
+        godot_bin="$(command -v godot)"
         echo "godot_bin=$godot_bin" >> "$GITHUB_OUTPUT"
 
     - id: resolve_windows
@@ -216,5 +248,5 @@ runs:
       shell: pwsh
       run: |
         $ErrorActionPreference = "Stop"
-        $godotBin = Join-Path $env:APPDATA "gdenv\bin\godot.exe"
+        $godotBin = (Get-Command godot -ErrorAction Stop).Path
         "godot_bin=$godotBin" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
