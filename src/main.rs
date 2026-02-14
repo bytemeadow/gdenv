@@ -8,6 +8,7 @@ mod godot_version;
 mod installer;
 mod migrate;
 mod ui;
+mod project_specification;
 
 use crate::migrate::migrate;
 use anyhow::{Context, Result};

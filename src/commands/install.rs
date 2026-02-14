@@ -5,6 +5,7 @@ use crate::godot::godot_installation_name;
 use crate::{
     config::Config, github::GitHubClient, godot_version::GodotVersion, installer::Installer, ui,
 };
+use crate::project_specification::read_godot_version_file;
 
 #[derive(Args)]
 pub struct InstallCommand {
@@ -66,7 +67,7 @@ impl InstallCommand {
                 Ok(v) => v,
                 Err(_) => {
                     // Try to read from .godot-version file
-                    GodotVersion::new(&self.read_godot_version_file()?, self.dotnet)?
+                    GodotVersion::new(&read_godot_version_file()?, self.dotnet)?
                 }
             }
         };
@@ -153,28 +154,4 @@ impl InstallCommand {
         Ok(())
     }
 
-    fn read_godot_version_file(&self) -> Result<String> {
-        use std::fs;
-        use std::path::Path;
-
-        let version_file = Path::new(".godot-version");
-
-        if !version_file.exists() {
-            return Err(anyhow!(
-                "No version specified and no .godot-version file found in current directory.\n\
-                Create a .godot-version file or specify a version: gdenv install <version>"
-            ));
-        }
-
-        let content = fs::read_to_string(version_file)?;
-        let version = content.trim();
-
-        if version.is_empty() {
-            return Err(anyhow!(".godot-version file is empty"));
-        }
-
-        ui::info(&format!("Reading version from .godot-version: {version}"));
-
-        Ok(version.to_string())
-    }
 }
