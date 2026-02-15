@@ -30,14 +30,15 @@ A beautiful terminal tool for managing Godot installations
 Usage: gdenv <COMMAND>
 
 Commands:
-fetch      Update the cache of available Godot versions
-list       List installed and available Godot versions
-install    Download and install a specific version of Godot
-use        Switch to a specific Godot version
-current    Show the currently active Godot version
-uninstall  Uninstall a specific Godot version
-cache      Manage download cache
-help       Print this message or the help of the given subcommand(s)
+  fetch      Update the cache of available Godot versions
+  list       List installed and available Godot versions
+  install    Download and install a specific version of Godot
+  use        Switch to a specific Godot version
+  run        Invoke a specific Godot version. Automatically installs the version. Will not affect the active version
+  current    Show the currently active Godot version
+  uninstall  Uninstall a specific Godot version
+  cache      Manage download cache
+  help       Print this message or the help of the given subcommand(s)
 ```
 
 ## Installation
