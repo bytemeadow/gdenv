@@ -38,7 +38,7 @@ impl InstallCommand {
         ui::info(&github_client.cache_status_message());
 
         // Fetch available releases from GitHub first (needed for --latest flags)
-        let releases = github_client.get_godot_releases(false).await?;
+        let releases = github_client.godot_releases(false).await?;
 
         // Get the version to install
         let requested_version = if self.latest {
@@ -66,11 +66,13 @@ impl InstallCommand {
 
         ui::info(&format!("🤖 Installing Godot v{requested_version}"));
 
-        let install_path = installer::ensure_installed(&config, &requested_version, &github_client, self.force).await?;
+        let install_path =
+            installer::ensure_installed(&config, &requested_version, &github_client, self.force)
+                .await?;
 
         // Only set as active version if no version is currently active
         if installer::get_active_version(&config)?.is_none() {
-            installer::set_active_version(&config, &requested_version, false)?;
+            installer::set_active_version(&config, &requested_version)?;
             ui::info(&format!(
                 "Set Godot v{requested_version} as active version (first installation)"
             ));

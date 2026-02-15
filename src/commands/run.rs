@@ -1,10 +1,10 @@
-use anyhow::{Result, anyhow};
+use anyhow::{Context, Result, anyhow, bail};
 use clap::Args;
 
 use crate::github::GitHubClient;
+use crate::installer::ensure_installed;
 use crate::project_specification::read_godot_version_file;
 use crate::{data_dir_config::DataDirConfig, godot_version::GodotVersion, installer, ui};
-use crate::installer::ensure_installed;
 
 #[derive(Args)]
 pub struct RunCommand {
@@ -46,10 +46,7 @@ impl RunCommand {
         let executable_path = installer::get_executable_path(&config, &target_version)?;
 
         if !executable_path.exists() {
-            return Err(anyhow!(
-                "Executable not found at {}",
-                executable_path.display()
-            ));
+            bail!("Executable not found at {}", executable_path.display());
         }
 
         ui::info(&format!("Running Godot {}...", target_version));
@@ -57,7 +54,7 @@ impl RunCommand {
         let mut child = std::process::Command::new(executable_path)
             .args(&self.godot_arguments)
             .spawn()
-            .map_err(|e| anyhow!("Failed to start Godot: {}", e))?;
+            .context("Failed to start Godot process")?;
 
         let status = child.wait()?;
 

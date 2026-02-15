@@ -23,7 +23,7 @@ pub struct ListCommand {
 impl ListCommand {
     pub async fn run(self) -> Result<()> {
         let github_client = GitHubClient::new();
-        let all_releases = github_client.get_godot_releases(false).await?;
+        let all_releases = github_client.godot_releases(false).await?;
 
         if let Some(q) = &self.query {
             Self::print_version_matches(&all_releases, q, self.pre);

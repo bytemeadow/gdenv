@@ -1,7 +1,8 @@
 use crate::download_client::DownloadClient;
 use crate::godot::{godot_executable_path, godot_installation_name};
-use crate::{data_dir_config::DataDirConfig, godot_version::GodotVersion, ui};
-use anyhow::{Result, anyhow};
+use crate::{data_dir_config::DataDirConfig, godot_version::GodotVersion};
+use anyhow::{Result, anyhow, bail};
+use log::{debug, warn};
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -16,7 +17,7 @@ pub async fn ensure_installed<D: DownloadClient>(
     }
 
     // 1. Fetch releases
-    let releases = download_client.get_godot_releases(false).await?;
+    let releases = download_client.godot_releases(false).await?;
 
     // 2. Find release & asset
     let release = releases
@@ -31,9 +32,7 @@ pub async fn ensure_installed<D: DownloadClient>(
     // 3. Download to cache
     let cache_path = config.cache_dir.join(&asset.name);
     if !cache_path.exists() {
-        download_client
-            .download_asset_with_progress(asset, &cache_path)
-            .await?;
+        download_client.download_asset(asset, &cache_path).await?;
     }
 
     // 4. Install
@@ -51,21 +50,19 @@ pub async fn install_version_from_archive(
 
     // Remove existing installation if it exists
     if install_path.exists() {
-        ui::info("Removing existing installation...");
         fs::remove_dir_all(&install_path)?;
     }
 
     // Create installation directory
     fs::create_dir_all(&install_path)?;
 
-    ui::info("Extracting archive...");
+    debug!("Extracting archive...");
     extract_zip(archive_path, &install_path)?;
 
     // Make the Godot executable... executable (Unix only)
     #[cfg(unix)]
     make_executable(&install_path)?;
 
-    ui::success("Installation complete");
     Ok(install_path)
 }
 
@@ -122,7 +119,6 @@ fn make_executable(install_path: &Path) -> Result<()> {
                 let mut perms = fs::metadata(&path)?.permissions();
                 perms.set_mode(perms.mode() | 0o755); // Add execute permissions
                 fs::set_permissions(&path, perms)?;
-                ui::info(&format!("Made {name} executable"));
             }
         }
     }
@@ -136,38 +132,28 @@ pub fn uninstall_version(config: &DataDirConfig, version: &GodotVersion) -> Resu
         .join(godot_installation_name(version));
 
     if !install_path.exists() {
-        ui::warning(&format!("Godot v{version} is not installed"));
-        return Ok(());
+        bail!("Godot v{} is not installed", version);
     }
 
     fs::remove_dir_all(&install_path)?;
-    ui::success(&format!("Uninstalled Godot v{version}"));
 
     Ok(())
 }
 
-pub fn set_active_version(
-    config: &DataDirConfig,
-    version: &GodotVersion,
-    show_message: bool,
-) -> Result<()> {
+pub fn set_active_version(config: &DataDirConfig, version: &GodotVersion) -> Result<()> {
     let install_path = config
         .installations_dir
         .join(godot_installation_name(version));
 
     if !install_path.exists() {
-        return Err(anyhow::anyhow!("Godot v{} is not installed", version));
+        bail!("Godot v{} is not installed", version);
     }
 
     // Create new symlink
     update_symlink(&install_path, &config.active_symlink)?;
 
     // Create executable symlink in bin directory
-    create_executable_symlink(config, &install_path, version, show_message)?;
-
-    if show_message {
-        ui::success(&format!("Switched to Godot v{version}"));
-    }
+    create_executable_symlink(config, &install_path, version)?;
 
     Ok(())
 }
@@ -176,23 +162,10 @@ fn create_executable_symlink(
     config: &DataDirConfig,
     install_path: &Path,
     version: &GodotVersion,
-    show_message: bool,
 ) -> Result<()> {
     let godot_executable_symlink = config.bin_dir.join("godot");
-
-    // Find the actual Godot executable in the installation
     let godot_exe_path = find_godot_executable(install_path, version)?;
-
-    // Create symlink to the executable
     update_symlink(&godot_exe_path, &godot_executable_symlink)?;
-
-    if show_message {
-        ui::info(&format!(
-            "Created 'godot' executable symlink in {}",
-            config.bin_dir.display()
-        ));
-    }
-
     Ok(())
 }
 
@@ -204,11 +177,6 @@ fn find_godot_executable(install_path: &Path, version: &GodotVersion) -> Result<
     if expected_exe.exists() && expected_exe.is_file() {
         return Ok(expected_exe);
     }
-
-    // If the expected path doesn't work, fall back to searching
-    ui::warning(&format!(
-        "Expected executable at {expected_path} not found, searching..."
-    ));
 
     #[cfg(target_os = "macos")]
     {
@@ -326,7 +294,7 @@ pub fn get_executable_path(config: &DataDirConfig, version: &GodotVersion) -> Re
         .join(godot_installation_name(version));
 
     if !install_path.exists() {
-        return Err(anyhow::anyhow!("Godot v{} is not installed", version));
+        bail!("Godot v{} is not installed", version);
     }
 
     find_godot_executable(&install_path, version)
@@ -337,10 +305,10 @@ pub fn update_symlink(original: &Path, link: &Path) -> Result<()> {
         if metadata.file_type().is_symlink() {
             fs::remove_file(link)?;
         } else {
-            ui::warning(&format!(
+            warn!(
                 "Won't create symlink: Found non-symlink '{}' not overwriting",
                 link.to_str().unwrap_or("<unknown_path>")
-            ));
+            );
             return Ok(());
         }
     }
@@ -373,7 +341,7 @@ mod tests {
 
     struct TestDownloadClient;
     impl DownloadClient for TestDownloadClient {
-        async fn get_godot_releases(&self, _force_refresh: bool) -> Result<Vec<GitHubRelease>> {
+        async fn godot_releases(&self, _force_refresh: bool) -> Result<Vec<GitHubRelease>> {
             Ok(vec![GitHubRelease {
                 version: GodotVersion::new("4.2.1-stable", false)?,
                 assets: vec![GitHubAsset {
@@ -384,11 +352,7 @@ mod tests {
             }])
         }
 
-        async fn download_asset_with_progress(
-            &self,
-            asset: &GitHubAsset,
-            output_path: &Path,
-        ) -> Result<()> {
+        async fn download_asset(&self, _asset: &GitHubAsset, output_path: &Path) -> Result<()> {
             // We'll use a Vec<u8> to store the zip in memory,
             // but you could use a std::fs::File instead.
             let mut zip_buffer = Vec::new();
@@ -428,7 +392,7 @@ mod tests {
         assert_eq!(list_installed(&config)?.len(), 1);
         ensure_installed(&config, &version, &client, false).await?;
         assert_eq!(list_installed(&config)?.len(), 1);
-        set_active_version(&config, &version, true)?;
+        set_active_version(&config, &version)?;
         assert!(get_active_version(&config)?.is_some());
         get_executable_path(&config, &version)?;
         uninstall_version(&config, &version)?;

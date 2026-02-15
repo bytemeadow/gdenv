@@ -2,7 +2,6 @@ mod cli;
 mod commands;
 mod data_dir_config;
 mod download_client;
-mod error;
 mod github;
 mod godot;
 mod godot_version;

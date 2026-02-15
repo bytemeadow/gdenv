@@ -162,7 +162,7 @@ mod v0_1_6_to_v0_2_0 {
             // It's possible that the installation directory hasn't been migrated yet if we are in the middle of migrations,
             // but migrate_installations_dir() is called before migrate_simlinks() in migrate().
             // However, Installer::set_active_version checks if the directory exists.
-            installer::set_active_version(&config, &version, false)?;
+            installer::set_active_version(&config, &version)?;
         }
 
         Ok(())

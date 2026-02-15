@@ -2,7 +2,7 @@ use crate::data_dir_config::DataDirConfig;
 use crate::download_client::DownloadClient;
 use crate::godot::get_platform_patterns;
 use crate::godot_version::GodotVersion;
-use anyhow::{Context, Result, anyhow};
+use anyhow::{Context, Result, bail};
 use chrono::{DateTime, Utc};
 use colored::Colorize;
 use indicatif::{ProgressBar, ProgressStyle};
@@ -88,7 +88,7 @@ impl DownloadClient for GitHubClient {
     /// Returns a sorted list of all available Godot releases.
     /// If `force_refresh` is true, fetches the latest list from GitHub.
     /// Otherwise, uses a cached list if it exists and was modified less than 6 months ago.
-    async fn get_godot_releases(&self, force_refresh: bool) -> Result<Vec<GitHubRelease>> {
+    async fn godot_releases(&self, force_refresh: bool) -> Result<Vec<GitHubRelease>> {
         let cache_file = DataDirConfig::setup()?
             .cache_dir
             .join("releases_cache.json");
@@ -111,13 +111,13 @@ impl DownloadClient for GitHubClient {
         Ok(sorted_releases)
     }
 
-    async fn download_asset_with_progress(&self, asset: &GitHubAsset, path: &Path) -> Result<()> {
+    async fn download_asset(&self, asset: &GitHubAsset, path: &Path) -> Result<()> {
         println!("📥 Downloading {}", asset.name);
 
         let response = self.client.get(&asset.browser_download_url).send().await?;
 
         if !response.status().is_success() {
-            return Err(anyhow!("Download failed: {}", response.status()));
+            bail!("Download failed: {}", response.status());
         }
 
         let total_size = asset.size;
@@ -201,7 +201,7 @@ impl GitHubClient {
             let response = self.client.get(&url).send().await?;
 
             if !response.status().is_success() {
-                return Err(anyhow!("GitHub API request failed: {}", response.status()));
+                bail!("GitHub API request failed: {}", response.status());
             }
 
             let link_header = response

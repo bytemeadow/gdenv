@@ -18,7 +18,7 @@ impl FetchCommand {
         ui::info("Fetching available Godot versions from GitHub...");
 
         // Fetch releases from GitHub
-        let releases = github_client.get_godot_releases(true).await?;
+        let releases = github_client.godot_releases(true).await?;
 
         ui::success(&format!("Found {} Godot releases", releases.len()));
 

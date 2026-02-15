@@ -1,12 +1,9 @@
 use crate::github::{GitHubAsset, GitHubRelease};
+use anyhow::Result;
 use std::path::Path;
 
 pub trait DownloadClient {
-    async fn get_godot_releases(&self, force_refresh: bool) -> anyhow::Result<Vec<GitHubRelease>>;
+    async fn godot_releases(&self, force_refresh: bool) -> Result<Vec<GitHubRelease>>;
 
-    async fn download_asset_with_progress(
-        &self,
-        asset: &GitHubAsset,
-        output_path: &Path,
-    ) -> anyhow::Result<()>;
+    async fn download_asset(&self, asset: &GitHubAsset, output_path: &Path) -> Result<()>;
 }

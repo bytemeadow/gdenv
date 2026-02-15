@@ -1,4 +1,4 @@
-use anyhow::{Result, anyhow};
+use anyhow::{Context, Result};
 use once_cell::sync::Lazy;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
@@ -27,21 +27,38 @@ impl GodotVersion {
     pub fn new(version_str: &str, is_dotnet: bool) -> Result<Self> {
         let caps = VERSION_REGEX
             .captures(version_str)
-            .ok_or_else(|| anyhow!("Invalid Godot version format: {}", version_str))?;
+            .context("Invalid Godot version format")?;
 
         let major = caps
             .get(1)
-            .ok_or_else(|| anyhow!("Invalid major version"))?
+            .context("Invalid major version")?
             .as_str()
-            .parse()?;
-        let minor_opt = caps.get(2).map(|m| m.as_str().parse()).transpose()?;
-        let patch_opt = caps.get(3).map(|m| m.as_str().parse()).transpose()?;
-        let sub_patch_opt = caps.get(4).map(|m| m.as_str().parse()).transpose()?;
+            .parse()
+            .context("Invalid major version")?;
+        let minor_opt = caps
+            .get(2)
+            .map(|m| m.as_str().parse())
+            .transpose()
+            .context("Invalid minor version")?;
+        let patch_opt = caps
+            .get(3)
+            .map(|m| m.as_str().parse())
+            .transpose()
+            .context("Invalid patch version")?;
+        let sub_patch_opt = caps
+            .get(4)
+            .map(|m| m.as_str().parse())
+            .transpose()
+            .context("Invalid sub-patch version")?;
         let release_tag = Some(
             caps.get(5)
                 .map_or("stable".to_string(), |m| m.as_str().to_string()),
         );
-        let tag_version = caps.get(6).map(|m| m.as_str().parse()).transpose()?;
+        let tag_version = caps
+            .get(6)
+            .map(|m| m.as_str().parse())
+            .transpose()
+            .context("Invalid tag version")?;
         let extra = caps
             .get(7)
             .map(|m| m.as_str().to_string())
