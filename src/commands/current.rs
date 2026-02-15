@@ -2,7 +2,7 @@ use anyhow::Result;
 use clap::Args;
 use std::path::Path;
 
-use crate::{data_dir_config::DataDirConfig, installer, ui};
+use crate::{config::Config, installer, ui};
 
 #[derive(Args)]
 pub struct CurrentCommand {
@@ -13,7 +13,7 @@ pub struct CurrentCommand {
 
 impl CurrentCommand {
     pub async fn run(self) -> Result<()> {
-        let config = DataDirConfig::setup()?;
+        let config = Config::setup()?;
 
         match installer::get_active_version(&config)? {
             Some(version) => {

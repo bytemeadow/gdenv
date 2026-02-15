@@ -1,4 +1,4 @@
-use crate::data_dir_config::DataDirConfig;
+use crate::config::Config;
 use crate::download_client::DownloadClient;
 use crate::godot::get_platform_patterns;
 use crate::godot_version::GodotVersion;
@@ -100,9 +100,7 @@ impl DownloadClient for GitHubClient {
     /// If `force_refresh` is true, fetches the latest list from GitHub.
     /// Otherwise, uses a cached list if it exists and was modified less than 6 months ago.
     async fn godot_releases(&self, force_refresh: bool) -> Result<Vec<GitHubRelease>> {
-        let cache_file = DataDirConfig::setup()?
-            .cache_dir
-            .join("releases_cache.json");
+        let cache_file = Config::setup()?.cache_dir.join("releases_cache.json");
 
         if !force_refresh && self.is_cache_valid(&cache_file) {
             return self
@@ -172,9 +170,7 @@ impl GitHubClient {
     }
 
     pub fn cache_status_message(&self) -> String {
-        let cache_file = DataDirConfig::default()
-            .cache_dir
-            .join("releases_cache.json");
+        let cache_file = Config::default().cache_dir.join("releases_cache.json");
 
         if let Ok(metadata) = std::fs::metadata(cache_file)
             && let Ok(modified) = metadata.modified()

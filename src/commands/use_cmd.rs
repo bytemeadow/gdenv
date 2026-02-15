@@ -1,7 +1,7 @@
 use anyhow::{Result, bail};
 use clap::Args;
 
-use crate::{data_dir_config::DataDirConfig, godot_version::GodotVersion, installer, ui};
+use crate::{config::Config, godot_version::GodotVersion, installer, ui};
 
 #[derive(Args)]
 pub struct UseCommand {
@@ -16,7 +16,7 @@ pub struct UseCommand {
 
 impl UseCommand {
     pub async fn run(self) -> Result<()> {
-        let config = DataDirConfig::setup()?;
+        let config = Config::setup()?;
 
         // Get the version to use
         let version_string = match self.version {

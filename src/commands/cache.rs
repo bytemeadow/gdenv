@@ -2,7 +2,7 @@ use anyhow::Result;
 use clap::{Args, Subcommand};
 use std::fs;
 
-use crate::{data_dir_config::DataDirConfig, ui};
+use crate::{config::Config, ui};
 
 #[derive(Args)]
 pub struct CacheCommand {
@@ -20,7 +20,7 @@ pub enum CacheAction {
 
 impl CacheCommand {
     pub async fn run(self) -> Result<()> {
-        let config = DataDirConfig::setup()?;
+        let config = Config::setup()?;
 
         match self.action {
             Some(CacheAction::Clear) => self.clear_cache(&config)?,
@@ -34,7 +34,7 @@ impl CacheCommand {
         Ok(())
     }
 
-    fn clear_cache(&self, config: &DataDirConfig) -> Result<()> {
+    fn clear_cache(&self, config: &Config) -> Result<()> {
         if !config.cache_dir.exists() {
             ui::success("Cache directory does not exist - nothing to clear");
             return Ok(());
@@ -63,7 +63,7 @@ impl CacheCommand {
         Ok(())
     }
 
-    fn show_cache_info(&self, config: &DataDirConfig) -> Result<()> {
+    fn show_cache_info(&self, config: &Config) -> Result<()> {
         ui::info(&format!("Cache location: {}", config.cache_dir.display()));
 
         if !config.cache_dir.exists() {
@@ -85,7 +85,7 @@ impl CacheCommand {
         Ok(())
     }
 
-    fn calculate_cache_size(&self, config: &DataDirConfig) -> Result<u64> {
+    fn calculate_cache_size(&self, config: &Config) -> Result<u64> {
         let mut total_size = 0;
 
         if !config.cache_dir.exists() {
@@ -103,7 +103,7 @@ impl CacheCommand {
         Ok(total_size)
     }
 
-    fn count_cache_files(&self, config: &DataDirConfig) -> Result<usize> {
+    fn count_cache_files(&self, config: &Config) -> Result<usize> {
         let mut count = 0;
 
         if !config.cache_dir.exists() {

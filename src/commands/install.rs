@@ -3,10 +3,7 @@ use clap::Args;
 
 use crate::download_client::DownloadClient;
 use crate::project_specification::read_godot_version_file;
-use crate::{
-    data_dir_config::DataDirConfig, github::GitHubClient, godot_version::GodotVersion, installer,
-    ui,
-};
+use crate::{config::Config, github::GitHubClient, godot_version::GodotVersion, installer, ui};
 
 #[derive(Args)]
 pub struct InstallCommand {
@@ -33,7 +30,7 @@ pub struct InstallCommand {
 
 impl InstallCommand {
     pub async fn run(self) -> Result<()> {
-        let config = DataDirConfig::setup()?;
+        let config = Config::setup()?;
         let github_client = GitHubClient::new();
         ui::info(&github_client.cache_status_message());
 

@@ -4,7 +4,7 @@ use clap::Args;
 use crate::github::GitHubClient;
 use crate::installer::ensure_installed;
 use crate::project_specification::read_godot_version_file;
-use crate::{data_dir_config::DataDirConfig, godot_version::GodotVersion, installer};
+use crate::{config::Config, godot_version::GodotVersion, installer};
 
 #[derive(Args)]
 pub struct RunCommand {
@@ -26,7 +26,7 @@ pub struct RunCommand {
 
 impl RunCommand {
     pub async fn run(self) -> Result<()> {
-        let config = DataDirConfig::setup()?;
+        let config = Config::setup()?;
         let github_client = GitHubClient::new();
 
         // Get the version to use

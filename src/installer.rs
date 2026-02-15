@@ -1,13 +1,13 @@
 use crate::download_client::DownloadClient;
 use crate::godot::{godot_executable_path, godot_installation_name};
-use crate::{data_dir_config::DataDirConfig, godot_version::GodotVersion};
+use crate::{config::Config, godot_version::GodotVersion};
 use anyhow::{Result, anyhow, bail};
 use log::{debug, warn};
 use std::fs;
 use std::path::{Path, PathBuf};
 
 pub async fn ensure_installed<D: DownloadClient>(
-    config: &DataDirConfig,
+    config: &Config,
     version: &GodotVersion,
     download_client: &D,
     force: bool,
@@ -40,7 +40,7 @@ pub async fn ensure_installed<D: DownloadClient>(
 }
 
 pub async fn install_version_from_archive(
-    config: &DataDirConfig,
+    config: &Config,
     version: &GodotVersion,
     archive_path: &Path,
 ) -> Result<PathBuf> {
@@ -126,7 +126,7 @@ fn make_executable(install_path: &Path) -> Result<()> {
     Ok(())
 }
 
-pub fn uninstall_version(config: &DataDirConfig, version: &GodotVersion) -> Result<()> {
+pub fn uninstall_version(config: &Config, version: &GodotVersion) -> Result<()> {
     let install_path = config
         .installations_dir
         .join(godot_installation_name(version));
@@ -140,7 +140,7 @@ pub fn uninstall_version(config: &DataDirConfig, version: &GodotVersion) -> Resu
     Ok(())
 }
 
-pub fn set_active_version(config: &DataDirConfig, version: &GodotVersion) -> Result<()> {
+pub fn set_active_version(config: &Config, version: &GodotVersion) -> Result<()> {
     let install_path = config
         .installations_dir
         .join(godot_installation_name(version));
@@ -159,7 +159,7 @@ pub fn set_active_version(config: &DataDirConfig, version: &GodotVersion) -> Res
 }
 
 fn create_executable_symlink(
-    config: &DataDirConfig,
+    config: &Config,
     install_path: &Path,
     version: &GodotVersion,
 ) -> Result<()> {
@@ -228,7 +228,7 @@ fn find_godot_executable(install_path: &Path, version: &GodotVersion) -> Result<
     ))
 }
 
-pub fn get_active_version(config: &DataDirConfig) -> Result<Option<GodotVersion>> {
+pub fn get_active_version(config: &Config) -> Result<Option<GodotVersion>> {
     if !config.active_symlink.exists() {
         return Ok(None);
     }
@@ -255,7 +255,7 @@ pub fn get_active_version(config: &DataDirConfig) -> Result<Option<GodotVersion>
     Ok(None)
 }
 
-pub fn list_installed(config: &DataDirConfig) -> Result<Vec<GodotVersion>> {
+pub fn list_installed(config: &Config) -> Result<Vec<GodotVersion>> {
     let mut versions = Vec::new();
 
     if !config.installations_dir.exists() {
@@ -288,7 +288,7 @@ pub fn list_installed(config: &DataDirConfig) -> Result<Vec<GodotVersion>> {
     Ok(versions)
 }
 
-pub fn get_executable_path(config: &DataDirConfig, version: &GodotVersion) -> Result<PathBuf> {
+pub fn get_executable_path(config: &Config, version: &GodotVersion) -> Result<PathBuf> {
     let install_path = config
         .installations_dir
         .join(godot_installation_name(version));
@@ -384,7 +384,7 @@ mod tests {
     #[tokio::test]
     async fn test_installation_lifecycle() -> Result<()> {
         let tmp_dir = TempDir::new("gdenv-test")?;
-        let config = DataDirConfig::setup_for_path(tmp_dir.path())?;
+        let config = Config::setup_for_path(tmp_dir.path())?;
         let client = TestDownloadClient;
         let version = GodotVersion::new("4.2.1", false)?;
         assert_eq!(list_installed(&config)?.len(), 0);

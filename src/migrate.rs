@@ -1,6 +1,6 @@
 //! Utilities for data directory migration between versions of gdenv
 
-use crate::data_dir_config::DataDirConfig;
+use crate::config::Config;
 use crate::ui;
 use anyhow::{Context, Result};
 use semver::Version;
@@ -12,7 +12,7 @@ pub fn migrate() -> Result<()> {
     let new_version = Version::parse(VERSION)?;
 
     // No need to migrate if the data directory doesn't exist
-    if !DataDirConfig::default().data_dir.exists() {
+    if !Config::default().data_dir.exists() {
         write_data_format_version(&new_version)?;
         return Ok(());
     }
@@ -62,7 +62,7 @@ pub fn migrate() -> Result<()> {
 }
 
 fn write_data_format_version(version: &Version) -> Result<()> {
-    let config = DataDirConfig::setup()?;
+    let config = Config::setup()?;
     let data_format_version_file = config.data_dir_format_version_file;
     fs::write(&data_format_version_file, version.to_string()).context(format!(
         "Could not write the data format version file: {}",
@@ -71,7 +71,7 @@ fn write_data_format_version(version: &Version) -> Result<()> {
 }
 
 fn get_data_format_version() -> Option<Version> {
-    let config = DataDirConfig::setup().ok()?;
+    let config = Config::setup().ok()?;
     let data_format_version_file = config.data_dir_format_version_file;
     if data_format_version_file.exists() {
         fs::read_to_string(data_format_version_file)
@@ -84,7 +84,7 @@ fn get_data_format_version() -> Option<Version> {
 }
 
 mod v0_1_6_to_v0_2_0 {
-    use crate::data_dir_config::DataDirConfig;
+    use crate::config::Config;
     use crate::godot::godot_installation_name;
     use crate::godot_version::GodotVersion;
     use crate::installer;
@@ -98,7 +98,7 @@ mod v0_1_6_to_v0_2_0 {
     }
 
     pub fn migrate_installations_dir() -> Result<()> {
-        let config = DataDirConfig::setup()?;
+        let config = Config::setup()?;
         let installations_dir = &config.installations_dir;
 
         for entry_result in fs::read_dir(installations_dir)? {
@@ -147,7 +147,7 @@ mod v0_1_6_to_v0_2_0 {
     }
 
     fn migrate_symlinks() -> Result<()> {
-        let config = DataDirConfig::setup()?;
+        let config = Config::setup()?;
         let bin_dir = &config.bin_dir;
         let godot_symlink = bin_dir.join("godot");
 

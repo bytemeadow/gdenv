@@ -1,6 +1,6 @@
 mod cli;
 mod commands;
-mod data_dir_config;
+mod config;
 mod download_client;
 mod github;
 mod godot;

@@ -2,7 +2,7 @@ use anyhow::Result;
 use std::path::{Path, PathBuf};
 
 #[derive(Debug, Clone)]
-pub struct DataDirConfig {
+pub struct Config {
     /// Root directory for gdenv data (installations, cache, symlinks, etc.)
     pub data_dir: PathBuf,
 
@@ -22,13 +22,13 @@ pub struct DataDirConfig {
     pub data_dir_format_version_file: PathBuf,
 }
 
-impl Default for DataDirConfig {
+impl Default for Config {
     fn default() -> Self {
         Self::new_for_path(&Self::default_data_dir())
     }
 }
 
-impl DataDirConfig {
+impl Config {
     pub fn new_for_path(data_dir: &Path) -> Self {
         Self {
             data_dir: data_dir.to_path_buf(),
