@@ -20,6 +20,12 @@ pub struct Config {
 
     /// Path to the gdenv version file (used to detect if migration is needed)
     pub data_dir_format_version_file: PathBuf,
+
+    /// Platform-specific operating system string.
+    pub os: String,
+
+    /// Platform-specific architecture string.
+    pub arch: String,
 }
 
 impl Default for Config {
@@ -37,6 +43,8 @@ impl Config {
             active_symlink: data_dir.join("current"),
             bin_dir: data_dir.join("bin"),
             data_dir_format_version_file: data_dir.join("gdenv_version.txt"),
+            os: std::env::consts::OS.to_string(),
+            arch: std::env::consts::ARCH.to_string(),
         }
     }
 

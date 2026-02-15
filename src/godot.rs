@@ -53,10 +53,7 @@ pub fn get_platform_patterns(os: &str, arch: &str) -> Vec<&'static str> {
 }
 
 /// Get the expected executable path within the extracted directory
-pub fn godot_executable_path(version: &GodotVersion) -> String {
-    let os = std::env::consts::OS;
-    let arch = std::env::consts::ARCH;
-
+pub fn godot_executable_path(version: &GodotVersion, os: &str, arch: &str) -> String {
     match os {
         "macos" => {
             if version.is_dotnet {
@@ -192,13 +189,16 @@ mod tests {
 
     #[test]
     fn test_executable_path_construction() {
+        let os = std::env::consts::OS;
+        let arch = std::env::consts::ARCH;
+
         // Test that we can construct executable paths
         let v1 = GodotVersion::new("4.2.1", false).unwrap();
-        let exe_path = godot_executable_path(&v1);
+        let exe_path = godot_executable_path(&v1, os, arch);
         assert!(!exe_path.is_empty());
 
         let v2 = GodotVersion::new("4.2.1", true).unwrap();
-        let dotnet_exe_path = godot_executable_path(&v2);
+        let dotnet_exe_path = godot_executable_path(&v2, os, arch);
         assert!(!dotnet_exe_path.is_empty());
 
         // Paths should be different for dotnet vs non-dotnet

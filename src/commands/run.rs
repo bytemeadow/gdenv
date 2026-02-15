@@ -41,19 +41,12 @@ impl RunCommand {
         let is_dotnet = self.dotnet;
         let target_version = GodotVersion::new(&version_string, is_dotnet)?;
 
-        ensure_installed(
-            &config,
-            &target_version,
-            &github_client,
-            false,
-            std::env::consts::OS,
-            std::env::consts::ARCH,
-        )
-        .await
-        .context(format!(
-            "Failed to install Godot version {}",
-            target_version
-        ))?;
+        ensure_installed(&config, &target_version, &github_client, false)
+            .await
+            .context(format!(
+                "Failed to install Godot version {}",
+                target_version
+            ))?;
 
         let executable_path = installer::get_executable_path(&config, &target_version)?;
 

@@ -11,8 +11,6 @@ pub async fn ensure_installed<D: DownloadClient>(
     version: &GodotVersion,
     download_client: &D,
     force: bool,
-    os: &str,
-    arch: &str,
 ) -> Result<PathBuf> {
     if !force && list_installed(config)?.contains(version) {
         return get_executable_path(config, version);
@@ -27,7 +25,7 @@ pub async fn ensure_installed<D: DownloadClient>(
         .find(|r| r.version == *version)
         .ok_or_else(|| anyhow!("Version {} not found", version))?;
 
-    let asset = release.find_godot_asset(version.is_dotnet, os, arch)?;
+    let asset = release.find_godot_asset(version.is_dotnet, &config.os, &config.arch)?;
 
     // 3. Download to cache
     let cache_path = config.cache_dir.join(&asset.name);
@@ -164,14 +162,19 @@ fn create_executable_symlink(
     version: &GodotVersion,
 ) -> Result<()> {
     let godot_executable_symlink = config.bin_dir.join("godot");
-    let godot_exe_path = find_godot_executable(install_path, version)?;
+    let godot_exe_path = find_godot_executable(install_path, version, &config.os, &config.arch)?;
     update_symlink(&godot_exe_path, &godot_executable_symlink)?;
     Ok(())
 }
 
-fn find_godot_executable(install_path: &Path, version: &GodotVersion) -> Result<PathBuf> {
+fn find_godot_executable(
+    install_path: &Path,
+    version: &GodotVersion,
+    os: &str,
+    arch: &str,
+) -> Result<PathBuf> {
     // First try the expected path based on version info
-    let expected_path = godot_executable_path(version);
+    let expected_path = godot_executable_path(version, os, arch);
     let expected_exe = install_path.join(&expected_path);
 
     if expected_exe.exists() && expected_exe.is_file() {
@@ -297,7 +300,7 @@ pub fn get_executable_path(config: &Config, version: &GodotVersion) -> Result<Pa
         bail!("Godot {} is not installed", version);
     }
 
-    find_godot_executable(&install_path, version)
+    find_godot_executable(&install_path, version, &config.os, &config.arch)
 }
 
 pub fn update_symlink(original: &Path, link: &Path) -> Result<()> {
@@ -385,12 +388,17 @@ mod tests {
     async fn test_installation_lifecycle() -> Result<()> {
         let tmp_dir = TempDir::new("gdenv-test")?;
         let config = Config::setup_for_path(tmp_dir.path())?;
+        let config = Config {
+            os: "linux".to_string(),
+            arch: "x86_64".to_string(),
+            ..config
+        };
         let client = TestDownloadClient;
         let version = GodotVersion::new("4.2.1", false)?;
         assert_eq!(list_installed(&config)?.len(), 0);
-        ensure_installed(&config, &version, &client, false, "linux", "x86_64").await?;
+        ensure_installed(&config, &version, &client, false).await?;
         assert_eq!(list_installed(&config)?.len(), 1);
-        ensure_installed(&config, &version, &client, false, "linux", "x86_64").await?;
+        ensure_installed(&config, &version, &client, false).await?;
         assert_eq!(list_installed(&config)?.len(), 1);
         set_active_version(&config, &version)?;
         assert!(get_active_version(&config)?.is_some());
