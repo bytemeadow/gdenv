@@ -36,14 +36,14 @@ impl CacheCommand {
 
     fn clear_cache(&self, config: &DataDirConfig) -> Result<()> {
         if !config.cache_dir.exists() {
-            ui::info("Cache directory does not exist - nothing to clear");
+            ui::success("Cache directory does not exist - nothing to clear");
             return Ok(());
         }
 
         let cache_size = self.calculate_cache_size(config)?;
 
         if cache_size == 0 {
-            ui::info("Cache is already empty");
+            ui::success("Cache is already empty");
             return Ok(());
         }
 
@@ -79,7 +79,7 @@ impl CacheCommand {
         } else {
             ui::info(&format!("Cache size: {}", format_size(cache_size)));
             ui::info(&format!("Cached files: {file_count}"));
-            ui::info("Run 'gdenv cache clear' to free up space");
+            ui::helpful("Run `gdenv cache clear` to free up space");
         }
 
         Ok(())

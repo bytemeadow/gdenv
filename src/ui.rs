@@ -103,20 +103,29 @@ fn detect_emoji(term: Option<&str>, wt_session: Option<&str>, term_program: Opti
 // ---------------------------------------------------------------------------
 
 pub fn success(msg: &str) {
-    println!("{} {}", Marker::Success.auto().green(), msg);
+    println!("{} {}", "[✓]".green(), msg);
 }
 
 pub fn error(msg: &str) {
-    println!("{} {}", Marker::Error.auto().red(), msg);
+    println!("{} {}", "[E]".red(), msg);
 }
 
 pub fn info(msg: &str) {
-    println!("{} {}", Marker::Info.auto().blue(), msg);
+    println!("{} {}", "[ ]".blue(), msg);
 }
 
 pub fn warning(msg: &str) {
-    println!("{} {}", Marker::Warning.auto().yellow(), msg);
+    println!("{} {}", "[W]".yellow(), msg);
 }
+
+pub fn helpful(msg: &str) {
+    println!("{} {}", "[i]".cyan(), msg);
+}
+
+pub fn question(msg: &str) {
+    println!("{} {}", "[?]".magenta(), msg);
+}
+
 
 // ---------------------------------------------------------------------------
 // Tests

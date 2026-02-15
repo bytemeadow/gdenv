@@ -32,9 +32,9 @@ impl ListCommand {
             Self::print_installed_versions(true)?;
         }
 
-        ui::info("Use 'gdenv list <string_pattern>' to search available versions");
-        ui::info("Use 'gdenv install <version>' to install a new version from github");
-        ui::info("Use 'gdenv use <version>' to set the active version");
+        ui::helpful("Use `gdenv list <string_pattern>` to search available versions");
+        ui::helpful("Use `gdenv install <version>` to install a new version from github");
+        ui::helpful("Use `gdenv use <version>` to set the active version");
 
         Ok(())
     }
@@ -58,7 +58,7 @@ impl ListCommand {
             filtered_releases
         };
         for release in smart_filtered {
-            println!("  • {}", release.version.as_godot_version_str());
+            ui::info(&format!("  • {}", release.version.as_godot_version_str()));
         }
         if count_all == 0 {
             ui::info(&format!("0 matches found for '{}'", query));
@@ -79,10 +79,7 @@ impl ListCommand {
     }
 
     fn print_version_buffet(all_releases: &[GitHubRelease]) {
-        println!(
-            "{} Recent GitHub release versions:",
-            ui::Marker::Download.auto()
-        );
+        ui::helpful("Recent GitHub release versions:");
         if all_releases.last().is_some() {
             let mut most_recent_top: Vec<&GitHubRelease> = all_releases.iter().rev().collect();
             // Reduce to the most recent minor version, except when there is a newer
@@ -99,25 +96,26 @@ impl ListCommand {
             while let major_releases = most_recent_top.iter().filter(|r| r.version.major == major)
                 && major_releases.clone().count() > 0
             {
-                println!("    Release series {}:", major);
+                ui::info("");
+                ui::info(&format!("    Release series {}.x:", major));
                 let top_4: Vec<&GitHubRelease> = major_releases.take(5).copied().collect();
                 for release in top_4.iter().rev() {
                     if release.version.is_prerelease() {
-                        println!(
+                        ui::info(&format!(
                             "      • {} {}",
                             release.version.as_godot_version_str(),
                             "(pre-release)".yellow()
-                        );
+                        ));
                     } else {
-                        println!("      • {}", release.version.as_godot_version_str());
+                        ui::info(&format!("      • {}", release.version.as_godot_version_str()));
                     }
                 }
-                println!();
                 major += 1;
             }
         } else {
             ui::warning("No releases found");
         }
+        println!();
     }
 
     fn print_installed_versions(show_paths: bool) -> Result<()> {
@@ -125,11 +123,11 @@ impl ListCommand {
         let installed = installer::list_installed(&config)?;
         let active_version = installer::get_active_version(&config)?;
 
-        println!("{} Installed versions:", ui::Marker::Package.auto());
+        ui::helpful("Installed versions:");
 
         if installed.is_empty() {
             ui::warning("    No Godot versions installed");
-            ui::info("    Use 'gdenv install <version>' to install a version\n");
+            ui::helpful("    Use `gdenv install <version>` to install a version.\n");
             return Ok(());
         }
 
@@ -150,20 +148,16 @@ impl ListCommand {
                 let install_path = config
                     .installations_dir
                     .join(godot_installation_name(version));
-                println!("  {} {} -> {}", marker, version_str, install_path.display());
+                ui::info(&format!("  {} {} -> {}", marker, version_str, install_path.display()));
             } else {
-                println!("  {marker} {version_str}");
+                ui::info(&format!("  {marker} {version_str}"));
             }
         }
-
+        ui::info("");
         if let Some(active) = active_version {
-            println!(
-                "\n{} = active version: {}\n",
-                ui::Marker::Star.auto(),
-                active.to_string().green().bold()
-            );
+            ui::info(&format!("{} = active version: {}\n", ui::Marker::Star.auto(), active.to_string().green().bold()));
         } else {
-            ui::warning("\nNo active version set. Use 'gdenv use <version>' to set one.\n");
+            ui::warning("\nNo active version set. Use `gdenv use <version>` to set one.\n");
         }
 
         Ok(())

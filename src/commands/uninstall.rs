@@ -28,7 +28,7 @@ impl UninstallCommand {
         // Check if the version is installed
         let installed_versions = installer::list_installed(&config)?;
         if !installed_versions.contains(&target_version) {
-            ui::warning(&format!("Godot v{target_version} is not installed"));
+            ui::warning(&format!("Godot {target_version} is not installed."));
             return Ok(());
         }
 
@@ -38,13 +38,16 @@ impl UninstallCommand {
 
         if is_active {
             ui::warning(&format!(
-                "Godot v{target_version} is currently the active version"
+                "Godot {target_version} is currently the active version, \
+                uninstalling will break the `godot` command."
             ));
         }
 
         // Confirmation prompt
         if !self.yes {
-            print!("Are you sure you want to uninstall Godot v{target_version}? [y/N]: ");
+            ui::question(&format!(
+                "Are you sure you want to uninstall Godot {target_version}? [y/N]: "
+            ));
             io::stdout().flush()?;
 
             let mut input = String::new();
@@ -52,27 +55,30 @@ impl UninstallCommand {
 
             let confirmed = input.trim().to_lowercase();
             if confirmed != "y" && confirmed != "yes" {
-                ui::info("Uninstall cancelled");
+                ui::warning("Uninstall cancelled.");
                 return Ok(());
             }
         }
 
+        ui::info(&format!("Uninstalling Godot {target_version}..."));
+
         // Uninstall the version
         installer::uninstall_version(&config, &target_version)?;
+
+        ui::success(&format!("Uninstalled Godot {target_version}."));
 
         // If it was the active version, suggest setting a new one
         if is_active {
             let remaining_versions = installer::list_installed(&config)?;
             if !remaining_versions.is_empty() {
-                ui::info("Available versions to switch to:");
+                ui::helpful("Available versions to switch to:");
                 for version in &remaining_versions {
                     println!("  • {version}");
                 }
-                ui::info("Use 'gdenv use <version>' to set a new active version");
-                ui::info("Use 'gdenv installed' to see all remaining versions");
+                ui::helpful("Run `gdenv use <version>` to set a new active version");
             } else {
-                ui::info(
-                    "No Godot versions remaining. Use 'gdenv install <version>' to install one.",
+                ui::helpful(
+                    "No Godot versions remaining. Run `gdenv install <version>` to install one.",
                 );
             }
         }

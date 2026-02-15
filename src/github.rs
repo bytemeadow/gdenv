@@ -176,7 +176,7 @@ impl GitHubClient {
             let days_next = CACHE_VALIDITY_DAYS as i64 - days_ago;
 
             format!(
-                "✨ GitHub release cache: Last fetch: {} days ago. Next fetch in: {} days. Refresh cache with `gdenv fetch`.",
+                "GitHub release cache: Last fetch: {} days ago. Next fetch in: {} days. Refresh cache with `gdenv fetch`.",
                 format!("{days_ago}").green().bold(),
                 format!("{days_next}").green().bold(),
             )

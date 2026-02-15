@@ -33,17 +33,17 @@ impl UseCommand {
         // Check if the version is installed
         let installed_versions = installer::list_installed(&config)?;
         if !installed_versions.contains(&target_version) {
-            ui::error(&format!("Godot v{target_version} is not installed"));
+            ui::error(&format!("Godot {target_version} is not installed"));
             ui::info("Available installed versions:");
 
             for version in &installed_versions {
-                println!("  • {version}");
+                ui::info(&format!("  • {version}"));
             }
 
             if installed_versions.is_empty() {
-                ui::info("No versions installed. Use 'gdenv install <version>' to install one.");
+                ui::info("No versions installed. Use `gdenv install <version>` to install one.");
             } else {
-                ui::info("Use 'gdenv installed' to see all installed versions");
+                ui::helpful("Use `gdenv installed` to see all installed versions");
             }
 
             return Ok(());
@@ -51,6 +51,8 @@ impl UseCommand {
 
         // Switch to the version
         installer::set_active_version(&config, &target_version)?;
+
+        ui::success(&format!("Switched active Godot version to {target_version}."));
 
         Ok(())
     }

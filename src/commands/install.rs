@@ -64,30 +64,27 @@ impl InstallCommand {
             }
         };
 
-        ui::info(&format!("🤖 Installing Godot v{requested_version}"));
+        ui::info(&format!("Installing Godot {requested_version}..."));
 
         let install_path =
             installer::ensure_installed(&config, &requested_version, &github_client, self.force)
                 .await?;
 
+        ui::success(&format!("Installed to: {}", install_path.display()));
+
         // Only set as active version if no version is currently active
         if installer::get_active_version(&config)?.is_none() {
             installer::set_active_version(&config, &requested_version)?;
             ui::info(&format!(
-                "Set Godot v{requested_version} as active version (first installation)"
+                "Using Godot {requested_version} as active version (first installation)."
             ));
         } else {
-            ui::info(&format!(
-                "Installation complete. Use 'gdenv use {}' to switch to this version.",
+            ui::helpful(&format!(
+                "Run `gdenv use {}` to switch to this version.",
                 requested_version.as_godot_version_str()
             ));
         }
-
-        ui::success(&format!(
-            "Successfully installed Godot v{requested_version}"
-        ));
-        ui::info(&format!("Installed to: {}", install_path.display()));
-        ui::info("Run 'gdenv current' for PATH setup instructions");
+        ui::helpful("Run `gdenv current` for PATH setup instructions.");
 
         Ok(())
     }

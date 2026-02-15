@@ -132,7 +132,7 @@ pub fn uninstall_version(config: &DataDirConfig, version: &GodotVersion) -> Resu
         .join(godot_installation_name(version));
 
     if !install_path.exists() {
-        bail!("Godot v{} is not installed", version);
+        bail!("Godot {} is not installed", version);
     }
 
     fs::remove_dir_all(&install_path)?;
@@ -146,7 +146,7 @@ pub fn set_active_version(config: &DataDirConfig, version: &GodotVersion) -> Res
         .join(godot_installation_name(version));
 
     if !install_path.exists() {
-        bail!("Godot v{} is not installed", version);
+        bail!("Godot {} is not installed", version);
     }
 
     // Create new symlink
@@ -294,7 +294,7 @@ pub fn get_executable_path(config: &DataDirConfig, version: &GodotVersion) -> Re
         .join(godot_installation_name(version));
 
     if !install_path.exists() {
-        bail!("Godot v{} is not installed", version);
+        bail!("Godot {} is not installed", version);
     }
 
     find_godot_executable(&install_path, version)
