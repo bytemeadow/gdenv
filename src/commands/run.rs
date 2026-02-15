@@ -49,11 +49,11 @@ impl RunCommand {
             std::env::consts::OS,
             std::env::consts::ARCH,
         )
-            .await
-            .context(format!(
-                "Failed to install Godot version {}",
-                target_version
-            ))?;
+        .await
+        .context(format!(
+            "Failed to install Godot version {}",
+            target_version
+        ))?;
 
         let executable_path = installer::get_executable_path(&config, &target_version)?;
 

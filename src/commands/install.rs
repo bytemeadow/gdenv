@@ -74,11 +74,11 @@ impl InstallCommand {
             std::env::consts::OS,
             std::env::consts::ARCH,
         )
-            .await
-            .context(format!(
-                "Failed to install Godot version {}",
-                requested_version
-            ))?;
+        .await
+        .context(format!(
+            "Failed to install Godot version {}",
+            requested_version
+        ))?;
 
         ui::success(&format!("Installed to: {}", install_path.display()));
 
