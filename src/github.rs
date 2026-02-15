@@ -44,11 +44,15 @@ struct GitHubAssetJson {
 
 impl GitHubRelease {
     /// Find a Godot asset for the current platform
-    pub fn find_godot_asset(&self, is_dotnet: bool) -> Option<&GitHubAsset> {
+    pub fn find_godot_asset(&self, is_dotnet: bool) -> Result<&GitHubAsset> {
+        if self.assets.is_empty() {
+            bail!("There are no assets available to search for.");
+        }
+
         let platform_patterns = get_platform_patterns();
 
         // Try to find an asset matching our platform patterns (in order of preference)
-        for pattern in platform_patterns {
+        for pattern in &platform_patterns {
             if let Some(asset) = self.assets.iter().find(|asset| {
                 let name = asset.name.to_lowercase();
                 let has_platform = name.contains(pattern);
@@ -58,10 +62,17 @@ impl GitHubRelease {
 
                 has_platform && has_godot && is_zip && (is_dotnet == has_mono)
             }) {
-                return Some(asset);
+                return Ok(asset);
             }
         }
-        None
+
+        let os = std::env::consts::OS;
+        let arch = std::env::consts::ARCH;
+        bail!(
+            "No matching Godot asset found for the current platform: OS={}, ARCH={}",
+            os,
+            arch
+        );
     }
 
     fn from_json_struct(json: &GitHubReleaseJson) -> Result<Self> {
@@ -344,14 +355,14 @@ mod tests {
 
         // Test finding regular asset
         let asset = release.find_godot_asset(false);
-        assert!(asset.is_some());
+        assert!(asset.is_ok());
         let asset = asset.unwrap();
         assert!(asset.name.to_lowercase().contains("godot"));
         assert!(!asset.name.to_lowercase().contains("mono"));
 
         // Test finding .NET asset
         let dotnet_asset = release.find_godot_asset(true);
-        assert!(dotnet_asset.is_some());
+        assert!(dotnet_asset.is_ok());
         let dotnet_asset = dotnet_asset.unwrap();
         assert!(dotnet_asset.name.to_lowercase().contains("mono"));
     }

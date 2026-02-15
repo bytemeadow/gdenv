@@ -1,4 +1,4 @@
-use anyhow::{Result, anyhow};
+use anyhow::{Context, Result, anyhow};
 use clap::Args;
 
 use crate::download_client::DownloadClient;
@@ -68,7 +68,11 @@ impl InstallCommand {
 
         let install_path =
             installer::ensure_installed(&config, &requested_version, &github_client, self.force)
-                .await?;
+                .await
+                .context(format!(
+                    "Failed to install Godot version {}",
+                    requested_version
+                ))?;
 
         ui::success(&format!("Installed to: {}", install_path.display()));
 

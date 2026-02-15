@@ -25,9 +25,7 @@ pub async fn ensure_installed<D: DownloadClient>(
         .find(|r| r.version == *version)
         .ok_or_else(|| anyhow!("Version {} not found", version))?;
 
-    let asset = release
-        .find_godot_asset(version.is_dotnet)
-        .ok_or_else(|| anyhow!("No compatible build found"))?;
+    let asset = release.find_godot_asset(version.is_dotnet)?;
 
     // 3. Download to cache
     let cache_path = config.cache_dir.join(&asset.name);
