@@ -44,12 +44,12 @@ struct GitHubAssetJson {
 
 impl GitHubRelease {
     /// Find a Godot asset for the current platform
-    pub fn find_godot_asset(&self, is_dotnet: bool) -> Result<&GitHubAsset> {
+    pub fn find_godot_asset(&self, is_dotnet: bool, os: &str, arch: &str) -> Result<&GitHubAsset> {
         if self.assets.is_empty() {
             bail!("There are no assets available to search for.");
         }
 
-        let platform_patterns = get_platform_patterns();
+        let platform_patterns = get_platform_patterns(os, arch);
 
         // Try to find an asset matching our platform patterns (in order of preference)
         for pattern in &platform_patterns {
@@ -354,14 +354,15 @@ mod tests {
         .unwrap();
 
         // Test finding regular asset
-        let asset = release.find_godot_asset(false);
+        let asset = release.find_godot_asset(false, std::env::consts::OS, std::env::consts::ARCH);
         assert!(asset.is_ok());
         let asset = asset.unwrap();
         assert!(asset.name.to_lowercase().contains("godot"));
         assert!(!asset.name.to_lowercase().contains("mono"));
 
         // Test finding .NET asset
-        let dotnet_asset = release.find_godot_asset(true);
+        let dotnet_asset =
+            release.find_godot_asset(true, std::env::consts::OS, std::env::consts::ARCH);
         assert!(dotnet_asset.is_ok());
         let dotnet_asset = dotnet_asset.unwrap();
         assert!(dotnet_asset.name.to_lowercase().contains("mono"));

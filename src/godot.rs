@@ -1,10 +1,7 @@
 use crate::godot_version::GodotVersion;
 
 /// Get the platform suffix for the current OS and architecture
-pub fn platform_suffix() -> &'static str {
-    let os = std::env::consts::OS;
-    let arch = std::env::consts::ARCH;
-
+pub fn platform_suffix(os: &str, arch: &str) -> &'static str {
     match (os, arch) {
         ("windows", "x86_64") => "win64.exe",
         ("windows", "x86") => "win32.exe",
@@ -21,10 +18,7 @@ pub fn platform_suffix() -> &'static str {
 }
 
 /// Get platform patterns for asset matching, in order of preference
-pub fn get_platform_patterns() -> Vec<&'static str> {
-    let os = std::env::consts::OS;
-    let arch = std::env::consts::ARCH;
-
+pub fn get_platform_patterns(os: &str, arch: &str) -> Vec<&'static str> {
     match (os, arch) {
         ("windows", "x86_64") => vec!["win64"],
         ("windows", "x86") => vec!["win32", "win64"], // Fallback to 64-bit if 32-bit not available
@@ -61,6 +55,7 @@ pub fn get_platform_patterns() -> Vec<&'static str> {
 /// Get the expected executable path within the extracted directory
 pub fn godot_executable_path(version: &GodotVersion) -> String {
     let os = std::env::consts::OS;
+    let arch = std::env::consts::ARCH;
 
     match os {
         "macos" => {
@@ -83,7 +78,7 @@ pub fn godot_executable_path(version: &GodotVersion) -> String {
         }
         "linux" => {
             let version_part = version.as_godot_version_str();
-            let platform_suffix = platform_suffix();
+            let platform_suffix = platform_suffix(os, arch);
             if version.is_dotnet {
                 // Dotnet versions extract to a subfolder
                 let folder_name = format!("Godot_v{version_part}_mono_{platform_suffix}");
@@ -111,7 +106,7 @@ pub fn godot_installation_name(version: &GodotVersion) -> String {
 
 #[allow(dead_code)]
 pub fn godot_archive_name(version: &GodotVersion) -> String {
-    let platform_suffix = platform_suffix();
+    let platform_suffix = platform_suffix(std::env::consts::OS, std::env::consts::ARCH);
     let version_part = version.as_godot_version_str();
 
     if version.is_dotnet {
@@ -146,7 +141,7 @@ mod tests {
     #[test]
     fn test_platform_suffix_detection() {
         // Test that we get a valid platform suffix (this tests the current system)
-        let suffix = platform_suffix();
+        let suffix = platform_suffix(std::env::consts::OS, std::env::consts::ARCH);
         assert!(!suffix.is_empty());
 
         // Should be one of the expected patterns
@@ -168,7 +163,7 @@ mod tests {
     #[test]
     fn test_platform_patterns_detection() {
         // Test that we get valid platform patterns (this tests the current system)
-        let patterns = get_platform_patterns();
+        let patterns = get_platform_patterns(std::env::consts::OS, std::env::consts::ARCH);
         assert!(!patterns.is_empty());
 
         // All patterns should be non-empty strings

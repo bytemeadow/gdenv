@@ -41,7 +41,14 @@ impl RunCommand {
         let is_dotnet = self.dotnet;
         let target_version = GodotVersion::new(&version_string, is_dotnet)?;
 
-        ensure_installed(&config, &target_version, &github_client, false)
+        ensure_installed(
+            &config,
+            &target_version,
+            &github_client,
+            false,
+            std::env::consts::OS,
+            std::env::consts::ARCH,
+        )
             .await
             .context(format!(
                 "Failed to install Godot version {}",

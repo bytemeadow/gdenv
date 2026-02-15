@@ -11,6 +11,8 @@ pub async fn ensure_installed<D: DownloadClient>(
     version: &GodotVersion,
     download_client: &D,
     force: bool,
+    os: &str,
+    arch: &str,
 ) -> Result<PathBuf> {
     if !force && list_installed(config)?.contains(version) {
         return get_executable_path(config, version);
@@ -25,7 +27,7 @@ pub async fn ensure_installed<D: DownloadClient>(
         .find(|r| r.version == *version)
         .ok_or_else(|| anyhow!("Version {} not found", version))?;
 
-    let asset = release.find_godot_asset(version.is_dotnet)?;
+    let asset = release.find_godot_asset(version.is_dotnet, os, arch)?;
 
     // 3. Download to cache
     let cache_path = config.cache_dir.join(&asset.name);
@@ -386,9 +388,9 @@ mod tests {
         let client = TestDownloadClient;
         let version = GodotVersion::new("4.2.1", false)?;
         assert_eq!(list_installed(&config)?.len(), 0);
-        ensure_installed(&config, &version, &client, false).await?;
+        ensure_installed(&config, &version, &client, false, "linux", "x86_64").await?;
         assert_eq!(list_installed(&config)?.len(), 1);
-        ensure_installed(&config, &version, &client, false).await?;
+        ensure_installed(&config, &version, &client, false, "linux", "x86_64").await?;
         assert_eq!(list_installed(&config)?.len(), 1);
         set_active_version(&config, &version)?;
         assert!(get_active_version(&config)?.is_some());

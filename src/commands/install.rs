@@ -66,13 +66,19 @@ impl InstallCommand {
 
         ui::info(&format!("Installing Godot {requested_version}..."));
 
-        let install_path =
-            installer::ensure_installed(&config, &requested_version, &github_client, self.force)
-                .await
-                .context(format!(
-                    "Failed to install Godot version {}",
-                    requested_version
-                ))?;
+        let install_path = installer::ensure_installed(
+            &config,
+            &requested_version,
+            &github_client,
+            self.force,
+            std::env::consts::OS,
+            std::env::consts::ARCH,
+        )
+            .await
+            .context(format!(
+                "Failed to install Godot version {}",
+                requested_version
+            ))?;
 
         ui::success(&format!("Installed to: {}", install_path.display()));
 
