@@ -52,7 +52,9 @@ impl UseCommand {
         // Switch to the version
         installer::set_active_version(&config, &target_version)?;
 
-        ui::success(&format!("Switched active Godot version to {target_version}."));
+        ui::success(&format!(
+            "Switched active Godot version to {target_version}."
+        ));
 
         Ok(())
     }

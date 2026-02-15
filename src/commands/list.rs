@@ -107,7 +107,10 @@ impl ListCommand {
                             "(pre-release)".yellow()
                         ));
                     } else {
-                        ui::info(&format!("      • {}", release.version.as_godot_version_str()));
+                        ui::info(&format!(
+                            "      • {}",
+                            release.version.as_godot_version_str()
+                        ));
                     }
                 }
                 major += 1;
@@ -148,14 +151,22 @@ impl ListCommand {
                 let install_path = config
                     .installations_dir
                     .join(godot_installation_name(version));
-                ui::info(&format!("  {} {} -> {}", marker, version_str, install_path.display()));
+                ui::info(&format!(
+                    "  {} {} -> {}",
+                    marker,
+                    version_str,
+                    install_path.display()
+                ));
             } else {
                 ui::info(&format!("  {marker} {version_str}"));
             }
         }
         ui::info("");
         if let Some(active) = active_version {
-            ui::info(&format!("{} = active version: {}\n", ui::Marker::Star.auto(), active.to_string().green().bold()));
+            ui::info(&format!(
+                "{} = active version: {}\n",
+               ui::Marker::Star.auto(), active.to_string().green().bold()
+            ));
         } else {
             ui::warning("\nNo active version set. Use `gdenv use <version>` to set one.\n");
         }
