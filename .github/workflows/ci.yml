@@ -60,6 +60,47 @@ jobs:
       - name: Build
         run: cargo build --release
 
+      - name: Validate terminal marker fallback (Unix)
+        if: runner.os != 'Windows'
+        run: |
+          output_no_unicode=$(NO_COLOR=1 LANG=C ./target/release/gdenv current || true)
+          echo "$output_no_unicode"
+          echo "$output_no_unicode" | grep -q "\[!\] No active Godot version set"
+          echo "$output_no_unicode" | grep -q "\[i\] Use 'gdenv install <version>' to install and activate a version"
+
+          output_unicode=$(NO_COLOR=1 LANG=en_US.UTF-8 ./target/release/gdenv current || true)
+          echo "$output_unicode"
+          if echo "$output_unicode" | grep -qE "\[!\]|\[i\]"; then
+            echo "Expected unicode/emoji markers in UTF-8 locale output, but saw ASCII fallback."
+            exit 1
+          fi
+
+      - name: Validate terminal marker fallback (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          Remove-Item Env:WT_SESSION -ErrorAction SilentlyContinue
+          Remove-Item Env:ANSICON -ErrorAction SilentlyContinue
+          Remove-Item Env:ConEmuANSI -ErrorAction SilentlyContinue
+          Remove-Item Env:TERM -ErrorAction SilentlyContinue
+          $env:NO_COLOR = "1"
+          $env:LANG = "C"
+          $outputNoUnicode = (& .\target\release\gdenv.exe current 2>&1 | Out-String)
+          Write-Host $outputNoUnicode
+          if ($outputNoUnicode -notmatch "\[!\] No active Godot version set") {
+            throw "Expected ASCII warning marker in no-unicode mode."
+          }
+          if ($outputNoUnicode -notmatch "\[i\] Use 'gdenv install <version>' to install and activate a version") {
+            throw "Expected ASCII info marker in no-unicode mode."
+          }
+
+          $env:WT_SESSION = "1"
+          $outputUnicode = (& .\target\release\gdenv.exe current 2>&1 | Out-String)
+          Write-Host $outputUnicode
+          if ($outputUnicode -match "\[!\]|\[i\]") {
+            throw "Expected unicode/emoji markers when terminal unicode hint is present."
+          }
+
       - name: Test CLI help
         run: ./target/release/gdenv --help
         if: runner.os != 'Windows'
