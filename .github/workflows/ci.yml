@@ -71,7 +71,7 @@ jobs:
           output_unicode=$(NO_COLOR=1 LANG=en_US.UTF-8 ./target/release/gdenv current || true)
           echo "$output_unicode"
           if echo "$output_unicode" | grep -qE "\[!\]|\[i\]"; then
-            echo "Expected unicode/emoji markers in UTF-8 locale output, but saw ASCII fallback."
+            echo "Unexpected ASCII fallback markers in UTF-8 locale output."
             exit 1
           fi
 
@@ -98,7 +98,7 @@ jobs:
           $outputUnicode = (& .\target\release\gdenv.exe current 2>&1 | Out-String)
           Write-Host $outputUnicode
           if ($outputUnicode -match "\[!\]|\[i\]") {
-            throw "Expected unicode/emoji markers when terminal unicode hint is present."
+            throw "Unexpected ASCII fallback markers when terminal unicode hint is present."
           }
 
       - name: Test CLI help
