@@ -3,8 +3,9 @@ use clap::{Parser, Subcommand};
 
 use crate::commands::run::RunCommand;
 use crate::commands::{
-    cache::CacheCommand, current::CurrentCommand, fetch::FetchCommand, install::InstallCommand,
-    list::ListCommand, uninstall::UninstallCommand, use_cmd::UseCommand,
+    godot::cache::CacheCommand, godot::current::CurrentCommand, godot::fetch::FetchCommand,
+    godot::install::InstallCommand, godot::list::ListCommand, godot::uninstall::UninstallCommand,
+    godot::use_cmd::UseCommand,
 };
 
 #[derive(Parser)]
