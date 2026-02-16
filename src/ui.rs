@@ -147,4 +147,17 @@ mod tests {
         assert!(!caps.unicode);
         assert!(!caps.emoji);
     }
+
+    #[test]
+    fn keeps_unicode_with_utf8_locale_even_when_not_a_terminal() {
+        let mut env = HashMap::new();
+        env.insert("LANG", "en_US.UTF-8");
+        let caps = detect_terminal_capabilities_with_env(false, false, |key| {
+            env.get(key).map(ToString::to_string)
+        });
+
+        assert!(!caps.color);
+        assert!(caps.unicode);
+        assert!(caps.emoji);
+    }
 }
