@@ -15,16 +15,26 @@ use crate::commands::{
 pub struct Cli {
     #[command(subcommand)]
     pub command: Commands,
+
+    #[command(flatten)]
+    pub global_args: GlobalArgs,
+}
+
+#[derive(clap::Args, Clone)]
+pub struct GlobalArgs {
+    /// Path to a gdenv managed project (defaults to current directory)
+    #[arg(short, long, global = true)]
+    pub project: Option<String>,
 }
 
 #[derive(Subcommand)]
 pub enum Commands {
+    /// Invoke Godot for the current project
+    Run(RunCommand),
+
     /// Manage Godot versions
     #[command(subcommand)]
     Godot(GodotCommands),
-
-    /// Invoke a specific Godot version. Automatically installs the version. Will not affect the active version.
-    Run(RunCommand),
 }
 
 #[derive(Subcommand)]
@@ -66,7 +76,7 @@ impl Cli {
                 GodotCommands::Uninstall(cmd) => cmd.run().await,
                 GodotCommands::Cache(cmd) => cmd.run().await,
             },
-            Commands::Run(cmd) => cmd.run().await,
+            Commands::Run(cmd) => cmd.run(self.global_args).await,
         }
     }
 }

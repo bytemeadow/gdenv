@@ -1,6 +1,7 @@
 use anyhow::{Context, Result, bail};
 use clap::Args;
 
+use crate::cli::GlobalArgs;
 use crate::github::GitHubClient;
 use crate::installer::ensure_installed;
 use crate::project_specification::read_godot_version_file;
@@ -8,16 +9,13 @@ use crate::{config::Config, godot_version::GodotVersion, installer};
 
 #[derive(Args)]
 pub struct RunCommand {
-    /// The Godot version to invoke
-    /// If not provided, reads from .godot-version file
+    /// Override the Godot version for this run
+    #[arg(long)]
     pub version: Option<String>,
 
     /// Use the .NET version
     #[arg(long, alias = "mono")]
     pub dotnet: bool,
-
-    /// Directory to look for a project version file (.godot-version)
-    pub project: Option<String>,
 
     /// Arguments to pass to Godot
     #[arg(last = true)]
@@ -25,7 +23,7 @@ pub struct RunCommand {
 }
 
 impl RunCommand {
-    pub async fn run(self) -> Result<()> {
+    pub async fn run(self, global_args: GlobalArgs) -> Result<()> {
         let config = Config::setup()?;
         let github_client = GitHubClient::new();
 
