@@ -1,6 +1,7 @@
 use crate::config::Config;
 use crate::godot::get_platform_patterns;
 use crate::godot_version::GodotVersion;
+use crate::ui;
 use anyhow::{Context, Result, anyhow};
 use chrono::{DateTime, Utc};
 use colored::Colorize;
@@ -111,7 +112,11 @@ impl GitHubClient {
         sorted_releases.sort();
 
         if let Err(e) = self.save_cache(&cache_file, &sorted_releases) {
-            eprintln!("⚠️ Failed to save releases cache: {}", e);
+            eprintln!(
+                "{} Failed to save releases cache: {}",
+                ui::Marker::Warning.auto(),
+                e
+            );
         }
 
         Ok(sorted_releases)
@@ -265,7 +270,7 @@ impl GitHubClient {
         }
 
         file.flush().await?;
-        pb.finish_with_message("✅ Download complete");
+        pb.finish_with_message(format!("{} Download complete", ui::Marker::Success.auto()));
 
         Ok(())
     }
