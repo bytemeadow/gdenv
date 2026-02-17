@@ -88,13 +88,7 @@ fn detect_emoji(term: Option<&str>, wt_session: Option<&str>, term_program: Opti
 
     #[cfg(windows)]
     {
-        if wt_session.is_some() {
-            return true;
-        }
-        if term_program == Some("vscode") {
-            return true;
-        }
-        return false;
+        wt_session.is_some() || term_program == Some("vscode")
     }
 
     #[cfg(not(windows))]
