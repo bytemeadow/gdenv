@@ -81,7 +81,10 @@ impl InstallCommand {
             ));
         }
 
-        println!("🤖 Installing Godot v{requested_version}");
+        println!(
+            "{} Installing Godot v{requested_version}",
+            ui::Marker::Robot.auto()
+        );
 
         // Check if already installed (unless force flag is set)
         let install_path = config

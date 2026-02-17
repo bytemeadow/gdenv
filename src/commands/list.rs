@@ -78,7 +78,10 @@ impl ListCommand {
     }
 
     fn print_version_buffet(all_releases: &[GitHubRelease]) {
-        println!("🔽 Recent GitHub release versions:");
+        println!(
+            "{} Recent GitHub release versions:",
+            ui::Marker::Download.auto()
+        );
         if all_releases.last().is_some() {
             let mut most_recent_top: Vec<&GitHubRelease> = all_releases.iter().rev().collect();
             // Reduce to the most recent minor version, except when there is a newer
@@ -122,7 +125,7 @@ impl ListCommand {
         let installed = installer.list_installed()?;
         let active_version = installer.get_active_version()?;
 
-        println!("📦 Installed versions:");
+        println!("{} Installed versions:", ui::Marker::Package.auto());
 
         if installed.is_empty() {
             ui::warning("    No Godot versions installed");
@@ -133,7 +136,7 @@ impl ListCommand {
         for version in &installed {
             let is_active = active_version.as_ref() == Some(version);
             let marker = if is_active {
-                "★".green().bold()
+                ui::Marker::Star.auto().green().bold()
             } else {
                 " ".normal()
             };
@@ -155,7 +158,8 @@ impl ListCommand {
 
         if let Some(active) = active_version {
             println!(
-                "\n★ = active version: {}\n",
+                "\n{} = active version: {}\n",
+                ui::Marker::Star.auto(),
                 active.to_string().green().bold()
             );
         } else {

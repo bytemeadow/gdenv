@@ -30,23 +30,8 @@ jobs:
           toolchain: ${{ matrix.rust }}
           components: rustfmt, clippy
 
-      - name: Cache cargo registry
-        uses: actions/cache@v4
-        with:
-          path: ~/.cargo/registry
-          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
-
-      - name: Cache cargo index
-        uses: actions/cache@v4
-        with:
-          path: ~/.cargo/git
-          key: ${{ runner.os }}-cargo-index-${{ hashFiles('**/Cargo.lock') }}
-
-      - name: Cache cargo build
-        uses: actions/cache@v4
-        with:
-          path: target
-          key: ${{ runner.os }}-cargo-build-target-${{ hashFiles('**/Cargo.lock') }}
+      - name: Cache cargo
+        uses: Swatinem/rust-cache@v2
 
       - name: Check formatting
         run: cargo fmt -- --check
@@ -159,12 +144,11 @@ jobs:
       - name: Verify installation (Unix)
         if: runner.os != 'Windows'
         run: |
-          # Check if gdenv was installed and works
           if command -v gdenv >/dev/null 2>&1; then
-            echo "✅ gdenv installed successfully and found in PATH"
+            echo "[ok] gdenv installed successfully and found in PATH"
             gdenv --version || gdenv --help
           else
-            echo "❌ gdenv not found in PATH"
+            echo "[error] gdenv not found in PATH"
             echo "Checking if binary exists..."
             ls -la ~/.local/bin/gdenv* || echo "No gdenv binary found"
             exit 1
@@ -174,13 +158,12 @@ jobs:
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          # Check if gdenv was installed and works
           if (Get-Command gdenv -ErrorAction SilentlyContinue) {
-            Write-Host "✅ gdenv installed successfully and found in PATH"
+            Write-Host "[ok] gdenv installed successfully and found in PATH"
             gdenv --version
           } else {
-            Write-Host "❌ gdenv not found in PATH"
+            Write-Host "[error] gdenv not found in PATH"
             Write-Host "Checking if binary exists..."
-            Get-ChildItem "$env:USERPROFILE\.local\bin\gdenv*" -ErrorAction SilentlyContinue
+            Get-ChildItem "$env:LOCALAPPDATA\Programs\gdenv\gdenv*" -ErrorAction SilentlyContinue
             exit 1
           }
