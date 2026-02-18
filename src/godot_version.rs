@@ -182,8 +182,11 @@ impl fmt::Display for GodotVersion {
 
 pub fn version_buffet(all_releases: &[GodotVersion]) -> Vec<&GodotVersion> {
     // Most users will not care about version solder than 3.x for the buffet.
-    let mut most_recent_top: Vec<&GodotVersion> =
-        all_releases.iter().filter(|v| v.major >= 3).rev().collect();
+    let mut most_recent_top: Vec<&GodotVersion> = all_releases
+        .iter()
+        .filter(|v| v.major >= 3 && !v.is_dotnet)
+        .rev()
+        .collect();
 
     // Reduce to the most recent minor version, except when there is a newer
     // pre-release version, then show both stable and pre-release versions.
@@ -298,7 +301,12 @@ mod tests {
             "4.7-dev1",
         ]
         .iter()
-        .map(|s| GodotVersion::new(s, false).unwrap())
+        .flat_map(|s| {
+            [
+                GodotVersion::new(s, false).unwrap(),
+                GodotVersion::new(s, true).unwrap(),
+            ]
+        })
         .collect();
 
         let expected: Vec<GodotVersion> = [
@@ -315,10 +323,7 @@ mod tests {
         let buffet = version_buffet(&releases);
         println!(
             "{:#?}",
-            buffet
-                .iter()
-                .map(|v| v.as_godot_version_str())
-                .collect::<Vec<_>>()
+            buffet.iter().map(|v| v.to_string()).collect::<Vec<_>>()
         );
         assert_eq!(buffet.len(), 5);
 

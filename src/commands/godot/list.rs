@@ -38,6 +38,8 @@ impl ListCommand {
         if self.query.is_none() && self.pre {
             ui::warning("Note: --pre flag only applies to version queries.");
         }
+        ui::info(&github_client.cache_status_message());
+        ui::tip("Use `gdenv fetch` to refresh the cache.");
         ui::tip("Use `gdenv list <string_pattern>` to filter available versions");
         ui::tip("Use `gdenv install <version>` to install a new version from github");
         ui::tip("Use `gdenv use <version>` to set the active version");
@@ -54,7 +56,7 @@ impl ListCommand {
     ) {
         let filtered_all: Vec<&GodotVersion> = all_releases
             .iter()
-            .filter(|v| v.as_godot_version_str().contains(query))
+            .filter(|v| v.as_godot_version_str().contains(query) && !v.is_dotnet)
             .collect();
         let filtered_releases: Vec<&GodotVersion> = filtered_all
             .iter()
@@ -120,11 +122,11 @@ impl ListCommand {
         }
         let width = versions
             .iter()
-            .map(|release| release.as_godot_version_str().len())
+            .map(|release| release.to_string().len())
             .max()
             .unwrap_or(0);
         for release in versions {
-            let version_str = release.as_godot_version_str();
+            let version_str = release.to_string();
             let pre_release_str = if release.is_prerelease() {
                 " (pre-release)".yellow()
             } else {

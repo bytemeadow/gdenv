@@ -25,11 +25,11 @@ impl FetchCommand {
         // Show the latest stable and prerelease versions (sorted ascending, so last is latest)
         let stable_releases: Vec<_> = releases
             .iter()
-            .filter(|r| !r.version.is_prerelease())
+            .filter(|r| !r.version.is_prerelease() && !r.version.is_dotnet)
             .collect();
         let prerelease_releases: Vec<_> = releases
             .iter()
-            .filter(|r| r.version.is_prerelease())
+            .filter(|r| r.version.is_prerelease() && !r.version.is_dotnet)
             .collect();
 
         if let Some(latest_stable) = stable_releases.last() {
@@ -41,7 +41,9 @@ impl FetchCommand {
         }
 
         ui::success("Update complete!\n");
-        ui::info("Use 'gdenv list' to see available versions.");
+        ui::info(&github_client.cache_status_message());
+        ui::tip("Use `gdenv fetch` to refresh the cache.");
+        ui::tip("Use 'gdenv list' to see available versions.");
 
         Ok(())
     }

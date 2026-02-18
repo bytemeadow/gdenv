@@ -184,9 +184,12 @@ impl GitHubClient {
             let days_next = CACHE_VALIDITY_DAYS as i64 - days_ago;
 
             format!(
-                "GitHub release cache: Last fetch: {} days ago. Next fetch in: {} days. Refresh cache with `gdenv fetch`.",
+                "{} {} {} {} {}",
+                "GitHub release cache: Last fetch:".dimmed(),
                 format!("{days_ago}").green().bold(),
+                "days ago. Next fetch in:".dimmed(),
                 format!("{days_next}").green().bold(),
+                "days.".dimmed(),
             )
         } else {
             "".to_string()
@@ -228,16 +231,30 @@ impl GitHubClient {
             next_url = link_header.and_then(|h| self.parse_next_link(&h));
         }
 
-        pb.finish_and_clear();
-        Ok(releases.iter().filter_map(|json| {
-            match GitHubRelease::from_json_struct(json) {
-                Ok(release) => Some(release),
+        let mut all_releases = Vec::new();
+
+        for json in releases {
+            match GitHubRelease::from_json_struct(&json) {
+                Ok(release) => {
+                    // Add the standard version
+                    all_releases.push(release.clone());
+
+                    // Add the .NET version
+                    let mut dotnet_release = release;
+                    dotnet_release.version.is_dotnet = true;
+                    all_releases.push(dotnet_release);
+                }
                 Err(e) => {
-                    eprintln!("Warn: Failed to parse release from GitHub API response; this release will be unavailable to download: {}, reason: {}", json.tag_name, e);
-                    None
+                    eprintln!(
+                        "Warn: Failed to parse release from GitHub API response; this release will be unavailable to download: {}, reason: {}",
+                        json.tag_name, e
+                    );
                 }
             }
-        }).collect())
+        }
+
+        pb.finish_and_clear();
+        Ok(all_releases)
     }
 
     fn parse_next_link(&self, link_header: &str) -> Option<String> {
