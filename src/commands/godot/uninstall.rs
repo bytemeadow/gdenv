@@ -71,13 +71,13 @@ impl UninstallCommand {
         if is_active {
             let remaining_versions = installer::list_installed(&config)?;
             if !remaining_versions.is_empty() {
-                ui::helpful("Available versions to switch to:");
+                ui::tip("Available versions to switch to:");
                 for version in &remaining_versions {
-                    println!("  • {version}");
+                    println!("  - {version}");
                 }
-                ui::helpful("Run `gdenv use <version>` to set a new active version");
+                ui::tip("Run `gdenv use <version>` to set a new active version");
             } else {
-                ui::helpful(
+                ui::tip(
                     "No Godot versions remaining. Run `gdenv install <version>` to install one.",
                 );
             }

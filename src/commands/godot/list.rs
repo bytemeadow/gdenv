@@ -1,11 +1,8 @@
 use crate::config::Config;
 use crate::download_client::DownloadClient;
-use crate::godot::godot_installation_name;
+use crate::godot_version::{GodotVersion, version_buffet};
 use crate::installer;
-use crate::{
-    github::{GitHubClient, GitHubRelease},
-    ui,
-};
+use crate::{github::GitHubClient, ui};
 use anyhow::Result;
 use clap::Args;
 use colored::Colorize;
@@ -22,32 +19,46 @@ pub struct ListCommand {
 
 impl ListCommand {
     pub async fn run(self) -> Result<()> {
+        let config = Config::setup()?;
         let github_client = GitHubClient::new();
         let all_releases = github_client.godot_releases(false).await?;
+        let installed = installer::list_installed(&config)?;
+        let active_version = installer::get_active_version(&config)?;
+        let all_versions: Vec<GodotVersion> = all_releases
+            .iter()
+            .map(|release| release.version.clone())
+            .collect();
 
         if let Some(q) = &self.query {
-            Self::print_version_matches(&all_releases, q, self.pre);
+            Self::print_version_matches(&all_versions, &installed, &active_version, q, self.pre);
         } else {
-            Self::print_version_buffet(&all_releases);
-            Self::print_installed_versions(true)?;
+            Self::print_version_buffet(&all_versions, &installed, &active_version);
         }
 
-        ui::helpful("Use `gdenv list <string_pattern>` to search available versions");
-        ui::helpful("Use `gdenv install <version>` to install a new version from github");
-        ui::helpful("Use `gdenv use <version>` to set the active version");
+        if self.query.is_none() && self.pre {
+            ui::warning("Note: --pre flag only applies to version queries.");
+        }
+        ui::tip("Use `gdenv list <string_pattern>` to filter available versions");
+        ui::tip("Use `gdenv install <version>` to install a new version from github");
+        ui::tip("Use `gdenv use <version>` to set the active version");
 
         Ok(())
     }
 
-    pub fn print_version_matches(all_releases: &[GitHubRelease], query: &str, all: bool) {
-        println!();
-        let filtered_all: Vec<&GitHubRelease> = all_releases
+    pub fn print_version_matches(
+        all_releases: &[GodotVersion],
+        installed: &[GodotVersion],
+        active_version: &Option<GodotVersion>,
+        query: &str,
+        all: bool,
+    ) {
+        let filtered_all: Vec<&GodotVersion> = all_releases
             .iter()
-            .filter(|r| r.version.as_godot_version_str().contains(query))
+            .filter(|v| v.as_godot_version_str().contains(query))
             .collect();
-        let filtered_releases: Vec<&GitHubRelease> = filtered_all
+        let filtered_releases: Vec<&GodotVersion> = filtered_all
             .iter()
-            .filter(|r| !r.version.is_prerelease())
+            .filter(|v| !v.is_prerelease())
             .copied()
             .collect();
         let count_all = filtered_all.len();
@@ -57,9 +68,11 @@ impl ListCommand {
         } else {
             filtered_releases
         };
-        for release in smart_filtered {
-            ui::info(&format!("  • {}", release.version.as_godot_version_str()));
-        }
+
+        // Print version matches
+        Self::print_versions(&smart_filtered, installed, active_version.as_ref());
+
+        // Print statistics
         if count_all == 0 {
             ui::info(&format!("0 matches found for '{}'", query));
         } else if !all && count_releases == 0 {
@@ -78,99 +91,66 @@ impl ListCommand {
         println!();
     }
 
-    fn print_version_buffet(all_releases: &[GitHubRelease]) {
-        ui::helpful("Recent GitHub release versions:");
-        if all_releases.last().is_some() {
-            let mut most_recent_top: Vec<&GitHubRelease> = all_releases.iter().rev().collect();
-            // Reduce to the most recent minor version, except when there is a newer
-            // pre-release version, then show both stable and pre-release versions.
-            most_recent_top.dedup_by(|a, b| {
-                a.version.minor == b.version.minor
-                    && b.version
-                        .release_tag
-                        .as_ref()
-                        .is_some_and(|tag| tag == "stable")
-            });
-
-            let mut major = 3; // Most users won't care about versions before 3.0
-            while let major_releases = most_recent_top.iter().filter(|r| r.version.major == major)
-                && major_releases.clone().count() > 0
-            {
-                ui::info("");
-                ui::info(&format!("    Release series {}.x:", major));
-                let top_4: Vec<&GitHubRelease> = major_releases.take(5).copied().collect();
-                for release in top_4.iter().rev() {
-                    if release.version.is_prerelease() {
-                        ui::info(&format!(
-                            "      • {} {}",
-                            release.version.as_godot_version_str(),
-                            "(pre-release)".yellow()
-                        ));
-                    } else {
-                        ui::info(&format!(
-                            "      • {}",
-                            release.version.as_godot_version_str()
-                        ));
-                    }
-                }
-                major += 1;
-            }
-        } else {
-            ui::warning("No releases found");
-        }
-        println!();
+    pub fn print_version_buffet(
+        all_versions: &[GodotVersion],
+        installed: &[GodotVersion],
+        active_version: &Option<GodotVersion>,
+    ) {
+        ui::info(&format!(
+            "{}",
+            &"Recent Godot releases available from GitHub:"
+                .underline()
+                .green()
+        ));
+        let mut buffet = version_buffet(all_versions);
+        buffet.extend(installed);
+        buffet.sort();
+        buffet.dedup();
+        Self::print_versions(&buffet, installed, active_version.as_ref());
     }
 
-    fn print_installed_versions(show_paths: bool) -> Result<()> {
-        let config = Config::setup()?;
-        let installed = installer::list_installed(&config)?;
-        let active_version = installer::get_active_version(&config)?;
-
-        ui::helpful("Installed versions:");
-
-        if installed.is_empty() {
-            ui::warning("    No Godot versions installed");
-            ui::helpful("    Use `gdenv install <version>` to install a version.\n");
-            return Ok(());
+    fn print_versions(
+        versions: &[&GodotVersion],
+        installed: &[GodotVersion],
+        active_version: Option<&GodotVersion>,
+    ) {
+        if versions.is_empty() {
+            ui::warning("No releases found");
+            return;
         }
-
-        for version in &installed {
-            let is_active = active_version.as_ref() == Some(version);
-            let marker = if is_active {
-                ui::Marker::Star.auto().green().bold()
+        let width = versions
+            .iter()
+            .map(|release| release.as_godot_version_str().len())
+            .max()
+            .unwrap_or(0);
+        for release in versions {
+            let version_str = release.as_godot_version_str();
+            let pre_release_str = if release.is_prerelease() {
+                " (pre-release)".yellow()
             } else {
-                " ".normal()
+                "".to_string().normal()
             };
-            let version_str = if is_active {
-                format!("{version}").green().bold()
+            let is_installed_str = if installed.contains(release) {
+                " (installed)".green()
             } else {
-                format!("{version}").normal()
+                "".to_string().normal()
             };
-
-            if show_paths {
-                let install_path = config
-                    .installations_dir
-                    .join(godot_installation_name(version));
-                ui::info(&format!(
-                    "  {} {} -> {}",
-                    marker,
+            let is_active_str = if active_version == Some(release) {
+                " (active)".bright_blue()
+            } else {
+                "".to_string().normal()
+            };
+            ui::info(
+                format!(
+                    "{:width$}{}{}{}",
                     version_str,
-                    install_path.display()
-                ));
-            } else {
-                ui::info(&format!("  {marker} {version_str}"));
-            }
+                    pre_release_str,
+                    is_installed_str,
+                    is_active_str,
+                    width = width,
+                )
+                .trim_end(),
+            );
         }
-        ui::info("");
-        if let Some(active) = active_version {
-            ui::info(&format!(
-                "{} = active version: {}\n",
-               ui::Marker::Star.auto(), active.to_string().green().bold()
-            ));
-        } else {
-            ui::warning("\nNo active version set. Use `gdenv use <version>` to set one.\n");
-        }
-
-        Ok(())
     }
 }

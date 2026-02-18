@@ -80,12 +80,12 @@ impl InstallCommand {
                 "Using Godot {requested_version} as active version (first installation)."
             ));
         } else {
-            ui::helpful(&format!(
+            ui::tip(&format!(
                 "Run `gdenv use {}` to switch to this version.",
                 requested_version.as_godot_version_str()
             ));
         }
-        ui::helpful("Run `gdenv current` for PATH setup instructions.");
+        ui::tip("Run `gdenv current` for PATH setup instructions.");
 
         Ok(())
     }

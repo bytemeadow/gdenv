@@ -23,7 +23,7 @@ pub struct RunCommand {
 }
 
 impl RunCommand {
-    pub async fn run(self, global_args: GlobalArgs) -> Result<()> {
+    pub async fn run(self, _global_args: GlobalArgs) -> Result<()> {
         let config = Config::setup()?;
         let github_client = GitHubClient::new();
 

@@ -37,13 +37,13 @@ impl UseCommand {
             ui::info("Available installed versions:");
 
             for version in &installed_versions {
-                ui::info(&format!("  • {version}"));
+                ui::info(&format!("  - {version}"));
             }
 
             if installed_versions.is_empty() {
                 ui::info("No versions installed. Use `gdenv install <version>` to install one.");
             } else {
-                ui::helpful("Use `gdenv installed` to see all installed versions");
+                ui::tip("Use `gdenv installed` to see all installed versions");
             }
 
             return Ok(());

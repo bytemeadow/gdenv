@@ -2,6 +2,7 @@ use crate::config::Config;
 use crate::download_client::DownloadClient;
 use crate::godot::get_platform_patterns;
 use crate::godot_version::GodotVersion;
+use crate::ui;
 use anyhow::{Context, Result, bail};
 use chrono::{DateTime, Utc};
 use colored::Colorize;
@@ -114,14 +115,14 @@ impl DownloadClient for GitHubClient {
         sorted_releases.sort();
 
         if let Err(e) = self.save_cache(&cache_file, &sorted_releases) {
-            eprintln!("⚠️ Failed to save releases cache: {}", e);
+            ui::error(&format!("Failed to save releases cache: {}", e));
         }
 
         Ok(sorted_releases)
     }
 
     async fn download_asset(&self, asset: &GitHubAsset, path: &Path) -> Result<()> {
-        println!("📥 Downloading {}", asset.name);
+        ui::info(&format!("Downloading {}", asset.name));
 
         let response = self.client.get(&asset.browser_download_url).send().await?;
 
@@ -154,7 +155,7 @@ impl DownloadClient for GitHubClient {
         }
 
         file.flush().await?;
-        pb.finish_with_message("✅ Download complete");
+        pb.finish_with_message("Download complete");
 
         Ok(())
     }
