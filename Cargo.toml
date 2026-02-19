@@ -52,6 +52,7 @@ chrono = { version = "0.4", features = ["serde"] }
 
 # Cross-platform recursive directory navigation
 walkdir = "2.5.0"
+log = "0.4.29"
 
 [dev-dependencies]
 # Easy temporary directory handling for tests

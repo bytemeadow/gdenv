@@ -62,7 +62,7 @@ pub fn migrate() -> Result<()> {
 }
 
 fn write_data_format_version(version: &Version) -> Result<()> {
-    let config = Config::new()?;
+    let config = Config::setup()?;
     let data_format_version_file = config.data_dir_format_version_file;
     fs::write(&data_format_version_file, version.to_string()).context(format!(
         "Could not write the data format version file: {}",
@@ -71,7 +71,7 @@ fn write_data_format_version(version: &Version) -> Result<()> {
 }
 
 fn get_data_format_version() -> Option<Version> {
-    let config = Config::new().ok()?;
+    let config = Config::setup().ok()?;
     let data_format_version_file = config.data_dir_format_version_file;
     if data_format_version_file.exists() {
         fs::read_to_string(data_format_version_file)
@@ -87,7 +87,7 @@ mod v0_1_6_to_v0_2_0 {
     use crate::config::Config;
     use crate::godot::godot_installation_name;
     use crate::godot_version::GodotVersion;
-    use crate::installer::Installer;
+    use crate::installer;
     use anyhow::Result;
     use regex::Regex;
     use std::fs;
@@ -98,7 +98,7 @@ mod v0_1_6_to_v0_2_0 {
     }
 
     pub fn migrate_installations_dir() -> Result<()> {
-        let config = Config::new()?;
+        let config = Config::setup()?;
         let installations_dir = &config.installations_dir;
 
         for entry_result in fs::read_dir(installations_dir)? {
@@ -147,7 +147,7 @@ mod v0_1_6_to_v0_2_0 {
     }
 
     fn migrate_symlinks() -> Result<()> {
-        let config = Config::new()?;
+        let config = Config::setup()?;
         let bin_dir = &config.bin_dir;
         let godot_symlink = bin_dir.join("godot");
 
@@ -159,11 +159,10 @@ mod v0_1_6_to_v0_2_0 {
             && let Some(version_str) = extract_godot_version(target_str)
         {
             let version = GodotVersion::new(&version_str, false)?;
-            let installer = Installer::new(config);
             // It's possible that the installation directory hasn't been migrated yet if we are in the middle of migrations,
             // but migrate_installations_dir() is called before migrate_simlinks() in migrate().
             // However, Installer::set_active_version checks if the directory exists.
-            installer.set_active_version(&version, false)?;
+            installer::set_active_version(&config, &version)?;
         }
 
         Ok(())

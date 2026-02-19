@@ -1,9 +1,11 @@
 use anyhow::Result;
 use clap::{Parser, Subcommand};
 
+use crate::commands::run::RunCommand;
 use crate::commands::{
-    cache::CacheCommand, current::CurrentCommand, fetch::FetchCommand, install::InstallCommand,
-    list::ListCommand, uninstall::UninstallCommand, use_cmd::UseCommand,
+    godot::cache::CacheCommand, godot::current::CurrentCommand, godot::fetch::FetchCommand,
+    godot::install::InstallCommand, godot::list::ListCommand, godot::uninstall::UninstallCommand,
+    godot::use_cmd::UseCommand,
 };
 
 #[derive(Parser)]
@@ -13,10 +15,30 @@ use crate::commands::{
 pub struct Cli {
     #[command(subcommand)]
     pub command: Commands,
+
+    #[command(flatten)]
+    pub global_args: GlobalArgs,
+}
+
+#[derive(clap::Args, Clone)]
+pub struct GlobalArgs {
+    /// Path to a gdenv managed project (defaults to current directory)
+    #[arg(short, long, global = true)]
+    pub project: Option<String>,
 }
 
 #[derive(Subcommand)]
 pub enum Commands {
+    /// Invoke Godot for the current project
+    Run(RunCommand),
+
+    /// Manage Godot versions
+    #[command(subcommand)]
+    Godot(GodotCommands),
+}
+
+#[derive(Subcommand)]
+pub enum GodotCommands {
     /// Update the cache of available Godot versions
     #[command(alias = "update")]
     Fetch(FetchCommand),
@@ -45,13 +67,27 @@ pub enum Commands {
 impl Cli {
     pub async fn run(self) -> Result<()> {
         match self.command {
-            Commands::Install(cmd) => cmd.run().await,
-            Commands::List(cmd) => cmd.run().await,
-            Commands::Use(cmd) => cmd.run().await,
-            Commands::Uninstall(cmd) => cmd.run().await,
-            Commands::Current(cmd) => cmd.run().await,
-            Commands::Fetch(cmd) => cmd.run().await,
-            Commands::Cache(cmd) => cmd.run().await,
+            Commands::Godot(godot_command) => match godot_command {
+                GodotCommands::Fetch(cmd) => cmd.run().await,
+                GodotCommands::List(cmd) => cmd.run().await,
+                GodotCommands::Install(cmd) => cmd.run().await,
+                GodotCommands::Use(cmd) => cmd.run().await,
+                GodotCommands::Current(cmd) => cmd.run().await,
+                GodotCommands::Uninstall(cmd) => cmd.run().await,
+                GodotCommands::Cache(cmd) => cmd.run().await,
+            },
+            Commands::Run(cmd) => cmd.run(self.global_args).await,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::cli::Cli;
+    use clap::CommandFactory;
+
+    #[test]
+    fn test_cli() {
+        Cli::command().debug_assert();
     }
 }

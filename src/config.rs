@@ -1,5 +1,5 @@
 use anyhow::Result;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 #[derive(Debug, Clone)]
 pub struct Config {
@@ -20,28 +20,40 @@ pub struct Config {
 
     /// Path to the gdenv version file (used to detect if migration is needed)
     pub data_dir_format_version_file: PathBuf,
+
+    /// Platform-specific operating system string.
+    pub os: String,
+
+    /// Platform-specific architecture string.
+    pub arch: String,
 }
 
 impl Default for Config {
     fn default() -> Self {
-        let data_dir = dirs::data_dir()
-            .unwrap_or_else(|| dirs::home_dir().unwrap_or_default().join(".local/share"))
-            .join("gdenv");
+        Self::new_for_path(&Self::default_data_dir())
+    }
+}
 
+impl Config {
+    pub fn new_for_path(data_dir: &Path) -> Self {
         Self {
-            data_dir: data_dir.clone(),
+            data_dir: data_dir.to_path_buf(),
             installations_dir: data_dir.join("installations"),
             cache_dir: data_dir.join("cache"),
             active_symlink: data_dir.join("current"),
             bin_dir: data_dir.join("bin"),
             data_dir_format_version_file: data_dir.join("gdenv_version.txt"),
+            os: std::env::consts::OS.to_string(),
+            arch: std::env::consts::ARCH.to_string(),
         }
     }
-}
 
-impl Config {
-    pub fn new() -> Result<Self> {
-        let config = Self::default();
+    pub fn setup() -> Result<Self> {
+        Self::setup_for_path(&Self::default_data_dir())
+    }
+
+    pub fn setup_for_path(data_dir: &Path) -> Result<Self> {
+        let config = Self::new_for_path(data_dir);
 
         // Ensure directories exist
         std::fs::create_dir_all(&config.installations_dir)?;
@@ -49,5 +61,11 @@ impl Config {
         std::fs::create_dir_all(&config.bin_dir)?;
 
         Ok(config)
+    }
+
+    pub fn default_data_dir() -> PathBuf {
+        dirs::data_dir()
+            .unwrap_or_else(|| dirs::home_dir().unwrap_or_default().join(".local/share"))
+            .join("gdenv")
     }
 }

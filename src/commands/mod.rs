@@ -1,7 +1,2 @@
-pub mod cache;
-pub mod current;
-pub mod fetch;
-pub mod install;
-pub mod list;
-pub mod uninstall;
-pub mod use_cmd;
+pub mod godot;
+pub mod run;

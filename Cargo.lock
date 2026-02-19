@@ -602,6 +602,7 @@ dependencies = [
  "dirs",
  "futures-util",
  "indicatif",
+ "log",
  "once_cell",
  "regex",
  "reqwest",

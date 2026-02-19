@@ -1,4 +1,4 @@
-use anyhow::{Result, anyhow};
+use anyhow::{Context, Result};
 use once_cell::sync::Lazy;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
@@ -27,21 +27,38 @@ impl GodotVersion {
     pub fn new(version_str: &str, is_dotnet: bool) -> Result<Self> {
         let caps = VERSION_REGEX
             .captures(version_str)
-            .ok_or_else(|| anyhow!("Invalid Godot version format: {}", version_str))?;
+            .context("Invalid Godot version format")?;
 
         let major = caps
             .get(1)
-            .ok_or_else(|| anyhow!("Invalid major version"))?
+            .context("Invalid major version")?
             .as_str()
-            .parse()?;
-        let minor_opt = caps.get(2).map(|m| m.as_str().parse()).transpose()?;
-        let patch_opt = caps.get(3).map(|m| m.as_str().parse()).transpose()?;
-        let sub_patch_opt = caps.get(4).map(|m| m.as_str().parse()).transpose()?;
+            .parse()
+            .context("Invalid major version")?;
+        let minor_opt = caps
+            .get(2)
+            .map(|m| m.as_str().parse())
+            .transpose()
+            .context("Invalid minor version")?;
+        let patch_opt = caps
+            .get(3)
+            .map(|m| m.as_str().parse())
+            .transpose()
+            .context("Invalid patch version")?;
+        let sub_patch_opt = caps
+            .get(4)
+            .map(|m| m.as_str().parse())
+            .transpose()
+            .context("Invalid sub-patch version")?;
         let release_tag = Some(
             caps.get(5)
                 .map_or("stable".to_string(), |m| m.as_str().to_string()),
         );
-        let tag_version = caps.get(6).map(|m| m.as_str().parse()).transpose()?;
+        let tag_version = caps
+            .get(6)
+            .map(|m| m.as_str().parse())
+            .transpose()
+            .context("Invalid tag version")?;
         let extra = caps
             .get(7)
             .map(|m| m.as_str().to_string())
@@ -163,6 +180,41 @@ impl fmt::Display for GodotVersion {
     }
 }
 
+pub fn version_buffet(all_releases: &[GodotVersion]) -> Vec<&GodotVersion> {
+    // Most users will not care about version solder than 3.x for the buffet.
+    let mut most_recent_top: Vec<&GodotVersion> = all_releases
+        .iter()
+        .filter(|v| v.major >= 3 && !v.is_dotnet)
+        .rev()
+        .collect();
+
+    // Reduce to the most recent minor version, except when there is a newer
+    // pre-release version, then show both stable and pre-release versions.
+    most_recent_top.dedup_by(|a, b| {
+        a.minor == b.minor && b.release_tag.as_ref().is_some_and(|tag| tag == "stable")
+    });
+
+    let max_major_version = most_recent_top
+        .iter()
+        .max_by_key(|v| v.major)
+        .map(|v| v.major)
+        .unwrap_or(0);
+
+    (3..=max_major_version) // Range of major versions we care about
+        .flat_map(|major| {
+            // For each major version, find its releases, take 5, and reverse them
+            most_recent_top
+                .iter()
+                .filter(|r| r.major == major)
+                .take(5)
+                .copied()
+                .collect::<Vec<_>>()
+                .into_iter()
+                .rev()
+        })
+        .collect()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -220,5 +272,64 @@ mod tests {
         assert!(v1.cmp(&v2).is_eq());
         assert!(v2.cmp(&v3).is_lt());
         assert!(v3.cmp(&v4).is_eq());
+    }
+
+    #[test]
+    fn test_version_buffet() {
+        let releases: Vec<GodotVersion> = [
+            "4.5-beta7",
+            "4.5-rc1",
+            "4.5-rc2",
+            "4.5-stable",
+            "4.5.1-rc1",
+            "4.5.1-rc2",
+            "4.5.1-stable",
+            "4.5.2-rc1",
+            "4.6-dev1",
+            "4.6-dev2",
+            "4.6-dev3",
+            "4.6-dev4",
+            "4.6-dev5",
+            "4.6-dev6",
+            "4.6-beta1",
+            "4.6-beta2",
+            "4.6-beta3",
+            "4.6-rc1",
+            "4.6-rc2",
+            "4.6-stable",
+            "4.6.1-rc1",
+            "4.7-dev1",
+        ]
+        .iter()
+        .flat_map(|s| {
+            [
+                GodotVersion::new(s, false).unwrap(),
+                GodotVersion::new(s, true).unwrap(),
+            ]
+        })
+        .collect();
+
+        let expected: Vec<GodotVersion> = [
+            "4.5.1-stable",
+            "4.5.2-rc1",
+            "4.6-stable",
+            "4.6.1-rc1",
+            "4.7-dev1",
+        ]
+        .iter()
+        .map(|s| GodotVersion::new(s, false).unwrap())
+        .collect::<Vec<_>>();
+
+        let buffet = version_buffet(&releases);
+        println!(
+            "{:#?}",
+            buffet.iter().map(|v| v.to_string()).collect::<Vec<_>>()
+        );
+        assert_eq!(buffet.len(), 5);
+
+        buffet
+            .iter()
+            .zip(expected)
+            .for_each(|(v1, v2)| assert_eq!(**v1, v2));
     }
 }

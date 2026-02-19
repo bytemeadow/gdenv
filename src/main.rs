@@ -1,12 +1,13 @@
 mod cli;
 mod commands;
 mod config;
-mod error;
+mod download_client;
 mod github;
 mod godot;
 mod godot_version;
 mod installer;
 mod migrate;
+mod project_specification;
 mod ui;
 
 use crate::migrate::migrate;
