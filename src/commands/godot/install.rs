@@ -81,11 +81,11 @@ impl InstallCommand {
             ));
         } else {
             ui::tip(&format!(
-                "Run `gdenv use {}` to switch to this version.",
+                "Run `gdenv godot use {}` to switch to this version.",
                 requested_version.as_godot_version_str()
             ));
         }
-        ui::tip("Run `gdenv current` for PATH setup instructions.");
+        ui::tip("Run `gdenv godot current` for PATH setup instructions.");
 
         Ok(())
     }

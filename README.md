@@ -25,20 +25,41 @@ _Special thanks to [Blaze](https://runblaze.dev) for their support of this proje
 ## Usage
 
 ```txt
+$ gdenv --help
 A beautiful terminal tool for managing Godot installations
 
-Usage: gdenv <COMMAND>
+Usage: gdenv [OPTIONS] <COMMAND>
+
+Commands:
+  run    Invoke Godot for the current project
+  godot  Manage Godot versions
+  help   Print this message or the help of the given subcommand(s)
+
+Options:
+  -p, --project <PROJECT>  Path to a gdenv managed project (defaults to current directory)
+  -h, --help               Print help
+  -V, --version            Print version
+```
+
+```
+$ gdenv godot --help
+Manage Godot versions
+
+Usage: gdenv godot [OPTIONS] <COMMAND>
 
 Commands:
   fetch      Update the cache of available Godot versions
   list       List installed and available Godot versions
   install    Download and install a specific version of Godot
   use        Switch to a specific Godot version
-  run        Invoke a specific Godot version. Automatically installs the version. Will not affect the active version
   current    Show the currently active Godot version
   uninstall  Uninstall a specific Godot version
   cache      Manage download cache
   help       Print this message or the help of the given subcommand(s)
+
+Options:
+  -p, --project <PROJECT>  Path to a gdenv managed project (defaults to current directory)
+  -h, --help               Print help
 ```
 
 ## Installation

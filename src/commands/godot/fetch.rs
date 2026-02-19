@@ -42,8 +42,8 @@ impl FetchCommand {
 
         ui::success("Update complete!\n");
         ui::info(&github_client.cache_status_message());
-        ui::tip("Use `gdenv fetch` to refresh the cache.");
-        ui::tip("Use 'gdenv list' to see available versions.");
+        ui::tip("Use `gdenv godot fetch` to refresh the cache.");
+        ui::tip("Use 'gdenv godot list' to see available versions.");
 
         Ok(())
     }

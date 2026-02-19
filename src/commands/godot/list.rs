@@ -39,10 +39,10 @@ impl ListCommand {
             ui::warning("Note: --pre flag only applies to version queries.");
         }
         ui::info(&github_client.cache_status_message());
-        ui::tip("Use `gdenv fetch` to refresh the cache.");
-        ui::tip("Use `gdenv list <string_pattern>` to filter available versions");
-        ui::tip("Use `gdenv install <version>` to install a new version from github");
-        ui::tip("Use `gdenv use <version>` to set the active version");
+        ui::tip("Use `gdenv godot fetch` to refresh the cache.");
+        ui::tip("Use `gdenv godot list <string_pattern>` to filter available versions");
+        ui::tip("Use `gdenv godot install <version>` to install a new version from github");
+        ui::tip("Use `gdenv godot use <version>` to set the active version");
 
         Ok(())
     }

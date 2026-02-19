@@ -41,9 +41,11 @@ impl UseCommand {
             }
 
             if installed_versions.is_empty() {
-                ui::info("No versions installed. Use `gdenv install <version>` to install one.");
+                ui::info(
+                    "No versions installed. Use `gdenv godot install <version>` to install one.",
+                );
             } else {
-                ui::tip("Use `gdenv installed` to see all installed versions");
+                ui::tip("Use `gdenv godot installed` to see all installed versions");
             }
 
             return Ok(());
