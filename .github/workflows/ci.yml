@@ -84,7 +84,7 @@ jobs:
         run: |
           command -v gdenv
           command -v godot
-          gdenv current
+          gdenv godot current
           godot --version
 
       - name: Verify Godot setup (Windows)
@@ -93,7 +93,7 @@ jobs:
         run: |
           Get-Command gdenv
           Get-Command godot
-          gdenv current
+          gdenv godot current
           godot --version
 
   install:
