@@ -7,7 +7,7 @@ use crate::{config::Config, installer, ui};
 #[derive(Args)]
 pub struct CurrentCommand {
     /// Show the path to the current Godot executable
-    #[arg(long, short)]
+    #[arg(long)]
     pub path: bool,
 }
 

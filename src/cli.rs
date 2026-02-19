@@ -80,3 +80,14 @@ impl Cli {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::cli::Cli;
+    use clap::CommandFactory;
+
+    #[test]
+    fn test_cli() {
+        Cli::command().debug_assert();
+    }
+}
