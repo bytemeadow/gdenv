@@ -17,7 +17,7 @@ pub fn warning(msg: &str) {
 }
 
 pub fn tip(msg: &str) {
-    println!("{} {}", "Tip:".cyan(), msg.cyan());
+    println!("{} {}", "Tip:".dimmed(), msg.dimmed());
 }
 
 pub fn question(msg: &str) {

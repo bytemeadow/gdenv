@@ -35,6 +35,7 @@ impl ListCommand {
             Self::print_version_buffet(&all_versions, &installed, &active_version);
         }
 
+        println!();
         if self.query.is_none() && self.pre {
             ui::warning("Note: --pre flag only applies to version queries.");
         }
