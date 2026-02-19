@@ -1,18 +1,12 @@
-[package]
-name = "gdenv"
-version = "0.2.2"
-edition = "2024"
-description = "The best command-line tool to install and switch between multiple versions of Godot."
-license = "MIT OR Apache-2.0"
-repository = "https://github.com/bytemeadow/gdenv"
-authors = ["David Chavez <david@dcvz.io>"]
+[workspace]
+resolver = "3"
+members = [
+    "gdenv",
+]
 
-[[bin]]
-name = "gdenv"
-path = "src/main.rs"
 
-[dependencies]
-# CLI framework
+[workspace.dependencies]
+
 clap = { version = "4.5", features = ["derive", "color"] }
 
 # Async runtime
@@ -54,6 +48,5 @@ chrono = { version = "0.4", features = ["serde"] }
 walkdir = "2.5.0"
 log = "0.4.29"
 
-[dev-dependencies]
 # Easy temporary directory handling for tests
 tempdir = "0.3.7"

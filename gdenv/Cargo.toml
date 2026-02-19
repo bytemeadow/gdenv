@@ -1,0 +1,59 @@
+[package]
+name = "gdenv"
+version = "0.2.2"
+edition = "2024"
+description = "The best command-line tool to install and switch between multiple versions of Godot."
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/bytemeadow/gdenv"
+authors = ["David Chavez <david@dcvz.io>"]
+
+[[bin]]
+name = "gdenv"
+path = "src/main.rs"
+
+[dependencies]
+# CLI framework
+clap.workspace = true
+
+# Async runtime
+tokio.workspace = true
+
+# HTTP client for downloads and GitHub API
+reqwest.workspace = true
+futures-util.workspace = true
+
+# JSON serialization
+serde.workspace = true
+serde_json.workspace = true
+
+# Terminal UI
+indicatif.workspace = true
+colored.workspace = true
+
+# File system and paths
+dirs.workspace = true
+
+# Archive extraction
+zip.workspace = true
+
+# Regex for version parsing
+regex.workspace = true
+once_cell.workspace = true
+
+# Error handling
+anyhow.workspace = true
+thiserror.workspace = true
+
+# Version parsing
+semver.workspace = true
+
+# Date/time handling
+chrono.workspace = true
+
+# Cross-platform recursive directory navigation
+walkdir.workspace = true
+log.workspace = true
+
+[dev-dependencies]
+# Easy temporary directory handling for tests
+tempdir.workspace = true
