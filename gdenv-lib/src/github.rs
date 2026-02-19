@@ -2,11 +2,11 @@ use crate::config::Config;
 use crate::download_client::DownloadClient;
 use crate::godot::get_platform_patterns;
 use crate::godot_version::GodotVersion;
-use crate::ui;
 use anyhow::{Context, Result, bail};
 use chrono::{DateTime, Utc};
 use colored::Colorize;
 use indicatif::{ProgressBar, ProgressStyle};
+use log::info;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use std::cmp::Ordering;
@@ -115,14 +115,14 @@ impl DownloadClient for GitHubClient {
         sorted_releases.sort();
 
         if let Err(e) = self.save_cache(&cache_file, &sorted_releases) {
-            ui::error(&format!("Failed to save releases cache: {}", e));
+            bail!("Failed to save releases cache: {}", e);
         }
 
         Ok(sorted_releases)
     }
 
     async fn download_asset(&self, asset: &GitHubAsset, path: &Path) -> Result<()> {
-        ui::info(&format!("Downloading {}", asset.name));
+        info!("Downloading {}", asset.name);
 
         let response = self.client.get(&asset.browser_download_url).send().await?;
 
@@ -302,6 +302,12 @@ impl GitHubClient {
         let content = serde_json::to_string_pretty(releases)?;
         std::fs::write(path, content)?;
         Ok(())
+    }
+}
+
+impl Default for GitHubClient {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

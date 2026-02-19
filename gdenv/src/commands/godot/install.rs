@@ -1,9 +1,12 @@
+use crate::ui;
 use anyhow::{Context, Result, anyhow};
 use clap::Args;
-
-use crate::download_client::DownloadClient;
-use crate::project_specification::read_godot_version_file;
-use crate::{config::Config, github::GitHubClient, godot_version::GodotVersion, installer, ui};
+use gdenv_lib::config::Config;
+use gdenv_lib::download_client::DownloadClient;
+use gdenv_lib::github::GitHubClient;
+use gdenv_lib::godot_version::GodotVersion;
+use gdenv_lib::installer;
+use gdenv_lib::project_specification::read_godot_version_file;
 
 #[derive(Args)]
 pub struct InstallCommand {

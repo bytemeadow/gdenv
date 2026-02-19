@@ -1,7 +1,9 @@
+use crate::ui;
 use anyhow::{Result, bail};
 use clap::Args;
-
-use crate::{config::Config, godot_version::GodotVersion, installer, ui};
+use gdenv_lib::config::Config;
+use gdenv_lib::godot_version::GodotVersion;
+use gdenv_lib::installer;
 
 #[derive(Args)]
 pub struct UseCommand {

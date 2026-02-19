@@ -1,8 +1,8 @@
 //! Utilities for data directory migration between versions of gdenv
 
 use crate::config::Config;
-use crate::ui;
 use anyhow::{Context, Result};
+use log::info;
 use semver::Version;
 use std::fs;
 
@@ -35,14 +35,14 @@ pub fn migrate() -> Result<()> {
         return Ok(());
     }
 
-    ui::info(&format!(
+    info!(
         "Migrating gdenv data directory to latest format. {} -> {}",
         old_version
             .clone()
             .map(|v| v.to_string())
             .unwrap_or("?".to_string()),
         new_version
-    ));
+    );
 
     for migration in &migrations {
         // Run the migration if there's no version or if the current version is less than what's required for this step.
@@ -56,7 +56,7 @@ pub fn migrate() -> Result<()> {
 
     write_data_format_version(&new_version)?;
 
-    ui::success("Migration successful!");
+    info!("Migration successful!");
 
     Ok(())
 }

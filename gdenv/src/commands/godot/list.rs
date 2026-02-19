@@ -1,11 +1,12 @@
-use crate::config::Config;
-use crate::download_client::DownloadClient;
-use crate::godot_version::{GodotVersion, version_buffet};
-use crate::installer;
-use crate::{github::GitHubClient, ui};
+use crate::ui;
 use anyhow::Result;
 use clap::Args;
 use colored::Colorize;
+use gdenv_lib::config::Config;
+use gdenv_lib::download_client::DownloadClient;
+use gdenv_lib::github::GitHubClient;
+use gdenv_lib::godot_version::{GodotVersion, version_buffet};
+use gdenv_lib::installer;
 
 #[derive(Args)]
 pub struct ListCommand {
