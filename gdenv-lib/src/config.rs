@@ -1,4 +1,5 @@
-use anyhow::Result;
+use crate::migrate::migrate;
+use anyhow::{Context, Result};
 use std::path::{Path, PathBuf};
 
 #[derive(Debug, Clone)]
@@ -54,6 +55,8 @@ impl Config {
 
     pub fn setup_for_path(data_dir: &Path) -> Result<Self> {
         let config = Self::new_for_path(data_dir);
+
+        migrate().context("Failed to migrate data directory")?;
 
         // Ensure directories exist
         std::fs::create_dir_all(&config.installations_dir)?;

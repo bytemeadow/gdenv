@@ -61,8 +61,12 @@ pub fn migrate() -> Result<()> {
 }
 
 fn write_data_format_version(version: &Version) -> Result<()> {
-    let config = Config::setup()?;
+    let config = Config::default();
     let data_format_version_file = config.data_dir_format_version_file;
+    std::fs::create_dir_all(data_format_version_file.parent().context(format!(
+        "Failed to create parent directory for data format version file: {}",
+        &data_format_version_file.to_string_lossy()
+    ))?)?;
     fs::write(&data_format_version_file, version.to_string()).context(format!(
         "Could not write the data format version file: {}",
         &data_format_version_file.to_str().unwrap_or("?")
@@ -70,7 +74,7 @@ fn write_data_format_version(version: &Version) -> Result<()> {
 }
 
 fn get_data_format_version() -> Option<Version> {
-    let config = Config::setup().ok()?;
+    let config = Config::default();
     let data_format_version_file = config.data_dir_format_version_file;
     if data_format_version_file.exists() {
         fs::read_to_string(data_format_version_file)
@@ -97,8 +101,11 @@ mod v0_1_6_to_v0_2_0 {
     }
 
     pub fn migrate_installations_dir() -> Result<()> {
-        let config = Config::setup()?;
+        let config = Config::default();
         let installations_dir = &config.installations_dir;
+        if !installations_dir.exists() {
+            return Ok(());
+        }
 
         for entry_result in fs::read_dir(installations_dir)? {
             let entry = entry_result?;
@@ -146,7 +153,7 @@ mod v0_1_6_to_v0_2_0 {
     }
 
     fn migrate_symlinks() -> Result<()> {
-        let config = Config::setup()?;
+        let config = Config::default();
         let bin_dir = &config.bin_dir;
         let godot_symlink = bin_dir.join("godot");
 
