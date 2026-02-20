@@ -75,7 +75,7 @@ impl UninstallCommand {
             if !remaining_versions.is_empty() {
                 ui::tip("Available versions to switch to:");
                 for version in &remaining_versions {
-                    println!("  - {version}");
+                    tracing::info!("  - {version}");
                 }
                 ui::tip("Run `gdenv godot use <version>` to set a new active version");
             } else {

@@ -36,7 +36,7 @@ impl ListCommand {
             Self::print_version_buffet(&all_versions, &installed, &active_version);
         }
 
-        println!();
+        tracing::info!("");
         if self.query.is_none() && self.pre {
             ui::warning("Note: --pre flag only applies to version queries.");
         }
@@ -92,7 +92,7 @@ impl ListCommand {
                 if all { "" } else { " (pre-releases excluded)" }
             ));
         }
-        println!();
+        tracing::info!("");
     }
 
     pub fn print_version_buffet(

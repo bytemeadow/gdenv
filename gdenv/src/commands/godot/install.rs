@@ -64,8 +64,6 @@ impl InstallCommand {
             }
         };
 
-        ui::info(&format!("Installing Godot {requested_version}..."));
-
         let install_path =
             installer::ensure_installed(&config, &requested_version, &github_client, self.force)
                 .await
@@ -76,7 +74,7 @@ impl InstallCommand {
 
         ui::success(&format!("Installed to: {}", install_path.display()));
 
-        println!();
+        tracing::info!("");
         // Only set as active version if no version is currently active
         if installer::get_active_version(&config)?.is_none() {
             installer::set_active_version(&config, &requested_version)?;

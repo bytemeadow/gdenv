@@ -21,7 +21,6 @@ serde.workspace = true
 serde_json.workspace = true
 
 # Terminal UI
-indicatif.workspace = true
 colored.workspace = true
 
 # File system and paths
@@ -45,7 +44,11 @@ chrono.workspace = true
 
 # Cross-platform recursive directory navigation
 walkdir.workspace = true
-log.workspace = true
+
+# Logging
+tracing.workspace = true
+tracing-subscriber.workspace = true
+tracing-indicatif.workspace = true
 
 [dev-dependencies]
 # Easy temporary directory handling for tests

@@ -1,25 +1,25 @@
 use colored::*;
 
 pub fn success(msg: &str) {
-    println!("{} {}", "✓".green(), msg.green());
+    tracing::info!("{} {}", "✓".green(), msg.green());
 }
 
 pub fn error(msg: &str) {
-    println!("{} {}", "Error:".red(), msg.red());
+    tracing::info!("{} {}", "Error:".red(), msg.red());
 }
 
 pub fn info(msg: &str) {
-    println!("{}", msg);
+    tracing::info!("{}", msg);
 }
 
 pub fn warning(msg: &str) {
-    println!("{}", msg.yellow());
+    tracing::info!("{}", msg.yellow());
 }
 
 pub fn tip(msg: &str) {
-    println!("{} {}", "Tip:".dimmed(), msg.dimmed());
+    tracing::info!("{} {}", "Tip:".dimmed(), msg.dimmed());
 }
 
 pub fn question(msg: &str) {
-    println!("{} {}", "[?]".magenta(), msg.magenta());
+    tracing::info!("{} {}", "[?]".magenta(), msg.magenta());
 }

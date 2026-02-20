@@ -2,7 +2,6 @@
 
 use crate::config::Config;
 use anyhow::{Context, Result};
-use log::info;
 use semver::Version;
 use std::fs;
 
@@ -35,7 +34,7 @@ pub fn migrate() -> Result<()> {
         return Ok(());
     }
 
-    info!(
+    tracing::info!(
         "Migrating gdenv data directory to latest format. {} -> {}",
         old_version
             .clone()
@@ -56,7 +55,7 @@ pub fn migrate() -> Result<()> {
 
     write_data_format_version(&new_version)?;
 
-    info!("Migration successful!");
+    tracing::info!("Migration successful!");
 
     Ok(())
 }

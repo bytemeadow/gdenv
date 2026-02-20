@@ -19,7 +19,7 @@ impl CurrentCommand {
         match installer::get_active_version(&config)? {
             Some(version) => {
                 if self.path {
-                    println!("{}", config.active_symlink.display());
+                    tracing::info!("{}", config.active_symlink.display());
                 } else {
                     ui::success(&format!("Active Godot version: {version}"));
                     ui::info(&format!("Location: {}", config.active_symlink.display()));

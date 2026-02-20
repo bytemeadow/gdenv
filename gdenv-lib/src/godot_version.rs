@@ -321,7 +321,7 @@ mod tests {
         .collect::<Vec<_>>();
 
         let buffet = version_buffet(&releases);
-        println!(
+        tracing::info!(
             "{:#?}",
             buffet.iter().map(|v| v.to_string()).collect::<Vec<_>>()
         );
