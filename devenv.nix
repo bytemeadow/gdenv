@@ -22,10 +22,24 @@
     channel = "stable";
   };
 
-  # https://devenv.sh/scripts/
-  scripts.hello.exec = ''
-    echo hello from $GREET
-  '';
+  # Scripts
+  scripts = {
+    check.exec = ''
+      echo "Running cargo check..."
+      cargo check --all-targets --all-features
+    '';
+
+    lint.exec = ''
+      echo "Running cargo fmt and clippy..."
+      cargo fmt --all
+      cargo clippy --all-targets --all-features
+    '';
+
+    run.exec = ''
+      echo "Running cargo run..."
+      cargo run -- "''$@"
+    '';
+  };
 
   enterShell = ''
     echo "gdenv development environment"
