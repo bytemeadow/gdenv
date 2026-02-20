@@ -2,16 +2,17 @@ use crate::config::Config;
 use crate::download_client::DownloadClient;
 use crate::godot::get_platform_patterns;
 use crate::godot_version::GodotVersion;
-use crate::ui;
+use crate::logging::{progress_bar_style, spinner_style};
 use anyhow::{Context, Result, bail};
 use chrono::{DateTime, Utc};
 use colored::Colorize;
-use indicatif::{ProgressBar, ProgressStyle};
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use std::cmp::Ordering;
 use std::path::Path;
 use tokio::io::AsyncWriteExt;
+use tracing::instrument;
+use tracing_indicatif::span_ext::IndicatifSpanExt;
 
 const CACHE_VALIDITY_DAYS: u64 = 7;
 
@@ -115,30 +116,25 @@ impl DownloadClient for GitHubClient {
         sorted_releases.sort();
 
         if let Err(e) = self.save_cache(&cache_file, &sorted_releases) {
-            ui::error(&format!("Failed to save releases cache: {}", e));
+            bail!("Failed to save releases cache: {}", e);
         }
 
         Ok(sorted_releases)
     }
 
+    #[instrument(skip_all)]
     async fn download_asset(&self, asset: &GitHubAsset, path: &Path) -> Result<()> {
-        ui::info(&format!("Downloading {}", asset.name));
+        let current_span = tracing::Span::current();
+        current_span.pb_set_style(&progress_bar_style()?);
+        current_span.pb_set_length(asset.size);
+        current_span.pb_set_message(&format!("Downloading {}...", asset.name));
+        current_span.pb_set_finish_message(&format!("Downloading {}... Complete!", asset.name));
 
         let response = self.client.get(&asset.browser_download_url).send().await?;
 
         if !response.status().is_success() {
             bail!("Download failed: {}", response.status());
         }
-
-        let total_size = asset.size;
-
-        // Create progress bar
-        let pb = ProgressBar::new(total_size);
-        pb.set_style(
-            ProgressStyle::default_bar()
-                .template("{spinner:.green} [{elapsed_precise}] [{wide_bar:.cyan/blue}] {bytes}/{total_bytes} ({bytes_per_sec}, {eta})")?
-                .progress_chars("#>-"),
-        );
 
         // Create the file
         let mut file = tokio::fs::File::create(path).await?;
@@ -151,12 +147,12 @@ impl DownloadClient for GitHubClient {
             let chunk = chunk?;
             file.write_all(&chunk).await?;
             downloaded += chunk.len() as u64;
-            pb.set_position(downloaded);
+
+            // Update the span field so a subscriber can see progress
+            tracing::Span::current().pb_set_position(downloaded);
         }
 
         file.flush().await?;
-        pb.finish_with_message("Download complete");
-
         Ok(())
     }
 }
@@ -193,21 +189,26 @@ impl GitHubClient {
                 "days.".dimmed(),
             )
         } else {
-            "".to_string()
+            format!(
+                "{} {}",
+                "GitHub release cache:".cyan(),
+                "Cache is empty.".dimmed(),
+            )
         }
     }
 
+    #[instrument(skip_all)]
     async fn fetch_all_releases_from_api(&self) -> Result<Vec<GitHubRelease>> {
+        let current_span = tracing::Span::current();
+        current_span.pb_set_style(&spinner_style("{msg} [Fetched pages: {pos}]")?);
+        current_span.pb_set_message("Fetching Godot releases from GitHub...");
+        current_span.pb_set_finish_message("Fetching Godot releases from GitHub... Done");
+
         let mut releases = Vec::new();
         let mut next_url = Some(
             "https://api.github.com/repos/godotengine/godot-builds/releases?per_page=100"
                 .to_string(),
         );
-
-        let pb = ProgressBar::new_spinner();
-        pb.set_style(ProgressStyle::default_spinner().template("{spinner:.green} {msg}")?);
-        pb.set_message("Fetching Godot releases from GitHub...");
-        pb.enable_steady_tick(std::time::Duration::from_millis(120));
 
         while let Some(url) = next_url {
             let response = self.client.get(&url).send().await?;
@@ -224,6 +225,8 @@ impl GitHubClient {
 
             let page_releases: Vec<GitHubReleaseJson> = response.json().await?;
             releases.extend(page_releases);
+
+            current_span.pb_set_position(releases.len() as u64);
 
             if releases.len() >= 1000 {
                 break;
@@ -246,15 +249,15 @@ impl GitHubClient {
                     all_releases.push(dotnet_release);
                 }
                 Err(e) => {
-                    eprintln!(
+                    tracing::error!(
                         "Warn: Failed to parse release from GitHub API response; this release will be unavailable to download: {}, reason: {}",
-                        json.tag_name, e
+                        json.tag_name,
+                        e
                     );
                 }
             }
         }
 
-        pb.finish_and_clear();
         Ok(all_releases)
     }
 
@@ -302,6 +305,12 @@ impl GitHubClient {
         let content = serde_json::to_string_pretty(releases)?;
         std::fs::write(path, content)?;
         Ok(())
+    }
+}
+
+impl Default for GitHubClient {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

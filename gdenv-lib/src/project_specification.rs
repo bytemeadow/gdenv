@@ -1,4 +1,3 @@
-use crate::ui;
 use anyhow::bail;
 use std::fs;
 use std::path::Path;
@@ -20,7 +19,7 @@ pub fn read_godot_version_file() -> anyhow::Result<String> {
         bail!(".godot-version file is empty");
     }
 
-    ui::info(&format!("Reading version from .godot-version: {version}"));
+    tracing::info!("Reading version from .godot-version: {version}");
 
     Ok(version.to_string())
 }

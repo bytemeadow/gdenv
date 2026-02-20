@@ -1,11 +1,12 @@
+use crate::cli::GlobalArgs;
 use anyhow::{Context, Result, bail};
 use clap::Args;
-
-use crate::cli::GlobalArgs;
-use crate::github::GitHubClient;
-use crate::installer::ensure_installed;
-use crate::project_specification::read_godot_version_file;
-use crate::{config::Config, godot_version::GodotVersion, installer};
+use gdenv_lib::config::Config;
+use gdenv_lib::github::GitHubClient;
+use gdenv_lib::godot_version::GodotVersion;
+use gdenv_lib::installer;
+use gdenv_lib::installer::ensure_installed;
+use gdenv_lib::project_specification::read_godot_version_file;
 
 #[derive(Args)]
 pub struct RunCommand {

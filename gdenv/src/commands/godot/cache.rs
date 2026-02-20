@@ -1,8 +1,8 @@
+use crate::ui;
 use anyhow::Result;
 use clap::{Args, Subcommand};
+use gdenv_lib::config::Config;
 use std::fs;
-
-use crate::{config::Config, ui};
 
 #[derive(Args)]
 pub struct CacheCommand {
