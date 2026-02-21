@@ -1,3 +1,4 @@
+use crate::cli::GlobalArgs;
 use crate::ui;
 use anyhow::{Context, Result, anyhow};
 use clap::Args;
@@ -6,7 +7,7 @@ use gdenv_lib::download_client::DownloadClient;
 use gdenv_lib::github::GitHubClient;
 use gdenv_lib::godot_version::GodotVersion;
 use gdenv_lib::installer;
-use gdenv_lib::project_specification::read_godot_version_file;
+use gdenv_lib::project_specification::{ProjectSpecification, load_godot_project_spec};
 
 #[derive(Args)]
 pub struct InstallCommand {
@@ -32,63 +33,100 @@ pub struct InstallCommand {
 }
 
 impl InstallCommand {
-    pub async fn run(self) -> Result<()> {
+    pub async fn run(self, global_args: GlobalArgs) -> Result<()> {
         let config = Config::setup()?;
         let github_client = GitHubClient::new();
         ui::info(&github_client.cache_status_message());
 
-        // Fetch available releases from GitHub first (needed for --latest flags)
-        let releases = github_client.godot_releases(false).await?;
+        let project_spec = self.project_spec(global_args, &github_client).await?;
 
-        // Get the version to install
-        let requested_version = if self.latest {
-            // Find latest stable release (last one since it's sorted ascending)
-            releases
-                .iter()
-                .rfind(|r| !r.version.is_prerelease())
-                .map(|r| r.version.clone())
-                .ok_or_else(|| anyhow!("No stable releases found"))?
-        } else if self.latest_prerelease {
-            // Find latest release (including prereleases)
-            releases
-                .last()
-                .map(|r| r.version.clone())
-                .ok_or_else(|| anyhow!("No releases found"))?
-        } else {
-            match GodotVersion::new(&self.version.clone().unwrap_or("".to_string()), self.dotnet) {
-                Ok(v) => v,
-                Err(_) => {
-                    // Try to read from .godot-version file
-                    GodotVersion::new(&read_godot_version_file()?, self.dotnet)?
-                }
-            }
-        };
-
-        let install_path =
-            installer::ensure_installed(&config, &requested_version, &github_client, self.force)
-                .await
-                .context(format!(
-                    "Failed to install Godot version {}",
-                    requested_version
-                ))?;
+        let install_path = installer::ensure_installed(
+            &config,
+            &project_spec.godot_version,
+            &github_client,
+            self.force,
+        )
+        .await
+        .context(format!(
+            "Failed to install Godot version {}",
+            project_spec.godot_version
+        ))?;
 
         ui::success(&format!("Installed to: {}", install_path.display()));
 
         tracing::info!("");
         // Only set as active version if no version is currently active
         if installer::get_active_version(&config)?.is_none() {
-            installer::set_active_version(&config, &requested_version)?;
+            installer::set_active_version(&config, &project_spec.godot_version)?;
             ui::info(&format!(
-                "Using Godot {requested_version} as active version (first installation)."
+                "Using Godot {} as active version (first installation).",
+                project_spec.godot_version
             ));
         } else {
             ui::tip(&format!(
-                "Run `gdenv godot use {}` to switch to this version.",
-                requested_version.as_godot_version_str()
+                "Run `gdenv godot use {}{}` to switch to this version.",
+                project_spec.godot_version.as_godot_version_str(),
+                if project_spec.godot_version.is_dotnet {
+                    " --dotnet"
+                } else {
+                    ""
+                }
             ));
         }
         ui::tip("Run `gdenv godot current` for PATH setup instructions.");
 
         Ok(())
+    }
+
+    async fn project_spec(
+        &self,
+        global_args: GlobalArgs,
+        github_client: &GitHubClient,
+    ) -> Result<ProjectSpecification> {
+        // Fetch available releases from GitHub first (needed for --latest flags)
+        let release_versions = github_client
+            .godot_releases(false)
+            .await?
+            .iter()
+            .map(|release| release.version.clone())
+            .collect::<Vec<_>>();
+        let version_override = self.override_version(release_versions)?;
+        let working_dir = global_args.project.unwrap_or(std::env::current_dir()?);
+        let spec_from_file = load_godot_project_spec(&working_dir)?;
+        Ok(ProjectSpecification {
+            godot_version: version_override.unwrap_or(spec_from_file.godot_version),
+            ..spec_from_file
+        })
+    }
+
+    fn override_version(
+        &self,
+        release_versions: Vec<GodotVersion>,
+    ) -> Result<Option<GodotVersion>> {
+        let version_override = if self.latest {
+            // Find latest stable release (last one since it's sorted ascending)
+            Some(
+                release_versions
+                    .iter()
+                    .rfind(|v| !v.is_prerelease() && v.is_dotnet == self.dotnet)
+                    .cloned()
+                    .ok_or_else(|| anyhow!("No stable releases found"))?,
+            )
+        } else if self.latest_prerelease {
+            // Find latest release (including prereleases)
+            Some(
+                release_versions
+                    .iter()
+                    .rfind(|v| v.is_dotnet == self.dotnet)
+                    .cloned()
+                    .ok_or_else(|| anyhow!("No releases found"))?,
+            )
+        } else {
+            self.version
+                .clone()
+                .map(|v| GodotVersion::new(&v, self.dotnet))
+                .transpose()?
+        };
+        Ok(version_override)
     }
 }

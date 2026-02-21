@@ -1,5 +1,6 @@
 use anyhow::Result;
 use clap::{Parser, Subcommand};
+use std::path::PathBuf;
 
 use crate::commands::run::RunCommand;
 use crate::commands::{
@@ -24,7 +25,7 @@ pub struct Cli {
 pub struct GlobalArgs {
     /// Path to a gdenv managed project (defaults to current directory)
     #[arg(short, long, global = true)]
-    pub project: Option<String>,
+    pub project: Option<PathBuf>,
 }
 
 #[derive(Subcommand)]
@@ -70,7 +71,7 @@ impl Cli {
             Commands::Godot(godot_command) => match godot_command {
                 GodotCommands::Fetch(cmd) => cmd.run().await,
                 GodotCommands::List(cmd) => cmd.run().await,
-                GodotCommands::Install(cmd) => cmd.run().await,
+                GodotCommands::Install(cmd) => cmd.run(self.global_args).await,
                 GodotCommands::Use(cmd) => cmd.run().await,
                 GodotCommands::Current(cmd) => cmd.run().await,
                 GodotCommands::Uninstall(cmd) => cmd.run().await,

@@ -6,7 +6,7 @@ use gdenv_lib::github::GitHubClient;
 use gdenv_lib::godot_version::GodotVersion;
 use gdenv_lib::installer;
 use gdenv_lib::installer::ensure_installed;
-use gdenv_lib::project_specification::read_godot_version_file;
+use gdenv_lib::project_specification::{ProjectSpecification, load_godot_project_spec};
 
 #[derive(Args)]
 pub struct RunCommand {
@@ -24,37 +24,43 @@ pub struct RunCommand {
 }
 
 impl RunCommand {
-    pub async fn run(self, _global_args: GlobalArgs) -> Result<()> {
+    pub async fn run(self, global_args: GlobalArgs) -> Result<()> {
         let config = Config::setup()?;
         let github_client = GitHubClient::new();
 
-        // Get the version to use
-        let version_string = match self.version {
-            Some(v) => v,
-            None => {
-                // Try to read from .godot-version file
-                read_godot_version_file()?
-            }
+        let override_version = self
+            .version
+            .map(|v| GodotVersion::new(&v, self.dotnet))
+            .transpose()?;
+        let override_run_args = if self.godot_arguments.is_empty() {
+            None
+        } else {
+            Some(self.godot_arguments)
+        };
+        let working_dir = global_args.project.unwrap_or(std::env::current_dir()?);
+        let spec_from_file = load_godot_project_spec(&working_dir)?;
+        let project_spec = ProjectSpecification {
+            godot_version: override_version.unwrap_or(spec_from_file.godot_version),
+            run_args: override_run_args.unwrap_or(spec_from_file.run_args),
+            ..spec_from_file
         };
 
-        let is_dotnet = self.dotnet;
-        let target_version = GodotVersion::new(&version_string, is_dotnet)?;
-
-        ensure_installed(&config, &target_version, &github_client, false)
+        ensure_installed(&config, &project_spec.godot_version, &github_client, false)
             .await
             .context(format!(
                 "Failed to install Godot version {}",
-                target_version
+                project_spec.godot_version
             ))?;
 
-        let executable_path = installer::get_executable_path(&config, &target_version)?;
+        let executable_path = installer::get_executable_path(&config, &project_spec.godot_version)?;
 
         if !executable_path.exists() {
             bail!("Executable not found at {}", executable_path.display());
         }
 
         let mut child = std::process::Command::new(executable_path)
-            .args(&self.godot_arguments)
+            .current_dir(project_spec.project_path)
+            .args(&project_spec.run_args)
             .spawn()
             .context("Failed to start Godot process")?;
 
