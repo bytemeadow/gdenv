@@ -1,3 +1,4 @@
+use crate::cli::GlobalArgs;
 use crate::ui;
 use anyhow::Result;
 use clap::Args;
@@ -13,8 +14,8 @@ pub struct CurrentCommand {
 }
 
 impl CurrentCommand {
-    pub async fn run(self) -> Result<()> {
-        let config = Config::setup()?;
+    pub async fn run(self, global_args: GlobalArgs) -> Result<()> {
+        let config = Config::setup(global_args.datadir.as_deref())?;
 
         match installer::get_active_version(&config)? {
             Some(version) => {

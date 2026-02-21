@@ -1,3 +1,4 @@
+use crate::cli::GlobalArgs;
 use crate::ui;
 use anyhow::Result;
 use clap::Args;
@@ -19,9 +20,9 @@ pub struct ListCommand {
 }
 
 impl ListCommand {
-    pub async fn run(self) -> Result<()> {
-        let config = Config::setup()?;
-        let github_client = GitHubClient::new();
+    pub async fn run(self, global_args: GlobalArgs) -> Result<()> {
+        let config = Config::setup(global_args.datadir.as_deref())?;
+        let github_client = GitHubClient::new(&config);
         let all_releases = github_client.godot_releases(false).await?;
         let installed = installer::list_installed(&config)?;
         let active_version = installer::get_active_version(&config)?;

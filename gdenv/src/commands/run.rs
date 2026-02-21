@@ -25,8 +25,8 @@ pub struct RunCommand {
 
 impl RunCommand {
     pub async fn run(self, global_args: GlobalArgs) -> Result<()> {
-        let config = Config::setup()?;
-        let github_client = GitHubClient::new();
+        let config = Config::setup(global_args.datadir.as_deref())?;
+        let github_client = GitHubClient::new(&config);
 
         let override_version = self
             .version

@@ -34,8 +34,8 @@ pub struct InstallCommand {
 
 impl InstallCommand {
     pub async fn run(self, global_args: GlobalArgs) -> Result<()> {
-        let config = Config::setup()?;
-        let github_client = GitHubClient::new();
+        let config = Config::setup(global_args.datadir.as_deref())?;
+        let github_client = GitHubClient::new(&config);
         ui::info(&github_client.cache_status_message());
 
         let project_spec = self.project_spec(global_args, &github_client).await?;

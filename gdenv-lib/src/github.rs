@@ -94,6 +94,7 @@ impl GitHubRelease {
 }
 
 pub struct GitHubClient {
+    config: Config,
     client: Client,
 }
 
@@ -102,7 +103,7 @@ impl DownloadClient for GitHubClient {
     /// If `force_refresh` is true, fetches the latest list from GitHub.
     /// Otherwise, uses a cached list if it exists and was modified less than 6 months ago.
     async fn godot_releases(&self, force_refresh: bool) -> Result<Vec<GitHubRelease>> {
-        let cache_file = Config::setup()?.cache_dir.join("releases_cache.json");
+        let cache_file = self.config.cache_dir.join("releases_cache.json");
 
         if !force_refresh && self.is_cache_valid(&cache_file) {
             return self
@@ -158,12 +159,15 @@ impl DownloadClient for GitHubClient {
 }
 
 impl GitHubClient {
-    pub fn new() -> Self {
+    pub fn new(config: &Config) -> Self {
         let client = Client::builder()
             .user_agent("gdenv/0.1.0")
             .build()
             .expect("Failed to create HTTP client");
-        Self { client }
+        Self {
+            config: config.clone(),
+            client,
+        }
     }
 
     pub fn cache_status_message(&self) -> String {
@@ -305,12 +309,6 @@ impl GitHubClient {
         let content = serde_json::to_string_pretty(releases)?;
         std::fs::write(path, content)?;
         Ok(())
-    }
-}
-
-impl Default for GitHubClient {
-    fn default() -> Self {
-        Self::new()
     }
 }
 

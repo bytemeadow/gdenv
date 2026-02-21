@@ -1,3 +1,4 @@
+use crate::cli::GlobalArgs;
 use crate::ui;
 use anyhow::Result;
 use clap::{Args, Subcommand};
@@ -19,8 +20,8 @@ pub enum CacheAction {
 }
 
 impl CacheCommand {
-    pub async fn run(self) -> Result<()> {
-        let config = Config::setup()?;
+    pub async fn run(self, global_args: GlobalArgs) -> Result<()> {
+        let config = Config::setup(global_args.datadir.as_deref())?;
 
         match self.action {
             Some(CacheAction::Clear) => self.clear_cache(&config)?,
