@@ -1,0 +1,33 @@
+[package]
+name = "gdenv"
+version.workspace = true
+edition.workspace = true
+description.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+
+[[bin]]
+name = "gdenv"
+path = "src/main.rs"
+
+[dependencies]
+gdenv-lib.workspace = true
+
+# CLI framework
+clap.workspace = true
+
+# Async runtime
+tokio.workspace = true
+
+# Terminal UI
+indicatif.workspace = true
+colored.workspace = true
+
+# Error handling
+anyhow.workspace = true
+
+# Logging
+tracing.workspace = true
+tracing-subscriber.workspace = true
+tracing-indicatif.workspace = true
