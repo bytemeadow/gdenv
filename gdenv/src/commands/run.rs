@@ -59,7 +59,11 @@ impl RunCommand {
         }
 
         let mut child = std::process::Command::new(executable_path)
-            .current_dir(project_spec.project_path)
+            .current_dir(project_spec.project_path.canonicalize().context(format!(
+                "Failed to canonicalize project path: {}",
+                project_spec.project_path.display()
+            ))?)
+            .args(["--path", "."])
             .args(&project_spec.run_args)
             .spawn()
             .context("Failed to start Godot process")?;

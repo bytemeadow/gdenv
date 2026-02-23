@@ -18,6 +18,7 @@ pub struct ProjectSpecification {
 
 /// Godot `gdenv.toml` file specification.
 #[derive(Serialize, Deserialize, Debug, Default)]
+#[serde(deny_unknown_fields)]
 pub struct ProjectSpecificationToml {
     pub godot: SpecGodot,
     pub addon: Option<HashMap<String, AddonSpec>>,
@@ -25,6 +26,7 @@ pub struct ProjectSpecificationToml {
 
 /// `[godot]` toml section.
 #[derive(Serialize, Deserialize, Debug, Default)]
+#[serde(deny_unknown_fields)]
 pub struct SpecGodot {
     pub version: String,
     pub dotnet: Option<bool>,
@@ -35,6 +37,7 @@ pub struct SpecGodot {
 
 /// Information about a Godot addon.
 #[derive(Serialize, Deserialize, Debug, Default, Eq, PartialEq, Clone)]
+#[serde(deny_unknown_fields)]
 pub struct AddonSpec {
     pub include: Option<Vec<PathBuf>>,
     pub tag: Option<String>,
@@ -49,8 +52,11 @@ pub fn load_godot_project_spec(start_path: &Path) -> Result<ProjectSpecification
     let spec_file = find_godot_project_spec(start_path);
     match spec_file {
         SpecFileType::Toml(path) => {
-            let str_spec = fs::read_to_string(path)?;
-            let spec = toml::from_str::<ProjectSpecificationToml>(&str_spec)?;
+            let str_spec = fs::read_to_string(&path)?;
+            let spec = toml::from_str::<ProjectSpecificationToml>(&str_spec).context(format!(
+                "Failed to parse Godot project configuration file gdenv.toml: {}",
+                path.display()
+            ))?;
             Ok(ProjectSpecification {
                 godot_version: GodotVersion::new(
                     &spec.godot.version,
