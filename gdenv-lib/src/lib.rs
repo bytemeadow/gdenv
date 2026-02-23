@@ -7,3 +7,4 @@ pub mod installer;
 pub mod logging;
 pub mod migrate;
 pub mod project_specification;
+mod file_sync;
