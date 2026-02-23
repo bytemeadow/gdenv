@@ -68,13 +68,13 @@ mod tests {
 version = "4.6.0-stable"
 
 [addon.test-addon1]
-path = "{}"
+path = {}
 
 [addon.test-addon2]
-path = "{}"
+path = {}
         "#,
-            test_addon1_path.as_path().display(),
-            test_addon2_path.as_path().display(),
+            toml::Value::String(test_addon1_path.to_string_lossy().to_string()),
+            toml::Value::String(test_addon2_path.to_string_lossy().to_string()),
         );
 
         fs::write(&version_file, &str_spec_v1)?;
@@ -103,13 +103,13 @@ path = "{}"
 version = "4.6.0-stable"
 
 [addon.test-addon1]
-path = "{}"
+path = {}
 
 [addon.test-addon2]
-path = "{}"
+path = {}
         "#,
-            test_addon1v2_path.as_path().display(),
-            test_addon2_path.as_path().display(),
+            toml::Value::String(test_addon1v2_path.to_string_lossy().to_string()),
+            toml::Value::String(test_addon2_path.to_string_lossy().to_string()),
         );
         fs::write(&version_file, &str_spec_v2)?;
         let project_spec = load_godot_project_spec(tmp_dir.path())?;
