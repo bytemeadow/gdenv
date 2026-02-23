@@ -2,6 +2,7 @@ use anyhow::Result;
 use clap::{Parser, Subcommand};
 use std::path::PathBuf;
 
+use crate::commands::editor::EditorCommand;
 use crate::commands::run::RunCommand;
 use crate::commands::{
     godot::cache::CacheCommand, godot::current::CurrentCommand, godot::fetch::FetchCommand,
@@ -36,6 +37,9 @@ pub struct GlobalArgs {
 pub enum Commands {
     /// Invoke Godot for the current project
     Run(RunCommand),
+
+    /// Open the Godot editor for the current project
+    Editor(EditorCommand),
 
     /// Manage Godot versions
     #[command(subcommand)]
@@ -82,6 +86,7 @@ impl Cli {
                 GodotCommands::Cache(cmd) => cmd.run(self.global_args).await,
             },
             Commands::Run(cmd) => cmd.run(self.global_args).await,
+            Commands::Editor(cmd) => cmd.run(self.global_args).await,
         }
     }
 }

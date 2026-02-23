@@ -25,55 +25,67 @@ pub struct RunCommand {
 
 impl RunCommand {
     pub async fn run(self, global_args: GlobalArgs) -> Result<()> {
-        let config = Config::setup(global_args.datadir.as_deref())?;
-        let github_client = GitHubClient::new(&config);
-
-        let override_version = self
-            .version
-            .map(|v| GodotVersion::new(&v, self.dotnet))
-            .transpose()?;
-        let override_run_args = if self.godot_arguments.is_empty() {
-            None
-        } else {
-            Some(self.godot_arguments)
-        };
-        let working_dir = global_args.project.unwrap_or(std::env::current_dir()?);
-        let spec_from_file = load_godot_project_spec(&working_dir)?;
-        let project_spec = ProjectSpecification {
-            godot_version: override_version.unwrap_or(spec_from_file.godot_version),
-            run_args: override_run_args.unwrap_or(spec_from_file.run_args),
-            ..spec_from_file
-        };
-
-        ensure_installed(&config, &project_spec.godot_version, &github_client, false)
-            .await
-            .context(format!(
-                "Failed to install Godot version {}",
-                project_spec.godot_version
-            ))?;
-
-        let executable_path = installer::get_executable_path(&config, &project_spec.godot_version)?;
-
-        if !executable_path.exists() {
-            bail!("Executable not found at {}", executable_path.display());
-        }
-
-        let mut child = std::process::Command::new(executable_path)
-            .current_dir(project_spec.project_path.canonicalize().context(format!(
-                "Failed to canonicalize project path: {}",
-                project_spec.project_path.display()
-            ))?)
-            .args(["--path", "."])
-            .args(&project_spec.run_args)
-            .spawn()
-            .context("Failed to start Godot process")?;
-
-        let status = child.wait()?;
-
-        if !status.success() {
-            std::process::exit(status.code().unwrap_or(1));
-        }
-
-        Ok(())
+        invoke_godot(
+            global_args,
+            self.version.clone(),
+            self.dotnet,
+            self.godot_arguments.clone(),
+        )
+        .await
     }
+}
+
+pub async fn invoke_godot(
+    global_args: GlobalArgs,
+    version: Option<String>,
+    dotnet: bool,
+    godot_arguments: Vec<String>,
+) -> Result<()> {
+    let config = Config::setup(global_args.datadir.as_deref())?;
+    let github_client = GitHubClient::new(&config);
+
+    let override_version = version.map(|v| GodotVersion::new(&v, dotnet)).transpose()?;
+    let override_run_args = if godot_arguments.is_empty() {
+        None
+    } else {
+        Some(godot_arguments)
+    };
+    let working_dir = global_args.project.unwrap_or(std::env::current_dir()?);
+    let spec_from_file = load_godot_project_spec(&working_dir)?;
+    let project_spec = ProjectSpecification {
+        godot_version: override_version.unwrap_or(spec_from_file.godot_version),
+        run_args: override_run_args.unwrap_or(spec_from_file.run_args),
+        ..spec_from_file
+    };
+
+    ensure_installed(&config, &project_spec.godot_version, &github_client, false)
+        .await
+        .context(format!(
+            "Failed to install Godot version {}",
+            project_spec.godot_version
+        ))?;
+
+    let executable_path = installer::get_executable_path(&config, &project_spec.godot_version)?;
+
+    if !executable_path.exists() {
+        bail!("Executable not found at {}", executable_path.display());
+    }
+
+    let mut child = std::process::Command::new(executable_path)
+        .current_dir(project_spec.project_path.canonicalize().context(format!(
+            "Failed to canonicalize project path: {}",
+            project_spec.project_path.display()
+        ))?)
+        .args(["--path", "."])
+        .args(&project_spec.run_args)
+        .spawn()
+        .context("Failed to start Godot process")?;
+
+    let status = child.wait()?;
+
+    if !status.success() {
+        std::process::exit(status.code().unwrap_or(1));
+    }
+
+    Ok(())
 }
