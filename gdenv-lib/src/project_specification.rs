@@ -40,6 +40,7 @@ pub struct SpecGodot {
 #[serde(deny_unknown_fields)]
 pub struct AddonSpec {
     pub include: Option<Vec<PathBuf>>,
+    pub exclude: Option<Vec<PathBuf>>,
     pub tag: Option<String>,
     pub branch: Option<String>,
     pub git: Option<String>,
