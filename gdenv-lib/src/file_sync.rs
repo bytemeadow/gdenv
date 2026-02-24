@@ -19,7 +19,7 @@ pub fn sync_recursive(
 ) -> anyhow::Result<()> {
     let source_list = get_file_list(source_base).context("Failed to get source file list")?;
     let filtered_source_list = {
-        let mut l = filter_file_list(source_list, includes, excludes);
+        let mut l = file_list_filtered(source_list, includes, excludes);
         // Sort so parents are added before children
         l.sort_by(|a, b| a.rel_path.cmp(&b.rel_path));
         l
@@ -27,7 +27,7 @@ pub fn sync_recursive(
 
     let dest_list = get_file_list(dest_base).context("Failed to get destination file list")?;
     let filtered_dest_list = {
-        let mut l = filter_file_list(dest_list, includes, None);
+        let mut l = file_list_filtered(dest_list, None, None);
         // Reverse sort so children are removed before parents
         l.sort_by(|a, b| b.rel_path.cmp(&a.rel_path));
         l
@@ -108,7 +108,7 @@ fn get_file_list(base: &Path) -> anyhow::Result<Vec<FileEntry>> {
     Ok(entries)
 }
 
-fn filter_file_list(
+fn file_list_filtered(
     list: Vec<FileEntry>,
     includes: Option<&[PathBuf]>,
     excludes: Option<&[PathBuf]>,
@@ -165,12 +165,12 @@ mod tests {
         ];
 
         // Test 1: No filters
-        let filtered = filter_file_list(list.clone(), None, None);
+        let filtered = file_list_filtered(list.clone(), None, None);
         assert_eq!(filtered.len(), 4);
 
         // Test 2: Only excludes
         let excludes = vec![PathBuf::from("target"), PathBuf::from("docs/index.html")];
-        let filtered = filter_file_list(list.clone(), None, Some(&excludes));
+        let filtered = file_list_filtered(list.clone(), None, Some(&excludes));
         assert_eq!(filtered.len(), 2);
         assert!(
             filtered
@@ -185,7 +185,7 @@ mod tests {
 
         // Test 3: Only includes
         let includes = vec![PathBuf::from("src")];
-        let filtered = filter_file_list(list.clone(), Some(&includes), None);
+        let filtered = file_list_filtered(list.clone(), Some(&includes), None);
         assert_eq!(filtered.len(), 2);
         assert!(filtered.iter().all(|e| e.rel_path.starts_with("src")));
 
@@ -193,13 +193,13 @@ mod tests {
         // Include everything in 'src', but exclude 'src/lib.rs'
         let includes = vec![PathBuf::from("src")];
         let excludes = vec![PathBuf::from("src/lib.rs")];
-        let filtered = filter_file_list(list.clone(), Some(&includes), Some(&excludes));
+        let filtered = file_list_filtered(list.clone(), Some(&includes), Some(&excludes));
         assert_eq!(filtered.len(), 1);
         assert_eq!(filtered[0].rel_path, PathBuf::from("src/main.rs"));
 
         // Test 5: Include a parent directory of a file in the list
         let includes = vec![PathBuf::from("docs")];
-        let filtered = filter_file_list(list.clone(), Some(&includes), None);
+        let filtered = file_list_filtered(list.clone(), Some(&includes), None);
         assert_eq!(filtered.len(), 1);
         assert_eq!(filtered[0].rel_path, PathBuf::from("docs/index.html"));
     }
