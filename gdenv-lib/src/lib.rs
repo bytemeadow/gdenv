@@ -9,3 +9,6 @@ pub mod installer;
 pub mod logging;
 pub mod migrate;
 pub mod project_specification;
+
+#[cfg(test)]
+pub mod test_helpers;
