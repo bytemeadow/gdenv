@@ -1,11 +1,12 @@
-use crate::config::Config;
-use crate::download_client::DownloadClient;
-use crate::godot_version::{GodotVersion, version_buffet};
-use crate::installer;
-use crate::{github::GitHubClient, ui};
+use crate::ui;
 use anyhow::Result;
 use clap::Args;
 use colored::Colorize;
+use gdenv_lib::config::Config;
+use gdenv_lib::download_client::DownloadClient;
+use gdenv_lib::github::GitHubClient;
+use gdenv_lib::godot_version::{GodotVersion, version_buffet};
+use gdenv_lib::installer;
 
 #[derive(Args)]
 pub struct ListCommand {
@@ -35,7 +36,7 @@ impl ListCommand {
             Self::print_version_buffet(&all_versions, &installed, &active_version);
         }
 
-        println!();
+        tracing::info!("");
         if self.query.is_none() && self.pre {
             ui::warning("Note: --pre flag only applies to version queries.");
         }
@@ -91,7 +92,7 @@ impl ListCommand {
                 if all { "" } else { " (pre-releases excluded)" }
             ));
         }
-        println!();
+        tracing::info!("");
     }
 
     pub fn print_version_buffet(

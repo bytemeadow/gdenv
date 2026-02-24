@@ -1,8 +1,10 @@
+use crate::ui;
 use anyhow::Result;
 use clap::Args;
+use gdenv_lib::config::Config;
+use gdenv_lib::godot_version::GodotVersion;
+use gdenv_lib::installer;
 use std::io::{self, Write};
-
-use crate::{config::Config, godot_version::GodotVersion, installer, ui};
 
 #[derive(Args)]
 pub struct UninstallCommand {
@@ -73,7 +75,7 @@ impl UninstallCommand {
             if !remaining_versions.is_empty() {
                 ui::tip("Available versions to switch to:");
                 for version in &remaining_versions {
-                    println!("  - {version}");
+                    tracing::info!("  - {version}");
                 }
                 ui::tip("Run `gdenv godot use <version>` to set a new active version");
             } else {

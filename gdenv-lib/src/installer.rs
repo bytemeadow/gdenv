@@ -1,10 +1,12 @@
 use crate::download_client::DownloadClient;
 use crate::godot::{godot_executable_path, godot_installation_name};
+use crate::logging::spinner_style;
 use crate::{config::Config, godot_version::GodotVersion};
 use anyhow::{Result, anyhow, bail};
-use log::{debug, warn};
 use std::fs;
 use std::path::{Path, PathBuf};
+use tracing::instrument;
+use tracing_indicatif::span_ext::IndicatifSpanExt;
 
 pub async fn ensure_installed<D: DownloadClient>(
     config: &Config,
@@ -37,11 +39,17 @@ pub async fn ensure_installed<D: DownloadClient>(
     install_version_from_archive(config, version, &cache_path).await
 }
 
+#[instrument(skip_all)]
 pub async fn install_version_from_archive(
     config: &Config,
     version: &GodotVersion,
     archive_path: &Path,
 ) -> Result<PathBuf> {
+    let current_span = tracing::Span::current();
+    current_span.pb_set_style(&spinner_style("{msg}")?);
+    current_span.pb_set_message("Installing...");
+    current_span.pb_set_finish_message("Installing... Done");
+
     let install_path = config
         .installations_dir
         .join(godot_installation_name(version));
@@ -54,7 +62,7 @@ pub async fn install_version_from_archive(
     // Create installation directory
     fs::create_dir_all(&install_path)?;
 
-    debug!("Extracting archive...");
+    tracing::debug!("Extracting archive...");
     extract_zip(archive_path, &install_path)?;
 
     // Make the Godot executable... executable (Unix only)
@@ -308,7 +316,7 @@ pub fn update_symlink(original: &Path, link: &Path) -> Result<()> {
         if metadata.file_type().is_symlink() {
             fs::remove_file(link)?;
         } else {
-            warn!(
+            tracing::warn!(
                 "Won't create symlink: Found non-symlink '{}' not overwriting",
                 link.to_str().unwrap_or("<unknown_path>")
             );

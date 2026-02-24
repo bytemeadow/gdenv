@@ -1,9 +1,12 @@
+use crate::ui;
 use anyhow::{Context, Result, anyhow};
 use clap::Args;
-
-use crate::download_client::DownloadClient;
-use crate::project_specification::read_godot_version_file;
-use crate::{config::Config, github::GitHubClient, godot_version::GodotVersion, installer, ui};
+use gdenv_lib::config::Config;
+use gdenv_lib::download_client::DownloadClient;
+use gdenv_lib::github::GitHubClient;
+use gdenv_lib::godot_version::GodotVersion;
+use gdenv_lib::installer;
+use gdenv_lib::project_specification::read_godot_version_file;
 
 #[derive(Args)]
 pub struct InstallCommand {
@@ -61,8 +64,6 @@ impl InstallCommand {
             }
         };
 
-        ui::info(&format!("Installing Godot {requested_version}..."));
-
         let install_path =
             installer::ensure_installed(&config, &requested_version, &github_client, self.force)
                 .await
@@ -73,7 +74,7 @@ impl InstallCommand {
 
         ui::success(&format!("Installed to: {}", install_path.display()));
 
-        println!();
+        tracing::info!("");
         // Only set as active version if no version is currently active
         if installer::get_active_version(&config)?.is_none() {
             installer::set_active_version(&config, &requested_version)?;

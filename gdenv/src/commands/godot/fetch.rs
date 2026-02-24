@@ -1,8 +1,9 @@
 use anyhow::Result;
 use clap::Args;
 
-use crate::download_client::DownloadClient;
-use crate::{github::GitHubClient, ui};
+use crate::ui;
+use gdenv_lib::download_client::DownloadClient;
+use gdenv_lib::github::GitHubClient;
 
 #[derive(Args)]
 pub struct FetchCommand {
