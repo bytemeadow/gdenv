@@ -72,9 +72,9 @@ pub async fn invoke_godot(
     }
 
     let mut child = std::process::Command::new(executable_path)
-        .current_dir(project_spec.project_path.canonicalize().context(format!(
+        .current_dir(project_spec.project_dir.canonicalize().context(format!(
             "Failed to canonicalize project path: {}",
-            project_spec.project_path.display()
+            project_spec.project_dir.display()
         ))?)
         .args(["--path", "."])
         .args(&project_spec.run_args)

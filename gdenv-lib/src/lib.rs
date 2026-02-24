@@ -1,7 +1,8 @@
-mod addons;
+pub mod addons;
 pub mod config;
 pub mod download_client;
-mod file_sync;
+pub mod file_sync;
+pub mod git;
 pub mod github;
 pub mod godot;
 pub mod godot_version;

@@ -9,10 +9,16 @@ use std::str::FromStr;
 /// Godot configuration project specification
 #[derive(Serialize, Deserialize, Debug, Eq, PartialEq, Clone)]
 pub struct ProjectSpecification {
+    /// Godot version to use when running the project.
     pub godot_version: GodotVersion,
-    pub project_path: PathBuf,
+    /// Path to the Godot project directory.
+    pub project_dir: PathBuf,
+    /// Additional arguments to pass to the Godot executable.
     pub run_args: Vec<String>,
+    /// Additional arguments to pass to Godot when launching in editor mode.
     pub editor_args: Vec<String>,
+    /// Godot addon specifications. The name given in this field will
+    /// be used as the addon's name in the project's `addons` directory.
     pub addons: HashMap<String, AddonSpec>,
 }
 
@@ -20,7 +26,10 @@ pub struct ProjectSpecification {
 #[derive(Serialize, Deserialize, Debug, Default)]
 #[serde(deny_unknown_fields)]
 pub struct ProjectSpecificationToml {
+    /// Specifications for the Godot project.
     pub godot: SpecGodot,
+    /// Godot addon specifications. The name given in this field will
+    /// be used as the addon's name in the project's `addons` directory.
     pub addon: Option<HashMap<String, AddonSpec>>,
 }
 
@@ -28,27 +37,70 @@ pub struct ProjectSpecificationToml {
 #[derive(Serialize, Deserialize, Debug, Default)]
 #[serde(deny_unknown_fields)]
 pub struct SpecGodot {
+    /// Godot version to use when running the project.
     pub version: String,
+    /// Whether to use the .NET version of Godot.
     pub dotnet: Option<bool>,
-    pub project_path: Option<PathBuf>,
+    /// Path to the Godot project directory.
+    pub project_dir: Option<PathBuf>,
+    /// Additional arguments to pass to the Godot executable.
     pub run_args: Option<Vec<String>>,
+    /// Additional arguments to pass to Godot when launching in editor mode.
     pub editor_args: Option<Vec<String>>,
 }
 
 /// Information about a Godot addon.
-#[derive(Serialize, Deserialize, Debug, Default, Eq, PartialEq, Clone)]
-#[serde(deny_unknown_fields)]
+#[derive(Serialize, Deserialize, Debug, Eq, PartialEq, Clone)]
 pub struct AddonSpec {
+    /// Paths to include in the addon's source directory. Relative to the project_dir.
     pub include: Option<Vec<PathBuf>>,
+    /// Paths to exclude from the addon's source directory. Relative to the project_dir.
     pub exclude: Option<Vec<PathBuf>>,
-    pub tag: Option<String>,
-    pub branch: Option<String>,
-    pub git: Option<String>,
-    pub path: Option<String>,
-    pub rev: Option<String>,
-    pub version: Option<String>,
+    /// Path relative to project_dir to place addon files.
+    /// Defaults to <godot_project_dir>/addons/<addon_name>.
+    pub destination: Option<PathBuf>,
+    /// Where to get the addon's source code from.
+    #[serde(flatten)]
+    pub source: AddonSource,
 }
 
+#[derive(Serialize, Deserialize, Debug, Eq, PartialEq, Clone)]
+#[serde(untagged, rename = "addon source type")]
+pub enum AddonSource {
+    Git(GitAddonSource),
+    Local(LocalAddonSource),
+}
+
+#[derive(Serialize, Deserialize, Debug, Eq, PartialEq, Clone)]
+#[serde(deny_unknown_fields)]
+pub struct GitAddonSource {
+    /// Git repository URL.
+    pub git: String,
+    /// Git reference to 'checkout' (branch, tag, commit hash, etc).
+    pub rev: Option<String>,
+    /// Directory inside the repository to synchronize to the addon's directory.
+    pub subdir: Option<PathBuf>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Eq, PartialEq, Clone)]
+#[serde(deny_unknown_fields)]
+pub struct LocalAddonSource {
+    pub path: PathBuf,
+}
+
+/// Loads the Godot project specification from a given starting path.
+///
+/// This function attempts to locate and parse a Godot project configuration file within the
+/// directory tree starting from the given `start_path`. It supports two types of configuration
+/// files:
+///
+/// - `gdenv.toml`: A TOML-based configuration file that defines various project settings.
+/// - `.godot-version`: A simple file that specifies the Godot version information.
+///
+/// # Arguments
+///
+/// * `start_path` - A reference to the starting directory path where the search for the
+///   project configuration file begins.
 pub fn load_godot_project_spec(start_path: &Path) -> Result<ProjectSpecification> {
     let spec_file = find_godot_project_spec(start_path);
     match spec_file {
@@ -63,7 +115,7 @@ pub fn load_godot_project_spec(start_path: &Path) -> Result<ProjectSpecification
                     &spec.godot.version,
                     spec.godot.dotnet.unwrap_or(false),
                 )?,
-                project_path: spec.godot.project_path.unwrap_or(PathBuf::from_str(".")?),
+                project_dir: spec.godot.project_dir.unwrap_or(PathBuf::from_str(".")?),
                 run_args: spec.godot.run_args.unwrap_or_default(),
                 editor_args: spec.godot.editor_args.unwrap_or_default(),
                 addons: spec.addon.unwrap_or_default(),
@@ -78,7 +130,7 @@ pub fn load_godot_project_spec(start_path: &Path) -> Result<ProjectSpecification
             let dotnet = version_str.next().unwrap_or("");
             Ok(ProjectSpecification {
                 godot_version: GodotVersion::new(version, dotnet == "dotnet" || dotnet == "mono")?,
-                project_path: PathBuf::from_str(".")?,
+                project_dir: PathBuf::from_str(".")?,
                 run_args: vec![],
                 editor_args: vec![],
                 addons: HashMap::default(),
@@ -138,7 +190,7 @@ mod tests {
 [godot]
 version = "4.6.0-stable"
 dotnet = true
-project_path = "./godot"
+project_dir = "./godot"
 run_args = ["arg1", "arg2"]
 editor_args = ["arg3", "arg4"]
 
@@ -161,39 +213,58 @@ path = "../local-project"
         let spec = load_godot_project_spec(tmp_dir.path())?;
         let expected_spec = ProjectSpecification {
             godot_version: GodotVersion::new("4.6.0", true)?,
-            project_path: PathBuf::from_str("./godot")?,
+            project_dir: PathBuf::from_str("./godot")?,
             run_args: vec!["arg1".to_string(), "arg2".to_string()],
             editor_args: vec!["arg3".to_string(), "arg4".to_string()],
             addons: HashMap::from([
                 (
                     "dialogic".to_string(),
                     AddonSpec {
-                        git: Some("https://github.com/dialogic-godot/dialogic".to_string()),
-                        rev: Some("main".to_string()),
-                        ..AddonSpec::default()
+                        include: None,
+                        exclude: None,
+                        destination: None,
+                        source: AddonSource::Git(GitAddonSource {
+                            git: "https://github.com/dialogic-godot/dialogic".to_string(),
+                            rev: Some("main".to_string()),
+                            subdir: None,
+                        }),
                     },
                 ),
                 (
                     "curtains".to_string(),
                     AddonSpec {
-                        git: Some("https://github.com/DragonAxe/gd-bvy-curtains".to_string()),
-                        rev: Some("other_ref".to_string()),
-                        ..AddonSpec::default()
+                        include: None,
+                        exclude: None,
+                        destination: None,
+                        source: AddonSource::Git(GitAddonSource {
+                            git: "https://github.com/DragonAxe/gd-bvy-curtains".to_string(),
+                            rev: Some("other_ref".to_string()),
+                            subdir: None,
+                        }),
                     },
                 ),
                 (
                     "gdunit4".to_string(),
                     AddonSpec {
-                        git: Some("https://github.com/godot-gdunit-labs/gdUnit4".to_string()),
                         include: Some(vec![PathBuf::from_str("addons/gdUnit4")?]),
-                        ..AddonSpec::default()
+                        exclude: None,
+                        destination: None,
+                        source: AddonSource::Git(GitAddonSource {
+                            git: "https://github.com/godot-gdunit-labs/gdUnit4".to_string(),
+                            rev: None,
+                            subdir: None,
+                        }),
                     },
                 ),
                 (
                     "local-project".to_string(),
                     AddonSpec {
-                        path: Some("../local-project".to_string()),
-                        ..AddonSpec::default()
+                        include: None,
+                        exclude: None,
+                        destination: None,
+                        source: AddonSource::Local(LocalAddonSource {
+                            path: PathBuf::from_str("../local-project")?,
+                        }),
                     },
                 ),
             ]),
