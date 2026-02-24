@@ -1,3 +1,4 @@
+use crate::cli::GlobalArgs;
 use crate::ui;
 use anyhow::{Result, bail};
 use clap::Args;
@@ -17,8 +18,8 @@ pub struct UseCommand {
 }
 
 impl UseCommand {
-    pub async fn run(self) -> Result<()> {
-        let config = Config::setup()?;
+    pub async fn run(self, global_args: GlobalArgs) -> Result<()> {
+        let config = Config::setup(global_args.datadir.as_deref())?;
 
         // Get the version to use
         let version_string = match self.version {

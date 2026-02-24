@@ -1,6 +1,8 @@
 use anyhow::Result;
 use clap::{Parser, Subcommand};
+use std::path::PathBuf;
 
+use crate::commands::editor::EditorCommand;
 use crate::commands::run::RunCommand;
 use crate::commands::{
     godot::cache::CacheCommand, godot::current::CurrentCommand, godot::fetch::FetchCommand,
@@ -24,13 +26,20 @@ pub struct Cli {
 pub struct GlobalArgs {
     /// Path to a gdenv managed project (defaults to current directory)
     #[arg(short, long, global = true)]
-    pub project: Option<String>,
+    pub project: Option<PathBuf>,
+
+    /// Use a different location for gdenv's data, where downloads and installations are kept (useful for testing)
+    #[arg(long, global = true)]
+    pub datadir: Option<PathBuf>,
 }
 
 #[derive(Subcommand)]
 pub enum Commands {
     /// Invoke Godot for the current project
     Run(RunCommand),
+
+    /// Open the Godot editor for the current project
+    Editor(EditorCommand),
 
     /// Manage Godot versions
     #[command(subcommand)]
@@ -68,15 +77,16 @@ impl Cli {
     pub async fn run(self) -> Result<()> {
         match self.command {
             Commands::Godot(godot_command) => match godot_command {
-                GodotCommands::Fetch(cmd) => cmd.run().await,
-                GodotCommands::List(cmd) => cmd.run().await,
-                GodotCommands::Install(cmd) => cmd.run().await,
-                GodotCommands::Use(cmd) => cmd.run().await,
-                GodotCommands::Current(cmd) => cmd.run().await,
-                GodotCommands::Uninstall(cmd) => cmd.run().await,
-                GodotCommands::Cache(cmd) => cmd.run().await,
+                GodotCommands::Fetch(cmd) => cmd.run(self.global_args).await,
+                GodotCommands::List(cmd) => cmd.run(self.global_args).await,
+                GodotCommands::Install(cmd) => cmd.run(self.global_args).await,
+                GodotCommands::Use(cmd) => cmd.run(self.global_args).await,
+                GodotCommands::Current(cmd) => cmd.run(self.global_args).await,
+                GodotCommands::Uninstall(cmd) => cmd.run(self.global_args).await,
+                GodotCommands::Cache(cmd) => cmd.run(self.global_args).await,
             },
             Commands::Run(cmd) => cmd.run(self.global_args).await,
+            Commands::Editor(cmd) => cmd.run(self.global_args).await,
         }
     }
 }

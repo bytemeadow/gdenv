@@ -64,3 +64,6 @@ tempdir = "0.3.7"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 tracing-indicatif = "0.3"
+
+# TOML serialization
+toml = "0.9.8"

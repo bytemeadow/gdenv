@@ -50,6 +50,9 @@ tracing.workspace = true
 tracing-subscriber.workspace = true
 tracing-indicatif.workspace = true
 
+# TOML serialization
+toml.workspace = true
+
 [dev-dependencies]
 # Easy temporary directory handling for tests
 tempdir.workspace = true

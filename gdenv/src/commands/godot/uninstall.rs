@@ -1,3 +1,4 @@
+use crate::cli::GlobalArgs;
 use crate::ui;
 use anyhow::Result;
 use clap::Args;
@@ -21,8 +22,8 @@ pub struct UninstallCommand {
 }
 
 impl UninstallCommand {
-    pub async fn run(self) -> Result<()> {
-        let config = Config::setup()?;
+    pub async fn run(self, global_args: GlobalArgs) -> Result<()> {
+        let config = Config::setup(global_args.datadir.as_deref())?;
 
         let is_dotnet = self.dotnet;
         let target_version = GodotVersion::new(&self.version, is_dotnet)?;

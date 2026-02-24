@@ -1,7 +1,8 @@
+use crate::cli::GlobalArgs;
+use crate::ui;
 use anyhow::Result;
 use clap::Args;
-
-use crate::ui;
+use gdenv_lib::config::Config;
 use gdenv_lib::download_client::DownloadClient;
 use gdenv_lib::github::GitHubClient;
 
@@ -13,8 +14,9 @@ pub struct FetchCommand {
 }
 
 impl FetchCommand {
-    pub async fn run(self) -> Result<()> {
-        let github_client = GitHubClient::new();
+    pub async fn run(self, global_args: GlobalArgs) -> Result<()> {
+        let config = Config::setup(global_args.datadir.as_deref())?;
+        let github_client = GitHubClient::new(&config);
 
         ui::info("Fetching available Godot versions from GitHub...");
 

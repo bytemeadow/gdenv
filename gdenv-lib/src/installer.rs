@@ -395,7 +395,7 @@ mod tests {
     #[tokio::test]
     async fn test_installation_lifecycle() -> Result<()> {
         let tmp_dir = TempDir::new("gdenv-test")?;
-        let config = Config::setup_for_path(tmp_dir.path())?;
+        let config = Config::setup(Some(tmp_dir.path()))?;
         let config = Config {
             os: "linux".to_string(),
             arch: "x86_64".to_string(),

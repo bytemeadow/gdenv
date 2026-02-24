@@ -49,12 +49,13 @@ impl Config {
         }
     }
 
-    pub fn setup() -> Result<Self> {
-        Self::setup_for_path(&Self::default_data_dir())
-    }
-
-    pub fn setup_for_path(data_dir: &Path) -> Result<Self> {
-        let config = Self::new_for_path(data_dir);
+    /// Sets up a new Config for the given data directory.
+    /// See also [Self::default_data_dir].
+    pub fn setup(data_dir: Option<&Path>) -> Result<Self> {
+        let data_dir = data_dir
+            .map(|d| d.to_path_buf())
+            .unwrap_or_else(Self::default_data_dir);
+        let config = Self::new_for_path(&data_dir);
 
         migrate().context("Failed to migrate data directory")?;
 
