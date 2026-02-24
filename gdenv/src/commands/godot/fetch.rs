@@ -16,7 +16,7 @@ pub struct FetchCommand {
 impl FetchCommand {
     pub async fn run(self, global_args: GlobalArgs) -> Result<()> {
         let config = Config::setup(global_args.datadir.as_deref())?;
-        let github_client = GitHubClient::new(&config);
+        let github_client = GitHubClient::new(config);
 
         ui::info("Fetching available Godot versions from GitHub...");
 

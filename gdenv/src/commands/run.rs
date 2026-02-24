@@ -42,7 +42,7 @@ pub async fn invoke_godot(
     godot_arguments: Vec<String>,
 ) -> Result<()> {
     let config = Config::setup(global_args.datadir.as_deref())?;
-    let github_client = GitHubClient::new(&config);
+    let github_client = GitHubClient::new(config.clone());
 
     let override_version = version.map(|v| GodotVersion::new(&v, dotnet)).transpose()?;
     let override_run_args = if godot_arguments.is_empty() {
