@@ -42,7 +42,7 @@ pub async fn invoke_godot(
     godot_arguments: Vec<String>,
 ) -> Result<()> {
     let config = Config::setup(global_args.datadir.as_deref())?;
-    let github_client = GitHubClient::new(&config);
+    let github_client = GitHubClient::new(config.clone());
 
     let override_version = version.map(|v| GodotVersion::new(&v, dotnet)).transpose()?;
     let override_run_args = if godot_arguments.is_empty() {
@@ -72,9 +72,9 @@ pub async fn invoke_godot(
     }
 
     let mut child = std::process::Command::new(executable_path)
-        .current_dir(project_spec.project_path.canonicalize().context(format!(
+        .current_dir(project_spec.project_dir.canonicalize().context(format!(
             "Failed to canonicalize project path: {}",
-            project_spec.project_path.display()
+            project_spec.project_dir.display()
         ))?)
         .args(["--path", "."])
         .args(&project_spec.run_args)

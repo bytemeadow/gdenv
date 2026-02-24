@@ -159,15 +159,12 @@ impl DownloadClient for GitHubClient {
 }
 
 impl GitHubClient {
-    pub fn new(config: &Config) -> Self {
+    pub fn new(config: Config) -> Self {
         let client = Client::builder()
             .user_agent("gdenv/0.1.0")
             .build()
             .expect("Failed to create HTTP client");
-        Self {
-            config: config.clone(),
-            client,
-        }
+        Self { config, client }
     }
 
     pub fn cache_status_message(&self) -> String {
