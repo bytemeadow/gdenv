@@ -58,14 +58,12 @@ pub async fn invoke_godot(
         ..spec_from_file
     };
 
-    ensure_installed(&config, &project_spec.godot_version, &github_client, false)
+    let executable_path = ensure_installed(&config, &project_spec.godot_version, &github_client, false)
         .await
         .context(format!(
             "Failed to install Godot version {}",
             project_spec.godot_version
         ))?;
-
-    let executable_path = installer::get_executable_path(&config, &project_spec.godot_version)?;
 
     if !executable_path.exists() {
         bail!("Executable not found at {}", executable_path.display());
