@@ -1,5 +1,5 @@
 use crate::download_client::DownloadClient;
-use crate::godot::{godot_executable_path, godot_installation_name};
+use crate::godot::{extracted_godot_executable_path, godot_installation_name};
 use crate::logging::spinner_style;
 use crate::{config::Config, godot_version::GodotVersion};
 use anyhow::{Result, anyhow, bail};
@@ -8,6 +8,7 @@ use std::path::{Path, PathBuf};
 use tracing::instrument;
 use tracing_indicatif::span_ext::IndicatifSpanExt;
 
+/// Returns the path to the installed Godot executable.
 pub async fn ensure_installed<D: DownloadClient>(
     config: &Config,
     version: &GodotVersion,
@@ -39,6 +40,7 @@ pub async fn ensure_installed<D: DownloadClient>(
     install_version_from_archive(config, version, &cache_path).await
 }
 
+/// Returns the path to the installed Godot executable.
 #[instrument(skip_all)]
 pub async fn install_version_from_archive(
     config: &Config,
@@ -54,12 +56,12 @@ pub async fn install_version_from_archive(
         .installations_dir
         .join(godot_installation_name(version));
 
-    // Remove existing installation if it exists
+    // Remove the existing installation if it exists
     if install_path.exists() {
         fs::remove_dir_all(&install_path)?;
     }
 
-    // Create installation directory
+    // Create the installation directory
     fs::create_dir_all(&install_path)?;
 
     tracing::debug!("Extracting archive...");
@@ -69,7 +71,7 @@ pub async fn install_version_from_archive(
     #[cfg(unix)]
     make_executable(&install_path)?;
 
-    Ok(install_path)
+    find_godot_executable(&install_path, version, &config.os, &config.arch)
 }
 
 fn extract_zip(archive_path: &Path, destination: &Path) -> Result<()> {
@@ -182,7 +184,7 @@ fn find_godot_executable(
     arch: &str,
 ) -> Result<PathBuf> {
     // First try the expected path based on version info
-    let expected_path = godot_executable_path(version, os, arch);
+    let expected_path = extracted_godot_executable_path(version, os, arch);
     let expected_exe = install_path.join(&expected_path);
 
     if expected_exe.exists() && expected_exe.is_file() {

@@ -120,6 +120,7 @@ mod tests {
     use crate::config::Config;
     use crate::project_specification::load_godot_project_spec;
     use crate::test_helpers::mock_git_client::MockGitClient;
+    use anyhow::bail;
     use std::fs;
     use tempdir::TempDir;
 
@@ -157,7 +158,8 @@ path = {}
         );
 
         fs::write(&version_file, &str_spec_v1)?;
-        let project_spec = load_godot_project_spec(tmp_dir.path())?;
+        let project_spec =
+            load_godot_project_spec(tmp_dir.path(), |_| bail!("Test lambda not implemented."))?;
         sync_addons(project_spec, tmp_dir.path(), &git_client).await?;
 
         assert!(
@@ -191,7 +193,8 @@ path = {}
             toml::Value::String(test_addon2_path.to_string_lossy().to_string()),
         );
         fs::write(&version_file, &str_spec_v2)?;
-        let project_spec = load_godot_project_spec(tmp_dir.path())?;
+        let project_spec =
+            load_godot_project_spec(tmp_dir.path(), |_| bail!("Test lambda not implemented."))?;
         sync_addons(project_spec, tmp_dir.path(), &git_client).await?;
 
         assert!(
@@ -236,7 +239,8 @@ destination = "addons/test-addon1/subfolder"
         "#;
 
         fs::write(&version_file, &str_spec_v1)?;
-        let project_spec = load_godot_project_spec(tmp_dir.path())?;
+        let project_spec =
+            load_godot_project_spec(tmp_dir.path(), |_| bail!("Test lambda not implemented."))?;
         sync_addons(project_spec, tmp_dir.path(), &git_client).await?;
 
         assert!(
