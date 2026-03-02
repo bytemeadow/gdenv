@@ -218,11 +218,11 @@ mod tests {
 
         assert_eq!(command_chain.commands().len(), 2);
         assert_eq!(
-            command_chain.commands()[0].executable,
+            command_chain.commands()[0].executable.canonicalize()?,
             get_executable_path(&config, &GodotVersion::new("4.2.1-stable", false)?)?
         );
         assert_eq!(
-            command_chain.commands()[0].working_dir,
+            command_chain.commands()[0].working_dir.canonicalize()?,
             godot_project_dir.clone()
         );
         assert_eq!(
@@ -230,11 +230,11 @@ mod tests {
             vec!["--import".to_string(), "--headless".to_string()]
         );
         assert_eq!(
-            command_chain.commands()[1].executable,
+            command_chain.commands()[1].executable.canonicalize()?,
             get_executable_path(&config, &GodotVersion::new("4.2.1-stable", false)?)?
         );
         assert_eq!(
-            command_chain.commands()[1].working_dir,
+            command_chain.commands()[1].working_dir.canonicalize()?,
             godot_project_dir.clone()
         );
         assert_eq!(
