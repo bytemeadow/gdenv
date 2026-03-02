@@ -2,10 +2,14 @@
 
 use crate::config::Config;
 use anyhow::{Context, Result};
+use once_cell::sync::Lazy;
+use regex::Regex;
 use semver::Version;
 use std::fs;
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
+/// This will match a path segment like "/godot-4.2.0/"
+static GODOT_PATH_REGEX: Lazy<Regex> = Lazy::new(|| Regex::new(r"/godot-(.*?)/").unwrap());
 
 pub fn migrate() -> Result<()> {
     let new_version = Version::parse(VERSION)?;
@@ -63,7 +67,7 @@ pub fn migrate() -> Result<()> {
 fn write_data_format_version(version: &Version) -> Result<()> {
     let config = Config::default();
     let data_format_version_file = config.data_dir_format_version_file;
-    std::fs::create_dir_all(data_format_version_file.parent().context(format!(
+    fs::create_dir_all(data_format_version_file.parent().context(format!(
         "Failed to create parent directory for data format version file: {}",
         &data_format_version_file.to_string_lossy()
     ))?)?;
@@ -91,8 +95,8 @@ mod v0_1_6_to_v0_2_0 {
     use crate::godot::godot_installation_name;
     use crate::godot_version::GodotVersion;
     use crate::installer;
+    use crate::migrate::GODOT_PATH_REGEX;
     use anyhow::Result;
-    use regex::Regex;
     use std::fs;
 
     pub fn migrate() -> Result<()> {
@@ -175,9 +179,8 @@ mod v0_1_6_to_v0_2_0 {
     }
 
     fn extract_godot_version(target: &str) -> Option<String> {
-        // This will match a path segment like "/godot-4.2.0/"
-        let re = Regex::new(r"/godot-(.*?)/").unwrap();
-        re.captures(target)
+        GODOT_PATH_REGEX
+            .captures(target)
             .and_then(|caps| caps.get(1).map(|m| m.as_str().to_string()))
     }
 }

@@ -159,7 +159,9 @@ mod tests {
 
         // 3. Use checkout to clone the local path
         // We use the absolute path as the "URL"
-        let repo_url = source_repo.to_str().unwrap();
+        let repo_url = source_repo
+            .to_str()
+            .ok_or(anyhow::anyhow!("Invalid path"))?;
         let checked_out_path = git_client.checkout(repo_url, "main").await?; // Handle different default branch names
 
         // 4. Verify the file exists in the checked-out location

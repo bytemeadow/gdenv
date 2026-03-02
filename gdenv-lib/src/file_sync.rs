@@ -232,19 +232,19 @@ mod tests {
         let f1 = list
             .iter()
             .find(|e| e.rel_path == PathBuf::from("file1.txt"))
-            .unwrap();
+            .ok_or(anyhow::anyhow!("File not found"))?;
         let f1_copy = list
             .iter()
             .find(|e| e.rel_path == PathBuf::from("file1_copy.txt"))
-            .unwrap();
+            .ok_or(anyhow::anyhow!("File not found"))?;
         let f2 = list
             .iter()
             .find(|e| e.rel_path == PathBuf::from("dir1/file2.txt"))
-            .unwrap();
+            .ok_or(anyhow::anyhow!("File not found"))?;
         let d1 = list
             .iter()
             .find(|e| e.rel_path == PathBuf::from("dir1"))
-            .unwrap();
+            .ok_or(anyhow::anyhow!("File not found"))?;
 
         // Verify hashes for identical files are equal
         assert_eq!(

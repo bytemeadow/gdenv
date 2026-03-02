@@ -254,11 +254,7 @@ pub fn get_active_version(config: &Config) -> Result<Option<GodotVersion>> {
         && let Some(version_part) = dir_name.strip_prefix("godot-")
     {
         let is_dotnet = version_part.ends_with("-dotnet");
-        let version_str = if is_dotnet {
-            version_part.strip_suffix("-dotnet").unwrap()
-        } else {
-            version_part
-        };
+        let version_str = version_part.strip_suffix("-dotnet").unwrap_or(version_part);
 
         if let Ok(version) = GodotVersion::new(version_str, is_dotnet) {
             return Ok(Some(version));
@@ -285,11 +281,7 @@ pub fn list_installed(config: &Config) -> Result<Vec<GodotVersion>> {
             && let Some(version_part) = dir_name.strip_prefix("godot-")
         {
             let is_dotnet = version_part.ends_with("-dotnet");
-            let version_str = if is_dotnet {
-                version_part.strip_suffix("-dotnet").unwrap()
-            } else {
-                version_part
-            };
+            let version_str = version_part.strip_suffix("-dotnet").unwrap_or(version_part);
 
             if let Ok(version) = GodotVersion::new(version_str, is_dotnet) {
                 versions.push(version);
