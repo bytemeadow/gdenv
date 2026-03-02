@@ -1,5 +1,6 @@
 //! Utilities for generating a `.gdextension` file for Godot.
 
+use crate::path_extension::PathExt;
 use anyhow::{Context, Result};
 use pathdiff::diff_paths;
 use std::path::{Path, PathBuf};
@@ -83,20 +84,23 @@ impl GdExtensionConfig {
     pub fn build(&self) -> Result<ValidGdExtensionConfig> {
         let target_path = self
             .target_path
-            .as_ref()
+            .as_deref()
             .context("Missing target path")?
-            .canonicalize()
+            .to_absolute()
             .with_context(|| {
-                format!("Failed to canonicalize target path: {:?}", self.target_path)
+                format!(
+                    "Failed to calculate absolute target path: {:?}",
+                    self.target_path
+                )
             })?;
         let godot_project_path = self
             .godot_project_path
             .as_ref()
             .context("Missing godot project path")?
-            .canonicalize()
+            .to_absolute()
             .with_context(|| {
                 format!(
-                    "Failed to canonicalize godot project path: {:?}",
+                    "Failed to calculate absolute godot project path: {:?}",
                     self.godot_project_path
                 )
             })?;
