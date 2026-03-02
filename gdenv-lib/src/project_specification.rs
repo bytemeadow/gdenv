@@ -28,7 +28,7 @@ pub struct ProjectSpecification {
     /// Godot version to use when running the project.
     pub godot_version: GodotVersion,
     /// Path to the Godot project directory.
-    pub project_dir: PathBuf,
+    pub godot_project_dir: PathBuf,
     /// Additional arguments to pass to the Godot executable.
     pub run_args: Vec<String>,
     /// Additional arguments to pass to Godot when launching in editor mode.
@@ -168,7 +168,7 @@ pub fn load_godot_project_spec<P: TargetPathProvider>(
                     &spec.godot.version,
                     spec.godot.dotnet.unwrap_or(false),
                 )?,
-                project_dir: project_dir.clone(),
+                godot_project_dir: project_dir.clone(),
                 run_args: spec.godot.run_args.unwrap_or_default(),
                 editor_args: spec.godot.editor_args.unwrap_or_default(),
                 pre_import: spec.godot.pre_import.unwrap_or(true),
@@ -190,7 +190,7 @@ pub fn load_godot_project_spec<P: TargetPathProvider>(
             let dotnet = version_str.next().unwrap_or("");
             Ok(ProjectSpecification {
                 godot_version: GodotVersion::new(version, dotnet == "dotnet" || dotnet == "mono")?,
-                project_dir: PathBuf::from("."),
+                godot_project_dir: PathBuf::from("."),
                 run_args: vec![],
                 editor_args: vec![],
                 pre_import: true,
@@ -324,7 +324,7 @@ path = "../local-project"
             load_godot_project_spec(tmp_dir.path(), |_| Ok(cargo_target_path.to_path_buf()))?;
         let expected_spec = ProjectSpecification {
             godot_version: GodotVersion::new("4.6.0", true)?,
-            project_dir: PathBuf::from("./godot"),
+            godot_project_dir: PathBuf::from("./godot"),
             run_args: vec!["arg1".to_string(), "arg2".to_string()],
             editor_args: vec!["arg3".to_string(), "arg4".to_string()],
             pre_import: false,

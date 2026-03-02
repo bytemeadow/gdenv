@@ -18,7 +18,7 @@ pub async fn sync_addons<G: GitClient>(
             AddonSource::Git(git) => {
                 sync_git_addon(
                     git_client,
-                    &working_dir.join(&project_spec.project_dir),
+                    &working_dir.join(&project_spec.godot_project_dir),
                     &addon_name,
                     &addon_spec,
                     git,
@@ -26,7 +26,7 @@ pub async fn sync_addons<G: GitClient>(
                 .await?
             }
             AddonSource::Local(local) => sync_local_addon(
-                &working_dir.join(&project_spec.project_dir),
+                &working_dir.join(&project_spec.godot_project_dir),
                 &addon_name,
                 &addon_spec,
                 local,

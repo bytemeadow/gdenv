@@ -7,6 +7,7 @@ use crate::download_client::DownloadClient;
 use crate::github::GitHubClient;
 use crate::godot_version::GodotVersion;
 use crate::installer::ensure_installed;
+use crate::path_extension::PathExt;
 use crate::project_specification::{
     ProjectSpecError, ProjectSpecification, load_godot_project_spec,
 };
@@ -41,7 +42,7 @@ impl<D: DownloadClient> GodotRunner<D> {
                         godot_version: self.godot_version.clone().context(
                             "No Godot version specified and no configuration file found.",
                         )?,
-                        project_dir: working_dir.clone(),
+                        godot_project_dir: working_dir.clone(),
                         run_args: vec![],
                         editor_args: vec![],
                         pre_import: true,
@@ -60,11 +61,12 @@ impl<D: DownloadClient> GodotRunner<D> {
                 .godot_cli_arguments
                 .clone()
                 .unwrap_or(spec_from_file.run_args),
-            project_dir: self
+            godot_project_dir: self
                 .godot_project_path
                 .clone()
                 .unwrap_or(spec_from_file.project_dir)
                 .canonicalize()?,
+                .unwrap_or(spec_from_file.godot_project_dir)
             ..spec_from_file
         };
 
@@ -82,13 +84,13 @@ impl<D: DownloadClient> GodotRunner<D> {
 
         let mut command_chain = CommandChain::new();
 
-        if self.pre_import && !project_spec.project_dir.join(".godot").exists() {
+        if self.pre_import && !project_spec.godot_project_dir.join(".godot").exists() {
             let failure_message = "Possible cause: Known bug in Godot 4.5.1: \"Headless import of project with GDExtensions crashes\"\n\
                 See: https://github.com/godotengine/godot/issues/111645\n\
                 Try re-running if `.godot` folder was generated successfully.";
             command_chain.append(Command {
                 executable: executable_path.clone(),
-                working_dir: project_spec.project_dir.clone(),
+                working_dir: project_spec.godot_project_dir.clone(),
                 args: vec!["--import".to_string(), "--headless".to_string()],
                 failure_message: Some(failure_message.to_string()),
             });
@@ -96,7 +98,7 @@ impl<D: DownloadClient> GodotRunner<D> {
 
         command_chain.append(Command {
             executable: executable_path,
-            working_dir: project_spec.project_dir.clone(),
+            working_dir: project_spec.godot_project_dir.clone(),
             args: ["--path".to_string(), ".".to_string()]
                 .into_iter()
                 .chain(project_spec.run_args.iter().cloned())
