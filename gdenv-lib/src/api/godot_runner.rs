@@ -220,10 +220,11 @@ mod tests {
         assert_eq!(
             command_chain.commands()[0].executable.canonicalize()?,
             get_executable_path(&config, &GodotVersion::new("4.2.1-stable", false)?)?
+                .canonicalize()?
         );
         assert_eq!(
             command_chain.commands()[0].working_dir.canonicalize()?,
-            godot_project_dir.clone()
+            godot_project_dir.clone().canonicalize()?
         );
         assert_eq!(
             command_chain.commands()[0].args,
@@ -232,10 +233,11 @@ mod tests {
         assert_eq!(
             command_chain.commands()[1].executable.canonicalize()?,
             get_executable_path(&config, &GodotVersion::new("4.2.1-stable", false)?)?
+                .canonicalize()?
         );
         assert_eq!(
             command_chain.commands()[1].working_dir.canonicalize()?,
-            godot_project_dir.clone()
+            godot_project_dir.clone().canonicalize()?
         );
         assert_eq!(
             command_chain.commands()[1].args,
