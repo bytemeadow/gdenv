@@ -64,9 +64,8 @@ impl<D: DownloadClient> GodotRunner<D> {
             godot_project_dir: self
                 .godot_project_path
                 .clone()
-                .unwrap_or(spec_from_file.project_dir)
-                .canonicalize()?,
                 .unwrap_or(spec_from_file.godot_project_dir)
+                .to_absolute()?,
             ..spec_from_file
         };
 
