@@ -39,17 +39,35 @@ impl DownloadClient for MockDownloadClient {
         let mut zip_buffer = Vec::new();
         let mut zip = ZipWriter::new(Cursor::new(&mut zip_buffer));
 
-        // Define the options.
-        // 0o755 is a standard permission for an executable (rwxr-xr-x).
-        #[cfg(unix)]
-        let options = SimpleFileOptions::default().unix_permissions(0o755);
+        #[cfg(target_os = "macos")]
+        {
+            // Godot.app/Contents/MacOS/Godot
+            let options = SimpleFileOptions::default().unix_permissions(0o755);
 
-        #[cfg(not(unix))]
-        let options = SimpleFileOptions::default();
+            // Create the directory structure and file inside the zip
+            zip.start_file("Godot.app/Contents/MacOS/Godot", options)?;
+            let options = SimpleFileOptions::default();
+        }
 
-        // Create the 'godot' file inside the zip
-        let extracted_name = &asset.name[..asset.name.len() - 4]; // Remove .zip
-        zip.start_file(extracted_name, options)?;
+        #[cfg(target_os = "windows")]
+        {
+            // Godot.exe
+            let options = SimpleFileOptions::default();
+
+            // Create the 'godot' file inside the zip
+            let extracted_name = &asset.name[..asset.name.len() - 4]; // Remove .zip
+            zip.start_file(extracted_name, options)?;
+        }
+
+        #[cfg(target_os = "linux")]
+        {
+            // 0o755 is a standard permission for an executable (rwxr-xr-x).
+            let options = SimpleFileOptions::default().unix_permissions(0o755);
+
+            // Create the 'godot' file inside the zip
+            let extracted_name = &asset.name[..asset.name.len() - 4]; // Remove .zip
+            zip.start_file(extracted_name, options)?;
+        }
 
         // The file content is empty, so we don't need to write anything here.
         // If you wanted content, you'd do: zip.write_all(b"content")?;

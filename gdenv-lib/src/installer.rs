@@ -236,9 +236,7 @@ fn find_godot_executable(
         }
     }
 
-    Err(anyhow::anyhow!(
-        "Could not find Godot executable in installation"
-    ))
+    bail!("Could not find Godot executable in installation")
 }
 
 pub fn get_active_version(config: &Config) -> Result<Option<GodotVersion>> {
