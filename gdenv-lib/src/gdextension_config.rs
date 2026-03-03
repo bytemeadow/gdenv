@@ -269,10 +269,9 @@ reloadable = {reloadable}
 mod tests {
     use super::*;
     use anyhow::Result;
-    use tempdir::TempDir;
 
-    fn create_test_directories() -> Result<(TempDir, PathBuf, PathBuf)> {
-        let tempdir = TempDir::new("gdenv-test")?;
+    fn create_test_directories() -> Result<(tempfile::TempDir, PathBuf, PathBuf)> {
+        let tempdir = tempfile::Builder::new().prefix("gdenv-test").tempdir()?;
         let godot_project_path = tempdir.path().join("home/user/projects/godot_project_path");
         std::fs::create_dir_all(&godot_project_path)?;
         let target_path = tempdir.path().join("home/user/.cache/cargo/target");

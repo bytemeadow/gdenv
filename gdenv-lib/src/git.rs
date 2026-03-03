@@ -118,12 +118,13 @@ pub fn get_repo_dir(config: &Config, repo_url: &str) -> PathBuf {
 mod tests {
     use super::*;
     use std::fs;
-    use tempdir::TempDir;
 
     #[tokio::test]
     async fn test_system_git_client_local_checkout() -> Result<()> {
-        let tmp_dir = TempDir::new("gdenv-test")?;
-        let tmp_data_dir = TempDir::new("gdenv-test-data-dir")?;
+        let tmp_dir = tempfile::Builder::new().prefix("gdenv-test").tempdir()?;
+        let tmp_data_dir = tempfile::Builder::new()
+            .prefix("gdenv-test-data-dir")
+            .tempdir()?;
         let source_repo = tmp_dir.path().join("source_repo");
 
         fs::create_dir_all(&source_repo)?;

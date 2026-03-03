@@ -212,11 +212,10 @@ mod tests {
     use anyhow::Result;
     use std::fs;
     use std::path::Path;
-    use tempdir::TempDir;
 
     #[tokio::test]
     async fn test_create() -> Result<()> {
-        let tmp_dir = TempDir::new("gdenv-lib")?;
+        let tmp_dir = tempfile::Builder::new().prefix("gdenv-lib").tempdir()?;
         let data_dir = tmp_dir.path().join("data");
         let project_dir = tmp_dir.path().join("project");
         let godot_project_dir = project_dir.join("godot");

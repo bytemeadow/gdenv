@@ -278,11 +278,10 @@ mod tests {
     use crate::cargo::CargoInfo;
     use crate::godot_version::GodotVersion;
     use anyhow::bail;
-    use tempdir::TempDir;
 
     #[test]
     fn test_gdenv_toml_project_spec_full() -> Result<()> {
-        let tmp_dir = TempDir::new("gdenv-test")?;
+        let tmp_dir = tempfile::Builder::new().prefix("gdenv-test").tempdir()?;
         let version_file = tmp_dir.path().join("gdenv.toml");
         let str_spec = r#"
 [godot]
@@ -411,7 +410,7 @@ path = "../local-project"
 
     #[test]
     fn test_gdenv_toml_project_spec_minimal() -> Result<()> {
-        let tmp_dir = TempDir::new("gdenv-test")?;
+        let tmp_dir = tempfile::Builder::new().prefix("gdenv-test").tempdir()?;
         let version_file = tmp_dir.path().join("gdenv.toml");
         let str_spec = r#"
 [godot]
@@ -426,7 +425,7 @@ version = "4.6.0"
 
     #[test]
     fn test_gdenv_toml_project_spec_empty() -> Result<()> {
-        let tmp_dir = TempDir::new("gdenv-test")?;
+        let tmp_dir = tempfile::Builder::new().prefix("gdenv-test").tempdir()?;
         let version_file = tmp_dir.path().join("gdenv.toml");
         let str_spec = r#""#;
         fs::write(version_file, str_spec)?;
@@ -438,7 +437,7 @@ version = "4.6.0"
 
     #[test]
     fn test_godot_version_file_full() -> Result<()> {
-        let tmp_dir = TempDir::new("gdenv-test")?;
+        let tmp_dir = tempfile::Builder::new().prefix("gdenv-test").tempdir()?;
         let version_file = tmp_dir.path().join(".godot-version");
         let str_spec = "4.6 dotnet";
         fs::write(version_file, str_spec)?;
@@ -453,7 +452,7 @@ version = "4.6.0"
 
     #[test]
     fn test_godot_version_file_version_only() -> Result<()> {
-        let tmp_dir = TempDir::new("gdenv-test")?;
+        let tmp_dir = tempfile::Builder::new().prefix("gdenv-test").tempdir()?;
         let version_file = tmp_dir.path().join(".godot-version");
         let str_spec = "4.6";
         fs::write(version_file, str_spec)?;
@@ -471,7 +470,7 @@ version = "4.6.0"
 
     #[test]
     fn test_godot_version_file_empty() -> Result<()> {
-        let tmp_dir = TempDir::new("gdenv-test")?;
+        let tmp_dir = tempfile::Builder::new().prefix("gdenv-test").tempdir()?;
         let version_file = tmp_dir.path().join(".godot-version");
         let str_spec = "";
         fs::write(version_file, str_spec)?;

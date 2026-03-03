@@ -336,11 +336,10 @@ mod tests {
     use super::*;
     use crate::test_helpers::mock_download_client::MockDownloadClient;
     use std::fs::File;
-    use tempdir::TempDir;
 
     #[tokio::test]
     async fn test_installation_lifecycle() -> Result<()> {
-        let tmp_dir = TempDir::new("gdenv-test")?;
+        let tmp_dir = tempfile::Builder::new().prefix("gdenv-test").tempdir()?;
         let config = Config::setup(Some(tmp_dir.path()))?;
         let config = Config {
             os: "linux".to_string(),
@@ -364,7 +363,7 @@ mod tests {
 
     #[test]
     fn test_update_symlink_create_new() -> Result<()> {
-        let tmp_dir = TempDir::new("gdenv-test")?;
+        let tmp_dir = tempfile::Builder::new().prefix("gdenv-test").tempdir()?;
         let dir = tmp_dir.path();
 
         let original = dir.join("original");
@@ -386,7 +385,7 @@ mod tests {
 
     #[test]
     fn test_update_symlink_no_overwrite_regular_file() -> Result<()> {
-        let tmp_dir = TempDir::new("gdenv-test")?;
+        let tmp_dir = tempfile::Builder::new().prefix("gdenv-test").tempdir()?;
         let dir = tmp_dir.path();
 
         let original = dir.join("original");
@@ -405,7 +404,7 @@ mod tests {
 
     #[test]
     fn test_update_symlink_replace_existing() -> Result<()> {
-        let tmp_dir = TempDir::new("gdenv-test")?;
+        let tmp_dir = tempfile::Builder::new().prefix("gdenv-test").tempdir()?;
         let dir = tmp_dir.path();
 
         let original = dir.join("original");

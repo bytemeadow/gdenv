@@ -39,7 +39,7 @@ colored = "3.1"
 dirs = "6.0"
 
 # Archive extraction
-zip = "7.2"
+zip = "8.2"
 
 # Regex for version parsing
 regex = "1.12"
@@ -56,10 +56,10 @@ semver = { version = "1.0", features = ["serde"] }
 chrono = { version = "0.4", features = ["serde"] }
 
 # Cross-platform recursive directory navigation
-walkdir = "2.5.0"
+walkdir = "2.5"
 
 # Easy temporary directory handling for tests
-tempdir = "0.3.7"
+tempfile = "3.26"
 
 # For calculating paths relative to other paths
 pathdiff = "0.2"
@@ -73,4 +73,4 @@ tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 tracing-indicatif = "0.3"
 
 # TOML serialization
-toml = "0.9.8"
+toml = "1.0"

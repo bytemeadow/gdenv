@@ -62,4 +62,4 @@ toml.workspace = true
 
 [dev-dependencies]
 # Easy temporary directory handling for tests
-tempdir.workspace = true
+tempfile.workspace = true

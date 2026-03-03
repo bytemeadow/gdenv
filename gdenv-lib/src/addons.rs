@@ -122,7 +122,6 @@ mod tests {
     use crate::test_helpers::mock_git_client::MockGitClient;
     use anyhow::bail;
     use std::fs;
-    use tempdir::TempDir;
 
     #[tokio::test]
     async fn test_sync_local_path_addons() -> Result<()> {
@@ -131,8 +130,10 @@ mod tests {
             .with_test_writer()
             .try_init();
 
-        let tmp_dir = TempDir::new("gdenv-test")?;
-        let tmp_data_dir = TempDir::new("gdenv-test-data-dir")?;
+        let tmp_dir = tempfile::Builder::new().prefix("gdenv-test").tempdir()?;
+        let tmp_data_dir = tempfile::Builder::new()
+            .prefix("gdenv-test-data-dir")
+            .tempdir()?;
         let version_file = tmp_dir.path().join("gdenv.toml");
         let config = Config::setup(Some(&tmp_data_dir.path()))?;
         let git_client = MockGitClient::new(config);
@@ -221,8 +222,10 @@ path = {}
             .with_test_writer()
             .try_init();
 
-        let tmp_dir = TempDir::new("gdenv-test")?;
-        let tmp_data_dir = TempDir::new("gdenv-test-data-dir")?;
+        let tmp_dir = tempfile::Builder::new().prefix("gdenv-test").tempdir()?;
+        let tmp_data_dir = tempfile::Builder::new()
+            .prefix("gdenv-test-data-dir")
+            .tempdir()?;
         let version_file = tmp_dir.path().join("gdenv.toml");
         let config = Config::setup(Some(&tmp_data_dir.path()))?;
         let git_client = MockGitClient::new(config);

@@ -137,7 +137,6 @@ mod tests {
     use super::*;
     use std::fs;
     use std::path::PathBuf;
-    use tempdir::TempDir;
 
     #[test]
     fn test_filter_file_list() {
@@ -206,7 +205,9 @@ mod tests {
 
     #[test]
     fn test_get_file_list() -> anyhow::Result<()> {
-        let tmp_dir = TempDir::new("get_file_list_test")?;
+        let tmp_dir = tempfile::Builder::new()
+            .prefix("get_file_list_test")
+            .tempdir()?;
         let base = tmp_dir.path();
 
         // Create a structure:
@@ -280,7 +281,7 @@ mod tests {
         let test_addon1v2_path: PathBuf = [manifest_dir, "test-data", "test-addon1v2-repo"]
             .iter()
             .collect();
-        let tmp_dir = TempDir::new("gdenv-test")?;
+        let tmp_dir = tempfile::Builder::new().prefix("gdenv-test").tempdir()?;
 
         tracing::info!(
             "Syncing {} to {}",
