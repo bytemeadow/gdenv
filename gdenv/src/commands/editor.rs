@@ -32,8 +32,7 @@ impl EditorCommand {
                     .map(|v| GodotVersion::new(&v, self.dotnet))
                     .transpose()?,
             )
-            .build()
-            .await?
+            .build()?
             .execute()
     }
 }

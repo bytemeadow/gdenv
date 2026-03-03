@@ -12,7 +12,16 @@ use crate::project_specification::{
     ProjectSpecError, ProjectSpecification, load_godot_project_spec,
 };
 use anyhow::{Context, Result, bail};
+use once_cell::sync::Lazy;
 use std::path::{Path, PathBuf};
+use tokio::runtime::Runtime;
+
+static RUNTIME: Lazy<Runtime> = Lazy::new(|| {
+    tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()
+        .expect("Failed to create Tokio runtime")
+});
 
 pub struct GodotRunner<D: DownloadClient> {
     config: Option<Config>,
@@ -25,9 +34,9 @@ pub struct GodotRunner<D: DownloadClient> {
 
 impl<D: DownloadClient> GodotRunner<D> {
     /// Run Godot with the current configuration.
-    pub async fn build(&self) -> Result<CommandChain> {
+    pub fn build(&self) -> Result<CommandChain> {
         let working_dir = std::env::current_dir()?;
-        self.build_at(&working_dir).await
+        RUNTIME.block_on(self.build_at(&working_dir))
     }
 
     /// Run Godot with the current configuration.
@@ -167,12 +176,11 @@ impl<D: DownloadClient> Default for GodotRunner<D> {
 impl GodotRunner<GitHubClient> {
     /// Example usage:
     /// ```rust,no_run
-    /// #[tokio::main]
-    /// async fn main() -> anyhow::Result<()> {
-    ///     gdenv_lib::api::godot_runner::GodotRunner::init()?
-    ///         .build()
-    ///         .await?
-    ///         .execute()
+    /// let result = gdenv_lib::api::godot_runner::GodotRunner::init()
+    ///     .and_then(|r| r.build())
+    ///     .and_then(|r| r.execute());
+    /// if let Err(e) = result {
+    ///     eprintln!("{e}");
     /// }
     /// ```
     pub fn init() -> Result<GodotRunner<GitHubClient>> {
