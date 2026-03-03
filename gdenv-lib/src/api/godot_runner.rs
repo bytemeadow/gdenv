@@ -176,12 +176,10 @@ impl<D: DownloadClient> Default for GodotRunner<D> {
 impl GodotRunner<GitHubClient> {
     /// Example usage:
     /// ```rust,no_run
-    /// let result = gdenv_lib::api::godot_runner::GodotRunner::init()
+    /// gdenv_lib::api::godot_runner::GodotRunner::init()
     ///     .and_then(|r| r.build())
-    ///     .and_then(|r| r.execute());
-    /// if let Err(e) = result {
-    ///     eprintln!("{e}");
-    /// }
+    ///     .and_then(|r| r.execute())
+    ///     .unwrap_or_else(gdenv_lib::api::errors::print_error_stack);
     /// ```
     pub fn init() -> Result<GodotRunner<GitHubClient>> {
         Self::init_with_custom_data_dir(Some(&Config::default_data_dir()))
