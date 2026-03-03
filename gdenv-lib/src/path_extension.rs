@@ -20,12 +20,13 @@ impl PathExt for Path {
 mod tests {
     use super::*;
     use anyhow::Result;
+    use std::env;
 
     #[test]
     fn test_to_absolute_with_absolute_path() -> Result<()> {
         let path = Path::new("/tmp/test_file.txt");
-        let working_dir = Path::new("/home/user");
-        let absolute = path.to_absolute(working_dir)?;
+        let working_dir = env::current_dir()?;
+        let absolute = path.to_absolute(&working_dir)?;
 
         #[cfg(windows)]
         let path = Path::new(r"C:\tmp\test_file.txt");
@@ -40,9 +41,9 @@ mod tests {
     #[test]
     fn test_to_absolute_with_relative_path() -> Result<()> {
         let path = Path::new("some/relative/path.rs");
-        let working_dir = Path::new("/home/user");
+        let working_dir = env::current_dir()?;
         let absolute = path
-            .to_absolute(working_dir)
+            .to_absolute(&working_dir)
             .expect("Should resolve to absolute");
 
         assert!(absolute.is_absolute());
@@ -54,8 +55,8 @@ mod tests {
     #[test]
     fn test_to_absolute_with_empty_path() -> Result<()> {
         let path = Path::new("");
-        let working_dir = Path::new("/home/user");
-        let absolute = path.to_absolute(working_dir)?;
+        let working_dir = env::current_dir()?;
+        let absolute = path.to_absolute(&working_dir)?;
 
         assert!(absolute.is_absolute());
         assert_eq!(absolute, working_dir);
