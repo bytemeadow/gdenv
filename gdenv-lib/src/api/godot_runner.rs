@@ -36,7 +36,9 @@ impl<D: DownloadClient> GodotRunner<D> {
     /// Run Godot with the current configuration.
     pub fn build(&self) -> Result<CommandChain> {
         let working_dir = std::env::current_dir()?;
-        RUNTIME.block_on(self.build_at(&working_dir))
+        RUNTIME
+            .block_on(self.build_at(&working_dir))
+            .context("Gdenv failed to load Godot project")
     }
 
     /// Run Godot with the current configuration.
@@ -84,8 +86,11 @@ impl<D: DownloadClient> GodotRunner<D> {
             ..spec_from_file
         };
 
-        for (_, generator) in project_spec.gdextension {
-            generator.build(working_dir)?.write()?;
+        for (name, generator) in project_spec.gdextension {
+            generator
+                .build(working_dir)
+                .context(format!("Failed to build GDExtension file: {}", name))?
+                .write()?;
         }
 
         let executable_path =

@@ -1,7 +1,7 @@
 //! Utilities for generating a `.gdextension` file for Godot.
 
 use crate::path_extension::PathExt;
-use anyhow::{Context, Result};
+use anyhow::{Context, Result, bail};
 use pathdiff::diff_paths;
 use std::path::{Path, PathBuf};
 
@@ -247,8 +247,21 @@ reloadable = {reloadable}
     }
 
     /// Write a generated `.gdextension` file to disk.
-    pub fn write(&self) -> std::io::Result<()> {
-        std::fs::write(self.full_config_path(), self.create())
+    pub fn write(&self) -> Result<()> {
+        if !self
+            .full_config_path()
+            .parent()
+            .is_some_and(|parent| parent.exists())
+        {
+            bail!(
+                "Destination directory of GDExtension file does not exist: {}",
+                self.full_config_path().display()
+            );
+        }
+        std::fs::write(self.full_config_path(), self.create()).context(format!(
+            "Failed to write GDExtension file: {}",
+            self.full_config_path().display()
+        ))
     }
 }
 
