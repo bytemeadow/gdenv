@@ -4,8 +4,7 @@ dotnet = false
 project_dir = "godot"
 
 [gdextension.config.GodotBevy]
-crate_name = "mock_godot_bevy_project"
-cargo_manifest_path = "rust/Cargo.toml"
+cargo_crate_path = "rust"
 config_name = "other"
 compatability_version = "4.2"
 entry_symbol = "my_entry_symbol"

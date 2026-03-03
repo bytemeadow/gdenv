@@ -1,6 +1,6 @@
 //! This module provides functionality for running Godot with a simple builder pattern.
 
-use crate::cargo::cargo_target_path_provider;
+use crate::cargo::cargo_info_provider;
 use crate::command_runner::{Command, CommandChain};
 use crate::config::Config;
 use crate::download_client::DownloadClient;
@@ -35,8 +35,8 @@ impl<D: DownloadClient> GodotRunner<D> {
             bail!("A download client must be specified.");
         };
 
-        let spec_from_file = load_godot_project_spec(working_dir, cargo_target_path_provider())
-            .or_else(|error| -> Result<ProjectSpecification> {
+        let spec_from_file = load_godot_project_spec(working_dir, cargo_info_provider()).or_else(
+            |error| -> Result<ProjectSpecification> {
                 match error {
                     ProjectSpecError::NotFound => Ok(ProjectSpecification {
                         godot_version: self.godot_version.clone().context(
@@ -51,7 +51,8 @@ impl<D: DownloadClient> GodotRunner<D> {
                     }),
                     _ => bail!(error),
                 }
-            })?;
+            },
+        )?;
         let project_spec = ProjectSpecification {
             godot_version: self
                 .godot_version

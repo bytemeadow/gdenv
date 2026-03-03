@@ -2,7 +2,7 @@ use crate::cli::GlobalArgs;
 use crate::ui;
 use anyhow::{Context, Result, anyhow};
 use clap::Args;
-use gdenv_lib::cargo::cargo_target_path_provider;
+use gdenv_lib::cargo::cargo_info_provider;
 use gdenv_lib::config::Config;
 use gdenv_lib::download_client::DownloadClient;
 use gdenv_lib::github::GitHubClient;
@@ -93,7 +93,7 @@ impl InstallCommand {
             .collect::<Vec<_>>();
         let version_override = self.override_version(release_versions)?;
         let working_dir = global_args.project.unwrap_or(std::env::current_dir()?);
-        let spec_from_file = load_godot_project_spec(&working_dir, cargo_target_path_provider())?;
+        let spec_from_file = load_godot_project_spec(&working_dir, cargo_info_provider())?;
         Ok(ProjectSpecification {
             godot_version: version_override.unwrap_or(spec_from_file.godot_version),
             ..spec_from_file

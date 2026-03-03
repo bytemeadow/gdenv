@@ -1,4 +1,4 @@
-use crate::cargo::TargetPathProvider;
+use crate::cargo::CargoInfoProvider;
 use crate::gdextension_config::GdExtensionConfig;
 use crate::godot_version::GodotVersion;
 use anyhow::{Context, Result};
@@ -83,10 +83,8 @@ pub enum SpecGdExtensionGenerator {
 #[derive(Serialize, Deserialize, Debug, Eq, PartialEq, Clone, Default)]
 #[serde(deny_unknown_fields)]
 pub struct SpecGodotBevyGdExtension {
-    /// Used to determine the name of the shared library for gdextension.
-    pub crate_name: String,
-    /// Used to find Cargo's build target directory.
-    pub cargo_manifest_path: PathBuf,
+    /// Path to the folder containing Cargo.toml. Used to find Cargo's build target directory.
+    pub cargo_crate_path: PathBuf,
 
     /// File name for the gdextension config: `<config_name>.gdextension`
     pub config_name: Option<String>,
@@ -150,7 +148,7 @@ pub struct LocalAddonSource {
 ///
 /// * `start_path` - A reference to the starting directory path where the search for the
 ///   project configuration file begins.
-pub fn load_godot_project_spec<P: TargetPathProvider>(
+pub fn load_godot_project_spec<P: CargoInfoProvider>(
     start_path: &Path,
     cargo_target_path_provider: P,
 ) -> Result<ProjectSpecification, ProjectSpecError> {
@@ -201,23 +199,26 @@ pub fn load_godot_project_spec<P: TargetPathProvider>(
     }
 }
 
-fn gdextension_generator_to_config<P: TargetPathProvider>(
+fn gdextension_generator_to_config<P: CargoInfoProvider>(
     working_dir: &Path,
     generators: HashMap<String, SpecGdExtensionGenerator>,
     godot_project_path: &Path,
-    cargo_target_path_provider: P,
+    cargo_info_provider: P,
 ) -> Result<HashMap<String, GdExtensionConfig>> {
     generators
         .into_iter()
         .map(|(name, generator)| -> Result<(String, GdExtensionConfig)> {
             match generator {
                 SpecGdExtensionGenerator::GodotBevy(generator) => {
+                    let cargo_info = &cargo_info_provider(
+                        &working_dir
+                            .join(&generator.cargo_crate_path)
+                            .join("Cargo.toml"),
+                    )?;
                     let mut config = GdExtensionConfig::start(
-                        &generator.crate_name,
+                        &cargo_info.crate_name,
                         &working_dir.join(godot_project_path),
-                        &cargo_target_path_provider(
-                            &working_dir.join(&generator.cargo_manifest_path),
-                        )?,
+                        &cargo_info.target_dir,
                     );
                     if let Some(config_name) = &generator.config_name {
                         config = config.config_file_name(&format!("{}.gdextension", config_name));
@@ -274,6 +275,7 @@ fn find_godot_project_spec(start_path: &Path) -> Result<SpecFileType, ProjectSpe
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::cargo::CargoInfo;
     use crate::godot_version::GodotVersion;
     use anyhow::bail;
     use tempdir::TempDir;
@@ -292,16 +294,14 @@ editor_args = ["arg3", "arg4"]
 pre_import = false
 
 [gdextension.config_a.GodotBevy]
-crate_name = "my_gdextension"
-cargo_manifest_path = "./rust/Cargo.toml"
+cargo_crate_path = "rust"
 config_name = "not_rust"
 compatability_version = "4.2"
 entry_symbol = "my_entry_symbol"
 reloadable = true
 
 [gdextension.config_b.GodotBevy]
-crate_name = "my_gdextension"
-cargo_manifest_path = "./rust/Cargo.toml"
+cargo_crate_path = "rust"
 
 [addon.dialogic]
 git = "https://github.com/dialogic-godot/dialogic"
@@ -319,9 +319,11 @@ include = ["addons/gdUnit4"]
 path = "../local-project"
         "#;
         fs::write(version_file, str_spec)?;
-        let cargo_target_path = PathBuf::from("/home/user/.cache/cargo/target");
-        let spec =
-            load_godot_project_spec(tmp_dir.path(), |_| Ok(cargo_target_path.to_path_buf()))?;
+        let cargo_info = CargoInfo {
+            crate_name: "my_gdextension".to_string(),
+            target_dir: PathBuf::from("/home/user/.cache/cargo/target"),
+        };
+        let spec = load_godot_project_spec(tmp_dir.path(), |_| Ok(cargo_info.clone()))?;
         let expected_spec = ProjectSpecification {
             godot_version: GodotVersion::new("4.6.0", true)?,
             godot_project_dir: PathBuf::from("./godot"),
@@ -332,9 +334,9 @@ path = "../local-project"
                 (
                     "config_a".to_string(),
                     GdExtensionConfig::start(
-                        "my_gdextension",
+                        &cargo_info.crate_name,
                         &tmp_dir.path().join("./godot"),
-                        &cargo_target_path,
+                        &cargo_info.target_dir,
                     )
                     .config_file_name("not_rust.gdextension")
                     .compatability_version("4.2")
@@ -344,9 +346,9 @@ path = "../local-project"
                 (
                     "config_b".to_string(),
                     GdExtensionConfig::start(
-                        "my_gdextension",
+                        &cargo_info.crate_name,
                         &tmp_dir.path().join("./godot"),
-                        &cargo_target_path,
+                        &cargo_info.target_dir,
                     ),
                 ),
             ]),
