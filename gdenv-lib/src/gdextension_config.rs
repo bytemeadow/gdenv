@@ -27,12 +27,13 @@ pub struct ValidGdExtensionConfig {
 /// ```rust,no_run
 /// # fn example() -> anyhow::Result<()> {
 /// # use std::path::PathBuf;
-/// # use crate::gdenv_lib::gdextension_config::GdExtensionConfig;
+/// # use gdenv_lib::gdextension_config::GdExtensionConfig;
 /// # let crate_name = "test-library";
 /// # let godot_project_path = &PathBuf::from("/home/user/projects/godot_project_path");
 /// # let target_directory = &PathBuf::from("/home/user/.cache/cargo/target");
+/// # let working_dir = &PathBuf::from("/home/user/projects/godot_project_path");
 /// GdExtensionConfig::start(crate_name, godot_project_path, target_directory)
-///     .build()?
+///     .build(working_dir)?
 ///     .write()?;
 /// # Ok(())
 /// # }
@@ -81,12 +82,12 @@ impl GdExtensionConfig {
     }
 
     /// Validate builder parameters and return a `ValidGdExtensionConfig`.
-    pub fn build(&self) -> Result<ValidGdExtensionConfig> {
+    pub fn build(&self, working_dir: &Path) -> Result<ValidGdExtensionConfig> {
         let target_path = self
             .target_path
             .as_deref()
             .context("Missing target path")?
-            .to_absolute()
+            .to_absolute(working_dir)
             .with_context(|| {
                 format!(
                     "Failed to calculate absolute target path: {:?}",
@@ -97,7 +98,7 @@ impl GdExtensionConfig {
             .godot_project_path
             .as_ref()
             .context("Missing godot project path")?
-            .to_absolute()
+            .to_absolute(working_dir)
             .with_context(|| {
                 format!(
                     "Failed to calculate absolute godot project path: {:?}",
@@ -269,9 +270,9 @@ mod tests {
 
     #[test]
     fn test_create() -> Result<()> {
-        let (_tempdir, godot_project_path, target_path) = create_test_directories()?;
+        let (tempdir, godot_project_path, target_path) = create_test_directories()?;
         let config = GdExtensionConfig::start("test_library", &godot_project_path, &target_path)
-            .build()
+            .build(tempdir.path())
             .expect("Successful build");
         let file_string = config.create();
 
@@ -302,11 +303,11 @@ macos.debug.arm64 =      "res://../../.cache/cargo/target/debug/libtest_library.
 
     #[test]
     fn test_create_release_only() -> Result<()> {
-        let (_tempdir, godot_project_path, target_path) = create_test_directories()?;
+        let (tempdir, godot_project_path, target_path) = create_test_directories()?;
         let config = GdExtensionConfig::start("test_library", &godot_project_path, &target_path)
             .release_target(Some("release".to_string()))
             .debug_target(None)
-            .build()
+            .build(tempdir.path())
             .expect("Successful build");
         let file_string = config.create();
 
@@ -333,11 +334,11 @@ macos.release.arm64 =    "res://../../.cache/cargo/target/release/libtest_librar
 
     #[test]
     fn test_create_debug_only() -> Result<()> {
-        let (_tempdir, godot_project_path, target_path) = create_test_directories()?;
+        let (tempdir, godot_project_path, target_path) = create_test_directories()?;
         let config = GdExtensionConfig::start("test_library", &godot_project_path, &target_path)
             .release_target(None)
             .debug_target(Some("debug".to_string()))
-            .build()
+            .build(tempdir.path())
             .expect("Successful build");
         let file_string = config.create();
 
@@ -364,10 +365,10 @@ macos.debug.arm64 =      "res://../../.cache/cargo/target/debug/libtest_library.
 
     #[test]
     fn test_entry_symbol() -> Result<()> {
-        let (_tempdir, godot_project_path, target_path) = create_test_directories()?;
+        let (tempdir, godot_project_path, target_path) = create_test_directories()?;
         let config = GdExtensionConfig::start("test_library", &godot_project_path, &target_path)
             .entry_symbol("custom_entry_point")
-            .build()
+            .build(tempdir.path())
             .expect("Successful build");
         let file_string = config.create();
 

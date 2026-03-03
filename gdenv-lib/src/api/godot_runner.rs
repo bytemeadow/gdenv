@@ -26,8 +26,13 @@ pub struct GodotRunner<D: DownloadClient> {
 impl<D: DownloadClient> GodotRunner<D> {
     /// Run Godot with the current configuration.
     pub async fn build(&self) -> Result<CommandChain> {
-        let working_dir = &std::env::current_dir()?;
+        let working_dir = std::env::current_dir()?;
+        self.build_at(&working_dir).await
+    }
 
+    /// Run Godot with the current configuration.
+    /// Overrides the working directory for the build process.
+    pub async fn build_at(&self, working_dir: &Path) -> Result<CommandChain> {
         let Some(config) = self.config.as_ref() else {
             bail!("A data directory configuration must be specified.");
         };
@@ -42,7 +47,7 @@ impl<D: DownloadClient> GodotRunner<D> {
                         godot_version: self.godot_version.clone().context(
                             "No Godot version specified and no configuration file found.",
                         )?,
-                        godot_project_dir: working_dir.clone(),
+                        godot_project_dir: working_dir.to_path_buf(),
                         run_args: vec![],
                         editor_args: vec![],
                         pre_import: true,
@@ -66,12 +71,12 @@ impl<D: DownloadClient> GodotRunner<D> {
                 .godot_project_path
                 .clone()
                 .unwrap_or(spec_from_file.godot_project_dir)
-                .to_absolute()?,
+                .to_absolute(working_dir)?,
             ..spec_from_file
         };
 
         for (_, generator) in project_spec.gdextension {
-            generator.build()?.write()?;
+            generator.build(working_dir)?.write()?;
         }
 
         let executable_path =
@@ -194,8 +199,8 @@ mod tests {
     use crate::installer::get_executable_path;
     use crate::test_helpers::mock_download_client::MockDownloadClient;
     use anyhow::Result;
+    use std::fs;
     use std::path::Path;
-    use std::{env, fs};
     use tempdir::TempDir;
 
     #[tokio::test]
@@ -208,14 +213,12 @@ mod tests {
         copy_dir_all("test-data/godot_runner_mock_project", &project_dir)
             .context("Failed to copy test data")?;
 
-        env::set_current_dir(&project_dir)?;
-
         let config = Config::setup(Some(&data_dir))?;
         let runner = GodotRunner::default()
             .config(Some(config.clone()))
             .download_client(Some(MockDownloadClient));
 
-        let command_chain = runner.build().await?;
+        let command_chain = runner.build_at(&project_dir).await?;
 
         assert_eq!(command_chain.commands().len(), 2);
         assert_eq!(
