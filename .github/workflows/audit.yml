@@ -7,6 +7,10 @@ on:
     paths: # Only when these files have changed
       - '**/Cargo.toml'
       - '**/Cargo.lock'
+  pull_request:
+    paths: # Only when these files have changed
+      - '**/Cargo.toml'
+      - '**/Cargo.lock'
 jobs:
   audit:
     runs-on: ubuntu-latest
