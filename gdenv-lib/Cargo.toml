@@ -35,6 +35,7 @@ once_cell.workspace = true
 
 # Error handling
 anyhow.workspace = true
+thiserror.workspace = true
 
 # Version parsing
 semver.workspace = true
@@ -45,6 +46,12 @@ chrono.workspace = true
 # Cross-platform recursive directory navigation
 walkdir.workspace = true
 
+# For calculating paths relative to other paths
+pathdiff.workspace = true
+
+# For getting the cargo target directory
+cargo_metadata.workspace = true
+
 # Logging
 tracing.workspace = true
 tracing-subscriber.workspace = true
@@ -52,7 +59,8 @@ tracing-indicatif.workspace = true
 
 # TOML serialization
 toml.workspace = true
+documented.workspace = true
 
 [dev-dependencies]
 # Easy temporary directory handling for tests
-tempdir.workspace = true
+tempfile.workspace = true

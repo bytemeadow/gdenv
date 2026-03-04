@@ -118,12 +118,13 @@ pub fn get_repo_dir(config: &Config, repo_url: &str) -> PathBuf {
 mod tests {
     use super::*;
     use std::fs;
-    use tempdir::TempDir;
 
     #[tokio::test]
     async fn test_system_git_client_local_checkout() -> Result<()> {
-        let tmp_dir = TempDir::new("gdenv-test")?;
-        let tmp_data_dir = TempDir::new("gdenv-test-data-dir")?;
+        let tmp_dir = tempfile::Builder::new().prefix("gdenv-test").tempdir()?;
+        let tmp_data_dir = tempfile::Builder::new()
+            .prefix("gdenv-test-data-dir")
+            .tempdir()?;
         let source_repo = tmp_dir.path().join("source_repo");
 
         fs::create_dir_all(&source_repo)?;
@@ -159,7 +160,9 @@ mod tests {
 
         // 3. Use checkout to clone the local path
         // We use the absolute path as the "URL"
-        let repo_url = source_repo.to_str().unwrap();
+        let repo_url = source_repo
+            .to_str()
+            .ok_or(anyhow::anyhow!("Invalid path"))?;
         let checked_out_path = git_client.checkout(repo_url, "main").await?; // Handle different default branch names
 
         // 4. Verify the file exists in the checked-out location

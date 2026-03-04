@@ -4,6 +4,7 @@ use std::path::PathBuf;
 
 use crate::commands::editor::EditorCommand;
 use crate::commands::run::RunCommand;
+use crate::commands::schema::SchemaCommand;
 use crate::commands::sync::SyncCommand;
 use crate::commands::{
     godot::cache::CacheCommand, godot::current::CurrentCommand, godot::fetch::FetchCommand,
@@ -44,6 +45,9 @@ pub enum Commands {
 
     /// Synchronize Godot addons with the project's configuration file
     Sync(SyncCommand),
+
+    /// Print help information about the `gdenv.toml` project specification format.
+    Schema(SchemaCommand),
 
     /// Manage Godot versions
     #[command(subcommand)]
@@ -92,6 +96,7 @@ impl Cli {
             Commands::Run(cmd) => cmd.run(self.global_args).await,
             Commands::Editor(cmd) => cmd.run(self.global_args).await,
             Commands::Sync(cmd) => cmd.run(self.global_args).await,
+            Commands::Schema(cmd) => cmd.run(self.global_args).await,
         }
     }
 }

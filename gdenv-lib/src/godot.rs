@@ -53,7 +53,7 @@ pub fn get_platform_patterns(os: &str, arch: &str) -> Vec<&'static str> {
 }
 
 /// Get the expected executable path within the extracted directory
-pub fn godot_executable_path(version: &GodotVersion, os: &str, arch: &str) -> String {
+pub fn extracted_godot_executable_path(version: &GodotVersion, os: &str, arch: &str) -> String {
     match os {
         "macos" => {
             if version.is_dotnet {
@@ -101,7 +101,6 @@ pub fn godot_installation_name(version: &GodotVersion) -> String {
     }
 }
 
-#[allow(dead_code)]
 pub fn godot_archive_name(version: &GodotVersion) -> String {
     let platform_suffix = platform_suffix(std::env::consts::OS, std::env::consts::ARCH);
     let version_part = version.as_godot_version_str();
@@ -116,23 +115,25 @@ pub fn godot_archive_name(version: &GodotVersion) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use anyhow::Result;
 
     #[test]
-    fn test_archive_names() {
-        let v1 = GodotVersion::new("4.2.1", false).unwrap();
+    fn test_archive_names() -> Result<()> {
+        let v1 = GodotVersion::new("4.2.1", false)?;
         let archive = godot_archive_name(&v1);
         assert!(archive.contains("Godot_v4.2.1-stable_"));
         assert!(archive.ends_with(".zip"));
 
-        let v2 = GodotVersion::new("4.3.0-beta2", true).unwrap();
+        let v2 = GodotVersion::new("4.3.0-beta2", true)?;
         let archive = godot_archive_name(&v2);
         assert!(archive.contains("Godot_v4.3-beta2_mono_"));
         assert!(archive.ends_with(".zip"));
 
-        let v2 = GodotVersion::new("4.0.0-rc5", true).unwrap();
+        let v2 = GodotVersion::new("4.0.0-rc5", true)?;
         let archive = godot_archive_name(&v2);
         assert!(archive.contains("Godot_v4.0-rc5_mono_"));
         assert!(archive.ends_with(".zip"));
+        Ok(())
     }
 
     #[test]
@@ -188,28 +189,30 @@ mod tests {
     }
 
     #[test]
-    fn test_executable_path_construction() {
+    fn test_executable_path_construction() -> Result<()> {
         let os = std::env::consts::OS;
         let arch = std::env::consts::ARCH;
 
         // Test that we can construct executable paths
-        let v1 = GodotVersion::new("4.2.1", false).unwrap();
-        let exe_path = godot_executable_path(&v1, os, arch);
+        let v1 = GodotVersion::new("4.2.1", false)?;
+        let exe_path = extracted_godot_executable_path(&v1, os, arch);
         assert!(!exe_path.is_empty());
 
-        let v2 = GodotVersion::new("4.2.1", true).unwrap();
-        let dotnet_exe_path = godot_executable_path(&v2, os, arch);
+        let v2 = GodotVersion::new("4.2.1", true)?;
+        let dotnet_exe_path = extracted_godot_executable_path(&v2, os, arch);
         assert!(!dotnet_exe_path.is_empty());
 
         // Paths should be different for dotnet vs non-dotnet
         assert_ne!(exe_path, dotnet_exe_path);
+        Ok(())
     }
 
     #[test]
-    fn test_installation_name() {
+    fn test_installation_name() -> Result<()> {
         // Test .NET versions
-        let v5 = GodotVersion::new("4.2.1", true).unwrap();
+        let v5 = GodotVersion::new("4.2.1", true)?;
         assert_eq!(v5.to_string(), "4.2.1-stable (.NET)");
         assert_eq!(godot_installation_name(&v5), "godot-4.2.1-stable-dotnet");
+        Ok(())
     }
 }
