@@ -33,7 +33,6 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: stable
-          components: audit
 
       - name: Security audit
         uses: rustsec/audit-check@v2
