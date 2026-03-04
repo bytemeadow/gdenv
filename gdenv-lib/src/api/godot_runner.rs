@@ -36,9 +36,20 @@ impl<D: DownloadClient> GodotRunner<D> {
     /// Run Godot with the current configuration.
     pub fn build(&self) -> Result<CommandChain> {
         let working_dir = std::env::current_dir()?;
-        RUNTIME
-            .block_on(self.build_at(&working_dir))
-            .context("Gdenv failed to load Godot project")
+        let future = self.build_at(&working_dir);
+        match tokio::runtime::Handle::try_current() {
+            Ok(handle) => {
+                // We are already inside a Tokio runtime.
+                // Since build() MUST be synchronous, we use block_in_place.
+                // Note: This requires the "rt-multi-thread" feature of Tokio.
+                tokio::task::block_in_place(|| handle.block_on(future))
+            }
+            Err(_) => {
+                // No runtime is running, use our fallback static RUNTIME.
+                RUNTIME.block_on(future)
+            }
+        }
+        .context("Gdenv failed to load Godot project")
     }
 
     /// Run Godot with the current configuration.
