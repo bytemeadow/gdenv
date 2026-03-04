@@ -2,6 +2,7 @@ use crate::cargo::CargoInfoProvider;
 use crate::gdextension_config::GdExtensionConfig;
 use crate::godot_version::GodotVersion;
 use anyhow::{Context, Result};
+use documented::{Documented, DocumentedFieldsOpt};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs;
@@ -42,8 +43,9 @@ pub struct ProjectSpecification {
     pub addons: HashMap<String, AddonSpec>,
 }
 
-/// Godot `gdenv.toml` file specification.
-#[derive(Serialize, Deserialize, Debug, Default)]
+/// # The Godot project management file: `gdenv.toml`
+/// # The following sections are available:
+#[derive(Serialize, Deserialize, Documented, Debug, Default)]
 #[serde(deny_unknown_fields)]
 pub struct ProjectSpecificationToml {
     /// Specifications for the Godot project.
@@ -55,84 +57,174 @@ pub struct ProjectSpecificationToml {
     pub addon: Option<HashMap<String, AddonSpec>>,
 }
 
-/// `[godot]` toml section.
-#[derive(Serialize, Deserialize, Debug, Default)]
+/// # --------------------------------------------------------------------------------
+/// # Describes the Godot project.
+/// # Required.
+/// [godot]
+#[derive(Serialize, Deserialize, Documented, DocumentedFieldsOpt, Debug, Default)]
 #[serde(deny_unknown_fields)]
 pub struct SpecGodot {
-    /// Godot version to use when running the project.
+    /// # Godot version to use when running the project.
+    /// # Required.
+    /// version = "4.6.0-stable"
     pub version: String,
-    /// Whether to use the .NET version of Godot.
+
+    /// # Whether to use the .NET version of Godot. Optional.
+    /// #dotnet = false
     pub dotnet: Option<bool>,
-    /// Path to the Godot project directory.
+
+    /// # Path to the Godot project directory. Optional. Example: "./godot"
+    /// #project_dir = "."
     pub project_dir: Option<PathBuf>,
-    /// Additional arguments to pass to the Godot executable.
+
+    /// # Additional arguments to pass to the Godot executable. Optional.
+    /// # Example: ["--debug", "--no-window", "--headless"]
+    /// #run_args = []
     pub run_args: Option<Vec<String>>,
-    /// Additional arguments to pass to Godot when launching in editor mode.
+
+    /// # Additional arguments to pass to Godot when launching in editor mode. Optional.
+    /// # Example: ["--debug", "--no-window", "--headless"]
+    /// #editor_args = []
     pub editor_args: Option<Vec<String>>,
-    /// Run the editor in headless import mode if the .godot folder doesn't exist.
+
+    /// # Before opening the project, run the editor in headless import mode
+    /// # to import the project when the `.godot` folder doesn't yet exist.
+    /// # Useful when opening newly Git cloned projects. Optional.
+    /// #pre_import = true
     pub pre_import: Option<bool>,
 }
 
-#[derive(Serialize, Deserialize, Debug, Eq, PartialEq, Clone)]
+/// # --------------------------------------------------------------------------------
+/// # Describes how one-or-more gdextension files should be generated.
+/// # The <name> field is only for your convenience.
+/// # The gdextension file can be generated for various project <type>s, covered below.
+/// # More project types can be added in the future. Optional.
+/// [gdextension.<name>.<type>]
+#[derive(Serialize, Deserialize, Documented, Debug, Eq, PartialEq, Clone)]
 #[serde(deny_unknown_fields)]
 pub enum SpecGdExtensionGenerator {
-    GodotBevy(SpecGodotBevyGdExtension),
+    /// Generate a gdextension file for a rust project.
+    Rust(SpecRustGdExtension),
 }
 
-/// `[gdextension.<name>.GodotBevy]` toml section.
-#[derive(Serialize, Deserialize, Debug, Eq, PartialEq, Clone, Default)]
+/// # Generate a gdextension file for a rust project.
+/// [gdextension.<name>.Rust]
+#[derive(
+    Serialize, Deserialize, Documented, DocumentedFieldsOpt, Debug, Eq, PartialEq, Clone, Default,
+)]
 #[serde(deny_unknown_fields)]
-pub struct SpecGodotBevyGdExtension {
-    /// Path to the folder containing Cargo.toml. Used to find Cargo's build target directory.
+pub struct SpecRustGdExtension {
+    /// # Path to the folder containing Cargo.toml. Used to find Cargo's build target directory. Required.
+    /// # Example: "./rust"
+    /// cargo_crate_path = "."
     pub cargo_crate_path: PathBuf,
 
-    /// File name for the gdextension config: `<config_name>.gdextension`
+    /// # File name for the gdextension config: `<config_name>.gdextension`. Optional.
+    /// #config_name = "rust"
     pub config_name: Option<String>,
-    /// Standard gdextension attribute
+
+    /// # GdExtension API version compatability. Optional.
+    /// #compatability_version = 4.1
     pub compatability_version: Option<String>,
-    /// Standard gdextension attribute
+
+    /// # GdExtension entry symbol for the shared library. Optional.
+    /// #entry_symbol = "gdext_rust_init"
     pub entry_symbol: Option<String>,
-    /// Standard gdextension attribute
+
+    /// # Is the shared library hot reloadable? Optional.
+    /// #reloadable = false
     pub reloadable: Option<bool>,
 }
 
-/// Information about a Godot addon.
-#[derive(Serialize, Deserialize, Debug, Eq, PartialEq, Clone)]
+/// # --------------------------------------------------------------------------------
+/// # Describes how one-or-more Godot addons should be synchronized.
+/// # The <name> field determines the addon's default directory name,
+/// # e.g. `addons/<name>/...files...`. Optional.
+/// [addon.<name>]
+#[derive(Serialize, Deserialize, Documented, DocumentedFieldsOpt, Debug, Eq, PartialEq, Clone)]
 pub struct AddonSpec {
-    /// Paths to include in the addon's source directory. Relative to the project_dir.
+    /// # Paths to include from the addon's source directory. Optional.
+    /// #include = []
     pub include: Option<Vec<PathBuf>>,
-    /// Paths to exclude from the addon's source directory. Relative to the project_dir.
+
+    /// # Paths to exclude from the addon's source directory. Optional.
+    /// #exclude = []
     pub exclude: Option<Vec<PathBuf>>,
-    /// Path relative to project_dir to place addon files.
-    /// Defaults to <godot_project_dir>/addons/<addon_name>.
+
+    /// # Path relative to project_dir to place addon files.
+    /// # Defaults to <godot_project_dir>/addons/<addon_name>.
+    /// #destination = "./custom/location"
     pub destination: Option<PathBuf>,
-    /// Where to get the addon's source code from.
+
     #[serde(flatten)]
     pub source: AddonSource,
 }
 
-#[derive(Serialize, Deserialize, Debug, Eq, PartialEq, Clone)]
+/// # Addons can be sourced from one of the following options:
+/// #  - Git repository.
+/// #  - Local directory.
+#[derive(Serialize, Deserialize, Documented, Debug, Eq, PartialEq, Clone)]
 #[serde(untagged, rename = "addon source type")]
 pub enum AddonSource {
+    /// Addon sourced from a Git repository.
     Git(GitAddonSource),
+    /// Addon sourced from a local directory.
     Local(LocalAddonSource),
 }
 
-#[derive(Serialize, Deserialize, Debug, Eq, PartialEq, Clone)]
+/// # -- Git repository specific addon fields:
+#[derive(Serialize, Deserialize, Documented, DocumentedFieldsOpt, Debug, Eq, PartialEq, Clone)]
 #[serde(deny_unknown_fields)]
 pub struct GitAddonSource {
-    /// Git repository URL.
+    /// # Git repository URL. Required.
+    /// #git = "https://github.com/bytemeadow/gdenv.git"
     pub git: String,
-    /// Git reference to 'checkout' (branch, tag, commit hash, etc).
+
+    /// # Git reference to 'checkout' (branch, tag, commit hash, etc). Optional.
+    /// #rev = "main"
     pub rev: Option<String>,
-    /// Directory inside the repository to synchronize to the addon's directory.
+
+    /// # Sub-directory, relative to the repository root, to source the addon files from. Optional.
+    /// #subdir = ""
     pub subdir: Option<PathBuf>,
 }
 
-#[derive(Serialize, Deserialize, Debug, Eq, PartialEq, Clone)]
+/// # -- Local directory specific addon fields:
+#[derive(Serialize, Deserialize, Documented, DocumentedFieldsOpt, Debug, Eq, PartialEq, Clone)]
 #[serde(deny_unknown_fields)]
 pub struct LocalAddonSource {
+    /// # Path to the directory whose contents will be copied to the destination directory. Required.
+    /// #path = "/path/to/local/addon"
     pub path: PathBuf,
+}
+
+pub fn spec_documentation() -> Result<String> {
+    let out = [
+        struct_doc::<ProjectSpecificationToml>(),
+        struct_doc_f::<SpecGodot>(),
+        struct_doc::<SpecGdExtensionGenerator>(),
+        struct_doc_f::<SpecRustGdExtension>(),
+        struct_doc_f::<AddonSpec>(),
+        struct_doc_f::<GitAddonSource>(),
+        struct_doc_f::<LocalAddonSource>(),
+    ];
+    Ok(out.join("\n"))
+}
+
+fn struct_doc_f<T: Documented + DocumentedFieldsOpt>() -> String {
+    let fields = T::FIELD_DOCS
+        .iter()
+        .filter_map(|x| *x)
+        .map(|doc| format!("{}\n", doc));
+    [
+        T::DOCS.to_string(),
+        fields.collect::<Vec<String>>().join("\n"),
+    ]
+    .join("\n\n")
+}
+
+fn struct_doc<T: Documented>() -> String {
+    [T::DOCS, ""].join("\n")
 }
 
 /// Loads the Godot project specification from a given starting path.
@@ -209,7 +301,7 @@ fn gdextension_generator_to_config<P: CargoInfoProvider>(
         .into_iter()
         .map(|(name, generator)| -> Result<(String, GdExtensionConfig)> {
             match generator {
-                SpecGdExtensionGenerator::GodotBevy(generator) => {
+                SpecGdExtensionGenerator::Rust(generator) => {
                     let cargo_info = &cargo_info_provider(
                         &working_dir
                             .join(&generator.cargo_crate_path)
@@ -292,14 +384,14 @@ run_args = ["arg1", "arg2"]
 editor_args = ["arg3", "arg4"]
 pre_import = false
 
-[gdextension.config_a.GodotBevy]
+[gdextension.config_a.Rust]
 cargo_crate_path = "rust"
 config_name = "not_rust"
 compatability_version = "4.2"
 entry_symbol = "my_entry_symbol"
 reloadable = true
 
-[gdextension.config_b.GodotBevy]
+[gdextension.config_b.Rust]
 cargo_crate_path = "rust"
 
 [addon.dialogic]
