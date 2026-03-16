@@ -324,9 +324,10 @@ impl PartialOrd for GitHubRelease {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use anyhow::Result;
 
     #[test]
-    fn test_find_godot_asset() {
+    fn test_find_godot_asset() -> Result<()> {
         // Create a mock release with various assets for all platforms
         let assets = vec![
             GitHubAssetJson {
@@ -369,13 +370,12 @@ mod tests {
         let release = GitHubRelease::from_json_struct(&GitHubReleaseJson {
             tag_name: "4.2.1-stable".to_string(),
             assets,
-        })
-        .unwrap();
+        })?;
 
         // Test finding regular asset
         let asset = release.find_godot_asset(false, std::env::consts::OS, std::env::consts::ARCH);
         assert!(asset.is_ok());
-        let asset = asset.unwrap();
+        let asset = asset?;
         assert!(asset.name.to_lowercase().contains("godot"));
         assert!(!asset.name.to_lowercase().contains("mono"));
 
@@ -383,20 +383,21 @@ mod tests {
         let dotnet_asset =
             release.find_godot_asset(true, std::env::consts::OS, std::env::consts::ARCH);
         assert!(dotnet_asset.is_ok());
-        let dotnet_asset = dotnet_asset.unwrap();
+        let dotnet_asset = dotnet_asset?;
         assert!(dotnet_asset.name.to_lowercase().contains("mono"));
+        Ok(())
     }
 
     #[test]
-    fn test_version_sorting() {
-        let v1 = GodotVersion::new("3.5.3-stable", false).unwrap();
-        let v2 = GodotVersion::new("4.0-alpha1", false).unwrap();
-        let v3 = GodotVersion::new("4.0-beta1", false).unwrap();
-        let v4 = GodotVersion::new("4.0-rc1", false).unwrap();
-        let v5 = GodotVersion::new("4.0-stable", false).unwrap();
-        let v6 = GodotVersion::new("4.1-stable", false).unwrap();
-        let v7 = GodotVersion::new("4.2-dev1", false).unwrap();
-        let v8 = GodotVersion::new("4.2", false).unwrap();
+    fn test_version_sorting() -> Result<()> {
+        let v1 = GodotVersion::new("3.5.3-stable", false)?;
+        let v2 = GodotVersion::new("4.0-alpha1", false)?;
+        let v3 = GodotVersion::new("4.0-beta1", false)?;
+        let v4 = GodotVersion::new("4.0-rc1", false)?;
+        let v5 = GodotVersion::new("4.0-stable", false)?;
+        let v6 = GodotVersion::new("4.1-stable", false)?;
+        let v7 = GodotVersion::new("4.2-dev1", false)?;
+        let v8 = GodotVersion::new("4.2", false)?;
 
         assert!(v1 < v2);
         assert!(v2 < v3);
@@ -419,5 +420,6 @@ mod tests {
         versions.sort();
 
         assert_eq!(versions, vec![v1, v2, v3, v4, v5, v6, v7, v8]);
+        Ok(())
     }
 }

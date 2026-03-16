@@ -1,5 +1,5 @@
 use crate::download_client::DownloadClient;
-use crate::godot::{godot_executable_path, godot_installation_name};
+use crate::godot::{extracted_godot_executable_path, godot_installation_name};
 use crate::logging::spinner_style;
 use crate::{config::Config, godot_version::GodotVersion};
 use anyhow::{Result, anyhow, bail};
@@ -8,6 +8,7 @@ use std::path::{Path, PathBuf};
 use tracing::instrument;
 use tracing_indicatif::span_ext::IndicatifSpanExt;
 
+/// Returns the path to the installed Godot executable.
 pub async fn ensure_installed<D: DownloadClient>(
     config: &Config,
     version: &GodotVersion,
@@ -25,7 +26,7 @@ pub async fn ensure_installed<D: DownloadClient>(
     let release = releases
         .iter()
         .find(|r| r.version == *version)
-        .ok_or_else(|| anyhow!("Version {} not found", version))?;
+        .ok_or_else(|| anyhow!("Godot Version {} not found in available releases", version))?;
 
     let asset = release.find_godot_asset(version.is_dotnet, &config.os, &config.arch)?;
 
@@ -39,6 +40,7 @@ pub async fn ensure_installed<D: DownloadClient>(
     install_version_from_archive(config, version, &cache_path).await
 }
 
+/// Returns the path to the installed Godot executable.
 #[instrument(skip_all)]
 pub async fn install_version_from_archive(
     config: &Config,
@@ -54,12 +56,12 @@ pub async fn install_version_from_archive(
         .installations_dir
         .join(godot_installation_name(version));
 
-    // Remove existing installation if it exists
+    // Remove the existing installation if it exists
     if install_path.exists() {
         fs::remove_dir_all(&install_path)?;
     }
 
-    // Create installation directory
+    // Create the installation directory
     fs::create_dir_all(&install_path)?;
 
     tracing::debug!("Extracting archive...");
@@ -69,7 +71,7 @@ pub async fn install_version_from_archive(
     #[cfg(unix)]
     make_executable(&install_path)?;
 
-    Ok(install_path)
+    find_godot_executable(&install_path, version, &config.os, &config.arch)
 }
 
 fn extract_zip(archive_path: &Path, destination: &Path) -> Result<()> {
@@ -182,7 +184,7 @@ fn find_godot_executable(
     arch: &str,
 ) -> Result<PathBuf> {
     // First try the expected path based on version info
-    let expected_path = godot_executable_path(version, os, arch);
+    let expected_path = extracted_godot_executable_path(version, os, arch);
     let expected_exe = install_path.join(&expected_path);
 
     if expected_exe.exists() && expected_exe.is_file() {
@@ -234,9 +236,7 @@ fn find_godot_executable(
         }
     }
 
-    Err(anyhow::anyhow!(
-        "Could not find Godot executable in installation"
-    ))
+    bail!("Could not find Godot executable in installation")
 }
 
 pub fn get_active_version(config: &Config) -> Result<Option<GodotVersion>> {
@@ -252,11 +252,7 @@ pub fn get_active_version(config: &Config) -> Result<Option<GodotVersion>> {
         && let Some(version_part) = dir_name.strip_prefix("godot-")
     {
         let is_dotnet = version_part.ends_with("-dotnet");
-        let version_str = if is_dotnet {
-            version_part.strip_suffix("-dotnet").unwrap()
-        } else {
-            version_part
-        };
+        let version_str = version_part.strip_suffix("-dotnet").unwrap_or(version_part);
 
         if let Ok(version) = GodotVersion::new(version_str, is_dotnet) {
             return Ok(Some(version));
@@ -283,11 +279,7 @@ pub fn list_installed(config: &Config) -> Result<Vec<GodotVersion>> {
             && let Some(version_part) = dir_name.strip_prefix("godot-")
         {
             let is_dotnet = version_part.ends_with("-dotnet");
-            let version_str = if is_dotnet {
-                version_part.strip_suffix("-dotnet").unwrap()
-            } else {
-                version_part
-            };
+            let version_str = version_part.strip_suffix("-dotnet").unwrap_or(version_part);
 
             if let Ok(version) = GodotVersion::new(version_str, is_dotnet) {
                 versions.push(version);
@@ -344,11 +336,10 @@ mod tests {
     use super::*;
     use crate::test_helpers::mock_download_client::MockDownloadClient;
     use std::fs::File;
-    use tempdir::TempDir;
 
     #[tokio::test]
     async fn test_installation_lifecycle() -> Result<()> {
-        let tmp_dir = TempDir::new("gdenv-test")?;
+        let tmp_dir = tempfile::Builder::new().prefix("gdenv-test").tempdir()?;
         let config = Config::setup(Some(tmp_dir.path()))?;
         let config = Config {
             os: "linux".to_string(),
@@ -372,7 +363,7 @@ mod tests {
 
     #[test]
     fn test_update_symlink_create_new() -> Result<()> {
-        let tmp_dir = TempDir::new("gdenv-test")?;
+        let tmp_dir = tempfile::Builder::new().prefix("gdenv-test").tempdir()?;
         let dir = tmp_dir.path();
 
         let original = dir.join("original");
@@ -394,7 +385,7 @@ mod tests {
 
     #[test]
     fn test_update_symlink_no_overwrite_regular_file() -> Result<()> {
-        let tmp_dir = TempDir::new("gdenv-test")?;
+        let tmp_dir = tempfile::Builder::new().prefix("gdenv-test").tempdir()?;
         let dir = tmp_dir.path();
 
         let original = dir.join("original");
@@ -413,7 +404,7 @@ mod tests {
 
     #[test]
     fn test_update_symlink_replace_existing() -> Result<()> {
-        let tmp_dir = TempDir::new("gdenv-test")?;
+        let tmp_dir = tempfile::Builder::new().prefix("gdenv-test").tempdir()?;
         let dir = tmp_dir.path();
 
         let original = dir.join("original");

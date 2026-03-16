@@ -1,0 +1,11 @@
+[godot]
+version = "4.2.1-stable"
+dotnet = false
+project_dir = "godot"
+
+[gdextension.config.Rust]
+cargo_crate_path = "rust"
+config_name = "other"
+compatability_version = "4.2"
+entry_symbol = "my_entry_symbol"
+reloadable = true
