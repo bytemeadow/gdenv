@@ -24,7 +24,7 @@ concurrency:
 
 jobs:
   audit:
-    runs-on: blaze/ubuntu-latest
+    runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v4
