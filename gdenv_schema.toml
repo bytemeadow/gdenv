@@ -1,0 +1,88 @@
+# The Godot project management file: `gdenv.toml`
+# The following sections are available:
+
+# --------------------------------------------------------------------------------
+# Describes the Godot project.
+# Required.
+[godot]
+
+# Godot version to use when running the project.
+# Required.
+version = "4.6.0-stable"
+
+# Whether to use the .NET version of Godot. Optional.
+#dotnet = false
+
+# Path to the Godot project directory. Optional. Example: "./godot"
+#project_dir = "."
+
+# Additional arguments to pass to the Godot executable. Optional.
+# Example: ["--debug", "--no-window", "--headless"]
+#run_args = []
+
+# Additional arguments to pass to Godot when launching in editor mode. Optional.
+# Example: ["--debug", "--no-window", "--headless"]
+#editor_args = []
+
+# Before opening the project, run the editor in headless import mode
+# to import the project when the `.godot` folder doesn't yet exist.
+# Useful when opening newly Git cloned projects. Optional.
+#pre_import = true
+
+# --------------------------------------------------------------------------------
+# Describes how one-or-more gdextension files should be generated.
+# The <name> field is only for your convenience.
+# The gdextension file can be generated for various project <type>s, covered below.
+# More project types can be added in the future. Optional.
+[gdextension.<name>.<type>]
+
+# Generate a gdextension file for a rust project.
+[gdextension.<name>.Rust]
+
+# Path to the folder containing Cargo.toml. Used to find Cargo's build target directory. Required.
+# Example: "./rust"
+cargo_crate_path = "."
+
+# File name for the gdextension config: `<config_name>.gdextension`. Optional.
+#config_name = "rust"
+
+# GdExtension API version compatability. Optional.
+#compatability_version = 4.1
+
+# GdExtension entry symbol for the shared library. Optional.
+#entry_symbol = "gdext_rust_init"
+
+# Is the shared library hot reloadable? Optional.
+#reloadable = false
+
+# --------------------------------------------------------------------------------
+# Describes how one-or-more Godot addons should be synchronized.
+# The <name> field determines the addon's default directory name,
+# e.g. `addons/<name>/...files...`. Optional.
+[addon.<name>]
+
+# Paths to include from the addon's source directory. Optional.
+#include = []
+
+# Paths to exclude from the addon's source directory. Optional.
+#exclude = []
+
+# Path relative to project_dir to place addon files.
+# Defaults to <godot_project_dir>/addons/<addon_name>.
+#destination = "./custom/location"
+
+# -- Git repository specific addon fields:
+
+# Git repository URL. Required.
+#git = "https://github.com/bytemeadow/gdenv.git"
+
+# Git reference to 'checkout' (branch, tag, commit hash, etc). Optional.
+#rev = "main"
+
+# Sub-directory, relative to the repository root, to source the addon files from. Optional.
+#subdir = ""
+
+# -- Local directory specific addon fields:
+
+# Path to the directory whose contents will be copied to the destination directory. Required.
+#path = "/path/to/local/addon"

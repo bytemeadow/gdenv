@@ -18,7 +18,7 @@ pub async fn sync_addons<G: GitClient>(
             AddonSource::Git(git) => {
                 sync_git_addon(
                     git_client,
-                    &working_dir.join(&project_spec.project_dir),
+                    &working_dir.join(&project_spec.godot_project_dir),
                     &addon_name,
                     &addon_spec,
                     git,
@@ -26,7 +26,7 @@ pub async fn sync_addons<G: GitClient>(
                 .await?
             }
             AddonSource::Local(local) => sync_local_addon(
-                &working_dir.join(&project_spec.project_dir),
+                &working_dir.join(&project_spec.godot_project_dir),
                 &addon_name,
                 &addon_spec,
                 local,
@@ -120,8 +120,8 @@ mod tests {
     use crate::config::Config;
     use crate::project_specification::load_godot_project_spec;
     use crate::test_helpers::mock_git_client::MockGitClient;
+    use anyhow::bail;
     use std::fs;
-    use tempdir::TempDir;
 
     #[tokio::test]
     async fn test_sync_local_path_addons() -> Result<()> {
@@ -130,8 +130,10 @@ mod tests {
             .with_test_writer()
             .try_init();
 
-        let tmp_dir = TempDir::new("gdenv-test")?;
-        let tmp_data_dir = TempDir::new("gdenv-test-data-dir")?;
+        let tmp_dir = tempfile::Builder::new().prefix("gdenv-test").tempdir()?;
+        let tmp_data_dir = tempfile::Builder::new()
+            .prefix("gdenv-test-data-dir")
+            .tempdir()?;
         let version_file = tmp_dir.path().join("gdenv.toml");
         let config = Config::setup(Some(&tmp_data_dir.path()))?;
         let git_client = MockGitClient::new(config);
@@ -157,7 +159,8 @@ path = {}
         );
 
         fs::write(&version_file, &str_spec_v1)?;
-        let project_spec = load_godot_project_spec(tmp_dir.path())?;
+        let project_spec =
+            load_godot_project_spec(tmp_dir.path(), |_| bail!("Test lambda not implemented."))?;
         sync_addons(project_spec, tmp_dir.path(), &git_client).await?;
 
         assert!(
@@ -191,7 +194,8 @@ path = {}
             toml::Value::String(test_addon2_path.to_string_lossy().to_string()),
         );
         fs::write(&version_file, &str_spec_v2)?;
-        let project_spec = load_godot_project_spec(tmp_dir.path())?;
+        let project_spec =
+            load_godot_project_spec(tmp_dir.path(), |_| bail!("Test lambda not implemented."))?;
         sync_addons(project_spec, tmp_dir.path(), &git_client).await?;
 
         assert!(
@@ -218,8 +222,10 @@ path = {}
             .with_test_writer()
             .try_init();
 
-        let tmp_dir = TempDir::new("gdenv-test")?;
-        let tmp_data_dir = TempDir::new("gdenv-test-data-dir")?;
+        let tmp_dir = tempfile::Builder::new().prefix("gdenv-test").tempdir()?;
+        let tmp_data_dir = tempfile::Builder::new()
+            .prefix("gdenv-test-data-dir")
+            .tempdir()?;
         let version_file = tmp_dir.path().join("gdenv.toml");
         let config = Config::setup(Some(&tmp_data_dir.path()))?;
         let git_client = MockGitClient::new(config);
@@ -236,7 +242,8 @@ destination = "addons/test-addon1/subfolder"
         "#;
 
         fs::write(&version_file, &str_spec_v1)?;
-        let project_spec = load_godot_project_spec(tmp_dir.path())?;
+        let project_spec =
+            load_godot_project_spec(tmp_dir.path(), |_| bail!("Test lambda not implemented."))?;
         sync_addons(project_spec, tmp_dir.path(), &git_client).await?;
 
         assert!(

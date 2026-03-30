@@ -16,7 +16,8 @@ _Inspired by [xcodes](https://github.com/XcodesOrg/xcodes) and built with ❤️
 
 <br style="display: none;"/>
 
-_Special thanks to [Blaze](https://runblaze.dev) for their support of this project. They provide high-performance Linux (AMD64 & ARM64) and Apple Silicon macOS runners for GitHub Actions, greatly reducing our automated build times._
+_Special thanks to [Blaze](https://runblaze.dev) for their support of this project. They provide high-performance
+Linux (AMD64 & ARM64) and Apple Silicon macOS runners for GitHub Actions, greatly reducing our automated build times._
 
 </div>
 
@@ -31,12 +32,15 @@ A beautiful terminal tool for managing Godot installations
 Usage: gdenv [OPTIONS] <COMMAND>
 
 Commands:
-  run    Invoke Godot for the current project
-  godot  Manage Godot versions
-  help   Print this message or the help of the given subcommand(s)
+  run     Invoke Godot for the current project
+  editor  Open the Godot editor for the current project
+  sync    Synchronize Godot addons with the project's configuration file
+  godot   Manage Godot versions
+  help    Print this message or the help of the given subcommand(s)
 
 Options:
   -p, --project <PROJECT>  Path to a gdenv managed project (defaults to current directory)
+      --datadir <DATADIR>  Use a different location for gdenv's data, where downloads and installations are kept (useful for testing)
   -h, --help               Print help
   -V, --version            Print version
 ```
@@ -59,6 +63,7 @@ Commands:
 
 Options:
   -p, --project <PROJECT>  Path to a gdenv managed project (defaults to current directory)
+      --datadir <DATADIR>  Use a different location for gdenv's data, where downloads and installations are kept (useful for testing)
   -h, --help               Print help
 ```
 
@@ -101,18 +106,48 @@ gdenv install --latest-prerelease
 
 gdenv will download and install the version you asked for so that it's ready to use.
 
-## .godot-version
+## Project configuration: `gdenv.toml`
 
-We recommend creating a `.godot-version` file to explicitly declare the Godot version for your project:
+A `gdenv.toml` file is used to configure various aspects about a Godot project
+such as the Godot version to launch with, Godot addons to synchronize, and GdExtension files to generate.
+Gdenv will look for this file in the current directory and all parent directories.
+
+Example `gdenv.toml` file:
+
+```toml
+[godot]
+version = "4.6.0-stable"
+project_dir = "godot"
+
+[gdextension.1.Rust]
+cargo_crate_path = "rust"
+
+[addon.godot-bevy]
+git = "https://github.com/bytemeadow/godot-bevy"
+rev = "v0.10.0"
+subdir = "addons/godot-bevy"
+```
+
+For the full list of parameters, see [gdenv_schema.toml](gdenv_schema.toml).
+Gdenv can output the full list of parameters with `gdenv schema` for easy CLI reference.
+
+## Godot version environment: `.godot-version`
+
+An alternative to `gdenv.toml` is to use the much simpler `.godot-version` file.
+The file contains only a Godot version string.
+`gdenv` will use this version for all commands that require a Godot version unless otherwise specified.
+
+Example `.godot-version` file:
 
 ```txt
-4.4.1
+4.4.1-stable
 ```
 
 Then run:
+
 ```bash
-gdenv install  # Installs 4.2.1
-gdenv use      # Switches to 4.2.1
+gdenv install  # Installs 4.4.1-stable
+gdenv use      # Switches to 4.4.1-stable
 ```
 
 ## GitHub Action

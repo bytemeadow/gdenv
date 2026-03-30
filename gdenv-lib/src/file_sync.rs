@@ -137,7 +137,6 @@ mod tests {
     use super::*;
     use std::fs;
     use std::path::PathBuf;
-    use tempdir::TempDir;
 
     #[test]
     fn test_filter_file_list() {
@@ -206,7 +205,9 @@ mod tests {
 
     #[test]
     fn test_get_file_list() -> anyhow::Result<()> {
-        let tmp_dir = TempDir::new("get_file_list_test")?;
+        let tmp_dir = tempfile::Builder::new()
+            .prefix("get_file_list_test")
+            .tempdir()?;
         let base = tmp_dir.path();
 
         // Create a structure:
@@ -232,19 +233,19 @@ mod tests {
         let f1 = list
             .iter()
             .find(|e| e.rel_path == PathBuf::from("file1.txt"))
-            .unwrap();
+            .ok_or(anyhow::anyhow!("File not found"))?;
         let f1_copy = list
             .iter()
             .find(|e| e.rel_path == PathBuf::from("file1_copy.txt"))
-            .unwrap();
+            .ok_or(anyhow::anyhow!("File not found"))?;
         let f2 = list
             .iter()
             .find(|e| e.rel_path == PathBuf::from("dir1/file2.txt"))
-            .unwrap();
+            .ok_or(anyhow::anyhow!("File not found"))?;
         let d1 = list
             .iter()
             .find(|e| e.rel_path == PathBuf::from("dir1"))
-            .unwrap();
+            .ok_or(anyhow::anyhow!("File not found"))?;
 
         // Verify hashes for identical files are equal
         assert_eq!(
@@ -280,7 +281,7 @@ mod tests {
         let test_addon1v2_path: PathBuf = [manifest_dir, "test-data", "test-addon1v2-repo"]
             .iter()
             .collect();
-        let tmp_dir = TempDir::new("gdenv-test")?;
+        let tmp_dir = tempfile::Builder::new().prefix("gdenv-test").tempdir()?;
 
         tracing::info!(
             "Syncing {} to {}",

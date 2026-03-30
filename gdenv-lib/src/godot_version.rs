@@ -218,31 +218,32 @@ pub fn version_buffet(all_releases: &[GodotVersion]) -> Vec<&GodotVersion> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use anyhow::Result;
 
     #[test]
-    fn test_version_parsing() {
+    fn test_version_parsing() -> Result<()> {
         // Test stable versions
-        let v1 = GodotVersion::new("4.2.1", false).unwrap();
+        let v1 = GodotVersion::new("4.2.1", false)?;
         assert_eq!(v1.as_godot_version_str(), "4.2.1-stable");
         assert!(!v1.is_prerelease());
 
         // Test stable with suffix
-        let v2 = GodotVersion::new("4.2.1-stable", false).unwrap();
+        let v2 = GodotVersion::new("4.2.1-stable", false)?;
         assert_eq!(v2.as_godot_version_str(), "4.2.1-stable");
         assert!(!v2.is_prerelease());
 
         // Test beta versions
-        let v3 = GodotVersion::new("4.3.0-beta2", false).unwrap();
+        let v3 = GodotVersion::new("4.3.0-beta2", false)?;
         assert_eq!(v3.as_godot_version_str(), "4.3-beta2");
         assert!(v3.is_prerelease());
 
         // Test rc versions
-        let v4 = GodotVersion::new("4.1.0-rc.1", false).unwrap();
+        let v4 = GodotVersion::new("4.1.0-rc.1", false)?;
         assert_eq!(v4.as_godot_version_str(), "4.1-rc.1");
         assert!(v4.is_prerelease());
 
         // Test four part version
-        let v7 = GodotVersion::new("4.3.0.1", false).unwrap();
+        let v7 = GodotVersion::new("4.3.0.1", false)?;
         assert_eq!(v7.as_godot_version_str(), "4.3.0.1-stable");
         assert_eq!(v7.major, 4);
         assert_eq!(v7.minor, Some(3));
@@ -250,7 +251,7 @@ mod tests {
         assert_eq!(v7.sub_patch, Some(1));
 
         // Test extra info
-        let v8 = GodotVersion::new("4.4.stable.official.8981fd6c1", false).unwrap();
+        let v8 = GodotVersion::new("4.4.stable.official.8981fd6c1", false)?;
         assert_eq!(
             v8.as_godot_version_str(),
             "4.4-stable.stable.official.8981fd6c1"
@@ -258,24 +259,26 @@ mod tests {
         assert_eq!(v8.extra, Some(".stable.official.8981fd6c1".to_string()));
 
         // Test short prerelease versions like "4.5-beta1"
-        let v6 = GodotVersion::new("4.5-beta1", false).unwrap();
+        let v6 = GodotVersion::new("4.5-beta1", false)?;
         assert_eq!(v6.as_godot_version_str(), "4.5-beta1");
         assert!(v6.is_prerelease());
+        Ok(())
     }
 
     #[test]
-    fn test_version_comparison() {
-        let v1 = GodotVersion::new("4.2", false).unwrap();
-        let v2 = GodotVersion::new("4.2.0-stable", false).unwrap();
-        let v3 = GodotVersion::new("4.2.1-rc5", false).unwrap();
-        let v4 = GodotVersion::new("4.2.1-rc5", false).unwrap();
+    fn test_version_comparison() -> Result<()> {
+        let v1 = GodotVersion::new("4.2", false)?;
+        let v2 = GodotVersion::new("4.2.0-stable", false)?;
+        let v3 = GodotVersion::new("4.2.1-rc5", false)?;
+        let v4 = GodotVersion::new("4.2.1-rc5", false)?;
         assert!(v1.cmp(&v2).is_eq());
         assert!(v2.cmp(&v3).is_lt());
         assert!(v3.cmp(&v4).is_eq());
+        Ok(())
     }
 
     #[test]
-    fn test_version_buffet() {
+    fn test_version_buffet() -> Result<()> {
         let releases: Vec<GodotVersion> = [
             "4.5-beta7",
             "4.5-rc1",
@@ -301,13 +304,8 @@ mod tests {
             "4.7-dev1",
         ]
         .iter()
-        .flat_map(|s| {
-            [
-                GodotVersion::new(s, false).unwrap(),
-                GodotVersion::new(s, true).unwrap(),
-            ]
-        })
-        .collect();
+        .flat_map(|s| [GodotVersion::new(s, false), GodotVersion::new(s, true)])
+        .collect::<Result<Vec<_>>>()?;
 
         let expected: Vec<GodotVersion> = [
             "4.5.1-stable",
@@ -317,8 +315,8 @@ mod tests {
             "4.7-dev1",
         ]
         .iter()
-        .map(|s| GodotVersion::new(s, false).unwrap())
-        .collect::<Vec<_>>();
+        .map(|s| GodotVersion::new(s, false))
+        .collect::<Result<Vec<_>>>()?;
 
         let buffet = version_buffet(&releases);
         tracing::info!(
@@ -331,5 +329,6 @@ mod tests {
             .iter()
             .zip(expected)
             .for_each(|(v1, v2)| assert_eq!(**v1, v2));
+        Ok(())
     }
 }
