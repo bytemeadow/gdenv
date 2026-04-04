@@ -124,7 +124,13 @@ impl<D: DownloadClient> GodotRunner<D> {
 
         let mut command_chain = CommandChain::new();
 
-        if self.pre_import && !project_spec.godot_project_dir.join(".godot").exists() {
+        if self.pre_import
+            && project_spec
+                .godot_project_dir
+                .join("project.godot")
+                .exists()
+            && !project_spec.godot_project_dir.join(".godot").exists()
+        {
             let failure_message = "Possible cause: Known bug in Godot 4.5.1: \"Headless import of project with GDExtensions crashes\"\n\
                 See: https://github.com/godotengine/godot/issues/111645\n\
                 Try re-running if `.godot` folder was generated successfully.";
