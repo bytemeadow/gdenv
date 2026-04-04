@@ -26,6 +26,8 @@ pub enum ProjectSpecError {
 /// Godot configuration project specification
 #[derive(Debug, Eq, PartialEq, Clone)]
 pub struct ProjectSpecification {
+    /// Path to the project specification file.
+    pub spec_file_path: Option<PathBuf>,
     /// Godot version to use when running the project.
     pub godot_version: GodotVersion,
     /// Path to the Godot project directory.
@@ -254,6 +256,7 @@ pub fn load_godot_project_spec<P: CargoInfoProvider>(
             ))?;
             let project_dir = spec.godot.project_dir.unwrap_or(PathBuf::from("."));
             Ok(ProjectSpecification {
+                spec_file_path: Some(path.clone()),
                 godot_version: GodotVersion::new(
                     &spec.godot.version,
                     spec.godot.dotnet.unwrap_or(false),
@@ -263,7 +266,7 @@ pub fn load_godot_project_spec<P: CargoInfoProvider>(
                 editor_args: spec.godot.editor_args.unwrap_or_default(),
                 pre_import: spec.godot.pre_import.unwrap_or(true),
                 gdextension: gdextension_generator_to_config(
-                    start_path,
+                    path.parent().unwrap_or(start_path),
                     spec.gdextension.unwrap_or_default(),
                     &project_dir,
                     cargo_target_path_provider,
@@ -272,13 +275,14 @@ pub fn load_godot_project_spec<P: CargoInfoProvider>(
             })
         }
         SpecFileType::Version(path) => {
-            let file_content = fs::read_to_string(path)?;
+            let file_content = fs::read_to_string(&path)?;
             let mut version_str = file_content.trim().split(' ');
             let version = version_str
                 .next()
                 .context("No version specified in .godot-version file.")?;
             let dotnet = version_str.next().unwrap_or("");
             Ok(ProjectSpecification {
+                spec_file_path: Some(path),
                 godot_version: GodotVersion::new(version, dotnet == "dotnet" || dotnet == "mono")?,
                 godot_project_dir: PathBuf::from("."),
                 run_args: vec![],
@@ -409,13 +413,14 @@ include = ["addons/gdUnit4"]
 [addon.local-project]
 path = "../local-project"
         "#;
-        fs::write(version_file, str_spec)?;
+        fs::write(&version_file, str_spec)?;
         let cargo_info = CargoInfo {
             crate_name: "my_gdextension".to_string(),
             target_dir: PathBuf::from("/home/user/.cache/cargo/target"),
         };
         let spec = load_godot_project_spec(tmp_dir.path(), |_| Ok(cargo_info.clone()))?;
         let expected_spec = ProjectSpecification {
+            spec_file_path: Some(version_file),
             godot_version: GodotVersion::new("4.6.0", true)?,
             godot_project_dir: PathBuf::from("./godot"),
             run_args: vec!["arg1".to_string(), "arg2".to_string()],

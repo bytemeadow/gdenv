@@ -66,6 +66,7 @@ impl<D: DownloadClient> GodotRunner<D> {
             |error| -> Result<ProjectSpecification> {
                 match error {
                     ProjectSpecError::NotFound => Ok(ProjectSpecification {
+                        spec_file_path: None,
                         godot_version: self.godot_version.clone().context(
                             "No Godot version specified and no configuration file found.",
                         )?,
@@ -80,7 +81,16 @@ impl<D: DownloadClient> GodotRunner<D> {
                 }
             },
         )?;
+
+        // Use the project spec root as the working directory when available.
+        let project_working_dir = spec_from_file
+            .spec_file_path
+            .as_deref()
+            .and_then(|path| path.parent())
+            .unwrap_or(working_dir);
+
         let project_spec = ProjectSpecification {
+            spec_file_path: spec_from_file.spec_file_path.clone(),
             godot_version: self
                 .godot_version
                 .clone()
@@ -93,13 +103,13 @@ impl<D: DownloadClient> GodotRunner<D> {
                 .godot_project_path
                 .clone()
                 .unwrap_or(spec_from_file.godot_project_dir)
-                .to_absolute(working_dir)?,
+                .to_absolute(project_working_dir)?,
             ..spec_from_file
         };
 
         for (name, generator) in project_spec.gdextension {
             generator
-                .build(working_dir)
+                .build(project_working_dir)
                 .context(format!("Failed to build GDExtension file: {}", name))?
                 .write()?;
         }
@@ -223,9 +233,45 @@ mod tests {
     use anyhow::Result;
     use std::fs;
     use std::path::Path;
+    use tempfile::TempDir;
 
     #[tokio::test]
-    async fn test_create() -> Result<()> {
+    async fn test_create_from_project_root() -> Result<()> {
+        let (tmp_dir, project_dir, godot_project_dir, config, runner) = initialize_project()?;
+        let command_chain = runner.build_at(&project_dir).await?;
+        verify_project(
+            tmp_dir,
+            project_dir,
+            godot_project_dir,
+            &config,
+            command_chain,
+        )?;
+        Ok(())
+    }
+
+    /// Verify that running gdenv from a subdirectory within a gdenv.toml project uses
+    /// gdenv.toml's location as the working directory.
+    #[tokio::test]
+    async fn test_create_from_sub_directory() -> Result<()> {
+        let (tmp_dir, project_dir, godot_project_dir, config, runner) = initialize_project()?;
+        let command_chain = runner.build_at(&godot_project_dir).await?;
+        verify_project(
+            tmp_dir,
+            project_dir,
+            godot_project_dir,
+            &config,
+            command_chain,
+        )?;
+        Ok(())
+    }
+
+    fn initialize_project() -> Result<(
+        TempDir,
+        PathBuf,
+        PathBuf,
+        Config,
+        GodotRunner<MockDownloadClient>,
+    )> {
         let tmp_dir = tempfile::Builder::new().prefix("gdenv-lib").tempdir()?;
         let data_dir = tmp_dir.path().join("data");
         let project_dir = tmp_dir.path().join("project");
@@ -238,9 +284,16 @@ mod tests {
         let runner = GodotRunner::default()
             .config(Some(config.clone()))
             .download_client(Some(MockDownloadClient));
+        Ok((tmp_dir, project_dir, godot_project_dir, config, runner))
+    }
 
-        let command_chain = runner.build_at(&project_dir).await?;
-
+    fn verify_project(
+        _tmp_dir: TempDir,
+        _project_dir: PathBuf,
+        godot_project_dir: PathBuf,
+        config: &Config,
+        command_chain: CommandChain,
+    ) -> Result<()> {
         assert_eq!(command_chain.commands().len(), 2);
         assert_eq!(
             command_chain.commands()[0].executable.canonicalize()?,
