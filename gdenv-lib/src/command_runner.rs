@@ -20,10 +20,17 @@ pub struct CommandChain {
 impl Command {
     fn execute(&self) -> Result<()> {
         let mut command = std::process::Command::new(&self.executable);
+        command.current_dir(&self.working_dir).args(&self.args);
+
+        if !self.working_dir.exists() {
+            bail!(
+                "Can't execute command: {:?}\n    Reason: Working directory does not exist: {:?}",
+                command,
+                self.working_dir
+            );
+        }
 
         let status = command
-            .current_dir(&self.working_dir)
-            .args(&self.args)
             .spawn()
             .with_context(|| format!("Failed to spawn process: {:?}", command))?
             .wait()
