@@ -73,5 +73,5 @@ tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 tracing-indicatif = "0.3"
 
 # TOML serialization
-toml = "1.0"
+toml = "1.1"
 documented = "0.9"
