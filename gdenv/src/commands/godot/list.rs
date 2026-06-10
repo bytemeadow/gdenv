@@ -5,9 +5,10 @@ use clap::Args;
 use colored::Colorize;
 use gdenv_lib::config::Config;
 use gdenv_lib::download_client::DownloadClient;
-use gdenv_lib::github::GitHubClient;
+use gdenv_lib::github::{CACHE_VALIDITY_DAYS, GitHubClient};
 use gdenv_lib::godot_version::{GodotVersion, version_buffet};
 use gdenv_lib::installer;
+use std::io::{self, Write};
 
 #[derive(Args)]
 pub struct ListCommand {
@@ -23,7 +24,23 @@ impl ListCommand {
     pub async fn run(self, global_args: GlobalArgs) -> Result<()> {
         let config = Config::setup(global_args.datadir.as_deref())?;
         let github_client = GitHubClient::new(config.clone());
-        let all_releases = github_client.godot_releases(false).await?;
+
+        let mut force_refresh = false;
+        if github_client.is_cache_stale() {
+            ui::question(&format!(
+                "GitHub release cache is more than {} days old. Refresh? [Y/n]: ",
+                CACHE_VALIDITY_DAYS
+            ));
+            io::stdout().flush()?;
+            let mut input = String::new();
+            io::stdin().read_line(&mut input)?;
+            let input = input.trim().to_lowercase();
+            if input.is_empty() || input == "y" || input == "yes" {
+                force_refresh = true;
+            }
+        }
+
+        let all_releases = github_client.godot_releases(force_refresh, true).await?;
         let installed = installer::list_installed(&config)?;
         let active_version = installer::get_active_version(&config)?;
         let all_versions: Vec<GodotVersion> = all_releases

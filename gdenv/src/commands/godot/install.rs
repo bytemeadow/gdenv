@@ -86,7 +86,7 @@ impl InstallCommand {
     ) -> Result<ProjectSpecification> {
         // Fetch available releases from GitHub first (needed for --latest flags)
         let release_versions = github_client
-            .godot_releases(false)
+            .godot_releases(false, true)
             .await?
             .iter()
             .map(|release| release.version.clone())

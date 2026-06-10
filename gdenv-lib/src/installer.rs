@@ -20,7 +20,7 @@ pub async fn ensure_installed<D: DownloadClient>(
     }
 
     // 1. Fetch releases
-    let releases = download_client.godot_releases(false).await?;
+    let releases = download_client.godot_releases(false, false).await?;
 
     // 2. Find release & asset
     let release = releases

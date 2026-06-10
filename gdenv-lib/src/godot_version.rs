@@ -157,6 +157,7 @@ impl Ord for GodotVersion {
                     .unwrap_or(0)
                     .cmp(&other.tag_version.unwrap_or(0)),
             )
+            .then(self.is_dotnet.cmp(&other.is_dotnet))
             .then(self.extra.cmp(&other.extra))
     }
 }
