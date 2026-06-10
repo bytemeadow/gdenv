@@ -10,7 +10,6 @@ use std::path::Path;
 #[allow(dead_code)]
 pub async fn sync_addons<G: GitClient>(
     project_spec: ProjectSpecification,
-    working_dir: &Path,
     git_client: &G,
 ) -> Result<()> {
     for (addon_name, addon_spec) in project_spec.addons {
@@ -18,7 +17,9 @@ pub async fn sync_addons<G: GitClient>(
             AddonSource::Git(git) => {
                 sync_git_addon(
                     git_client,
-                    &working_dir.join(&project_spec.godot_project_dir),
+                    &project_spec
+                        .project_root_dir
+                        .join(&project_spec.godot_project_dir),
                     &addon_name,
                     &addon_spec,
                     git,
@@ -26,7 +27,9 @@ pub async fn sync_addons<G: GitClient>(
                 .await?
             }
             AddonSource::Local(local) => sync_local_addon(
-                &working_dir.join(&project_spec.godot_project_dir),
+                &project_spec
+                    .project_root_dir
+                    .join(&project_spec.godot_project_dir),
                 &addon_name,
                 &addon_spec,
                 local,
@@ -161,7 +164,7 @@ path = {}
         fs::write(&version_file, &str_spec_v1)?;
         let project_spec =
             load_godot_project_spec(tmp_dir.path(), |_| bail!("Test lambda not implemented."))?;
-        sync_addons(project_spec, tmp_dir.path(), &git_client).await?;
+        sync_addons(project_spec, &git_client).await?;
 
         assert!(
             tmp_dir
@@ -196,7 +199,7 @@ path = {}
         fs::write(&version_file, &str_spec_v2)?;
         let project_spec =
             load_godot_project_spec(tmp_dir.path(), |_| bail!("Test lambda not implemented."))?;
-        sync_addons(project_spec, tmp_dir.path(), &git_client).await?;
+        sync_addons(project_spec, &git_client).await?;
 
         assert!(
             tmp_dir
@@ -244,7 +247,7 @@ destination = "addons/test-addon1/subfolder"
         fs::write(&version_file, &str_spec_v1)?;
         let project_spec =
             load_godot_project_spec(tmp_dir.path(), |_| bail!("Test lambda not implemented."))?;
-        sync_addons(project_spec, tmp_dir.path(), &git_client).await?;
+        sync_addons(project_spec, &git_client).await?;
 
         assert!(
             tmp_dir
@@ -253,6 +256,63 @@ destination = "addons/test-addon1/subfolder"
                 .exists()
         );
         assert!(!tmp_dir.path().join("file-not-part-of-addon.txt").exists());
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_sync_from_subdirectory() -> Result<()> {
+        let _ = tracing_subscriber::fmt()
+            .with_env_filter("debug")
+            .with_test_writer()
+            .try_init();
+
+        let tmp_dir = tempfile::Builder::new()
+            .prefix("gdenv-test-sub")
+            .tempdir()?;
+        let project_dir = tmp_dir.path().join("project");
+        fs::create_dir_all(&project_dir)?;
+
+        let sub_dir = project_dir.join("sub");
+        fs::create_dir_all(&sub_dir)?;
+
+        let tmp_data_dir = tempfile::Builder::new()
+            .prefix("gdenv-test-data-dir")
+            .tempdir()?;
+        let config = Config::setup(Some(&tmp_data_dir.path()))?;
+        let git_client = MockGitClient::new(config);
+
+        let test_data_dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("test-data");
+        let test_addon_source = test_data_dir.join("test-addon2-repo/addons/test-addon2");
+
+        // gdenv.toml in project_dir
+        let gdenv_toml = project_dir.join("gdenv.toml");
+        let str_spec = format!(
+            r#"
+[godot]
+version = "4.6.0-stable"
+
+[addon.test-addon2]
+path = {}
+        "#,
+            toml::Value::String(test_addon_source.to_string_lossy().to_string()),
+        );
+        fs::write(&gdenv_toml, &str_spec)?;
+
+        // Load spec from project_dir
+        let project_spec =
+            load_godot_project_spec(&project_dir, |_| bail!("Test lambda not implemented."))?;
+
+        // Try to sync using sub_dir as working_dir
+        // This should fail or place things in the wrong place currently
+        sync_addons(project_spec, &git_client).await?;
+
+        // It should be in project_dir/addons/test-addon2/plugin.cfg
+        // because gdenv.toml is in project_dir
+        assert!(
+            project_dir.join("addons/test-addon2/plugin.cfg").exists(),
+            "Addon should be placed relative to gdenv.toml, not current working directory"
+        );
+
         Ok(())
     }
 }
