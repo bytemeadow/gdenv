@@ -13,6 +13,18 @@ pub async fn sync_addons<G: GitClient>(
     git_client: &G,
 ) -> Result<()> {
     for (addon_name, addon_spec) in project_spec.addons {
+        let project_dir = project_spec
+            .project_root_dir
+            .join(&project_spec.godot_project_dir);
+
+        let dest_base = if let Some(destination) = &addon_spec.destination {
+            project_dir.join(destination)
+        } else {
+            project_dir.join("addons").join(&addon_name)
+        };
+
+        tracing::info!("Syncing addon \"{}\" to {:?}", addon_name, dest_base);
+
         match &addon_spec.source {
             AddonSource::Git(git) => {
                 sync_git_addon(
