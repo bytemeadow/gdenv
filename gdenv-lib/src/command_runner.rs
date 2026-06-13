@@ -5,6 +5,7 @@ use anyhow::{Context, bail};
 use std::fmt::{Display, Formatter};
 use std::path::PathBuf;
 
+#[derive(Clone, Debug)]
 pub struct Command {
     pub executable: PathBuf,
     pub working_dir: PathBuf,
@@ -12,13 +13,13 @@ pub struct Command {
     pub failure_message: Option<String>,
 }
 
-#[derive(Default)]
+#[derive(Default, Clone, Debug)]
 pub struct CommandChain {
     commands: Vec<Command>,
 }
 
 impl Command {
-    fn execute(&self) -> Result<()> {
+    pub fn execute(&self) -> Result<()> {
         let mut command = std::process::Command::new(&self.executable);
         command.current_dir(&self.working_dir).args(&self.args);
 
@@ -60,8 +61,14 @@ impl CommandChain {
     }
 
     /// Append a new command to the chain.
-    pub fn append(&mut self, command: Command) -> &mut Self {
-        self.commands.push(command);
+    pub fn append(&mut self, command: impl Into<Command>) -> &mut Self {
+        self.commands.push(command.into());
+        self
+    }
+
+    /// Prepend a new command to the chain.
+    pub fn prepend(&mut self, command: impl Into<Command>) -> &mut Self {
+        self.commands.insert(0, command.into());
         self
     }
 
