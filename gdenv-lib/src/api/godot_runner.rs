@@ -49,7 +49,7 @@ impl<D: DownloadClient> GodotRunner<D> {
                 RUNTIME.block_on(future)
             }
         }
-        .context("Gdenv failed to load Godot project")
+        .context("Gdenv failed to run Godot")
     }
 
     /// Run Godot with the current configuration.
