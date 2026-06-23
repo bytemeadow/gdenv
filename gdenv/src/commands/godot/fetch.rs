@@ -7,11 +7,7 @@ use gdenv_lib::download_client::DownloadClient;
 use gdenv_lib::github::GitHubClient;
 
 #[derive(Args)]
-pub struct FetchCommand {
-    /// Force update even if cache is recent
-    #[arg(long, short)]
-    pub force: bool,
-}
+pub struct FetchCommand {}
 
 impl FetchCommand {
     pub async fn run(self, global_args: GlobalArgs) -> Result<()> {
@@ -21,7 +17,7 @@ impl FetchCommand {
         ui::info("Fetching available Godot versions from GitHub...");
 
         // Fetch releases from GitHub
-        let releases = github_client.godot_releases(true).await?;
+        let releases = github_client.godot_releases(true, false).await?;
 
         ui::success(&format!("Found {} Godot releases", releases.len()));
 

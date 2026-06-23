@@ -26,7 +26,12 @@ pub enum ProjectSpecError {
 /// Godot configuration project specification
 #[derive(Debug, Eq, PartialEq, Clone)]
 pub struct ProjectSpecification {
+    /// Path to the project root directory.
+    /// This could be the same as `spec_file_path` or the current directory,
+    /// depending on the existence of a `gdenv.toml` file.
+    pub project_root_dir: PathBuf,
     /// Path to the project specification file.
+    /// If None, no `gdenv.toml` file was found, so gdenv will use the current directory.
     pub spec_file_path: Option<PathBuf>,
     /// Godot version to use when running the project.
     pub godot_version: GodotVersion,
@@ -248,15 +253,19 @@ pub fn load_godot_project_spec<P: CargoInfoProvider>(
 ) -> Result<ProjectSpecification, ProjectSpecError> {
     let spec_file = find_godot_project_spec(start_path)?;
     match spec_file {
-        SpecFileType::Toml(path) => {
-            let str_spec = fs::read_to_string(&path)?;
+        SpecFileType::Toml {
+            dir_path,
+            file_path,
+        } => {
+            let str_spec = fs::read_to_string(&file_path)?;
             let spec = toml::from_str::<ProjectSpecificationToml>(&str_spec).context(format!(
                 "Failed to parse Godot project configuration file gdenv.toml: {}",
-                path.display()
+                file_path.display()
             ))?;
             let project_dir = spec.godot.project_dir.unwrap_or(PathBuf::from("."));
             Ok(ProjectSpecification {
-                spec_file_path: Some(path.clone()),
+                project_root_dir: dir_path,
+                spec_file_path: Some(file_path.clone()),
                 godot_version: GodotVersion::new(
                     &spec.godot.version,
                     spec.godot.dotnet.unwrap_or(false),
@@ -266,7 +275,7 @@ pub fn load_godot_project_spec<P: CargoInfoProvider>(
                 editor_args: spec.godot.editor_args.unwrap_or_default(),
                 pre_import: spec.godot.pre_import.unwrap_or(true),
                 gdextension: gdextension_generator_to_config(
-                    path.parent().unwrap_or(start_path),
+                    file_path.parent().unwrap_or(start_path),
                     spec.gdextension.unwrap_or_default(),
                     &project_dir,
                     cargo_target_path_provider,
@@ -274,15 +283,19 @@ pub fn load_godot_project_spec<P: CargoInfoProvider>(
                 addons: spec.addon.unwrap_or_default(),
             })
         }
-        SpecFileType::Version(path) => {
-            let file_content = fs::read_to_string(&path)?;
+        SpecFileType::Version {
+            dir_path,
+            file_path,
+        } => {
+            let file_content = fs::read_to_string(&file_path)?;
             let mut version_str = file_content.trim().split(' ');
             let version = version_str
                 .next()
                 .context("No version specified in .godot-version file.")?;
             let dotnet = version_str.next().unwrap_or("");
             Ok(ProjectSpecification {
-                spec_file_path: Some(path),
+                project_root_dir: dir_path,
+                spec_file_path: Some(file_path),
                 godot_version: GodotVersion::new(version, dotnet == "dotnet" || dotnet == "mono")?,
                 godot_project_dir: PathBuf::from("."),
                 run_args: vec![],
@@ -336,8 +349,14 @@ fn gdextension_generator_to_config<P: CargoInfoProvider>(
 }
 
 enum SpecFileType {
-    Toml(PathBuf),
-    Version(PathBuf),
+    Toml {
+        dir_path: PathBuf,
+        file_path: PathBuf,
+    },
+    Version {
+        dir_path: PathBuf,
+        file_path: PathBuf,
+    },
 }
 
 /// Searches for 'gdproject.toml' or '.godot-version' starting from `start_path`
@@ -349,13 +368,19 @@ fn find_godot_project_spec(start_path: &Path) -> Result<SpecFileType, ProjectSpe
         // 1. Check for the TOML file first (precedence)
         let toml_path = current_dir.join("gdenv.toml");
         if toml_path.exists() {
-            return Ok(SpecFileType::Toml(toml_path));
+            return Ok(SpecFileType::Toml {
+                dir_path: current_dir,
+                file_path: toml_path,
+            });
         }
 
         // 2. Check for the .godot-version file
         let version_path = current_dir.join(".godot-version");
         if version_path.exists() {
-            return Ok(SpecFileType::Version(version_path));
+            return Ok(SpecFileType::Version {
+                dir_path: current_dir,
+                file_path: version_path,
+            });
         }
 
         // Move to the parent directory
@@ -420,6 +445,7 @@ path = "../local-project"
         };
         let spec = load_godot_project_spec(tmp_dir.path(), |_| Ok(cargo_info.clone()))?;
         let expected_spec = ProjectSpecification {
+            project_root_dir: tmp_dir.path().to_path_buf(),
             spec_file_path: Some(version_file),
             godot_version: GodotVersion::new("4.6.0", true)?,
             godot_project_dir: PathBuf::from("./godot"),

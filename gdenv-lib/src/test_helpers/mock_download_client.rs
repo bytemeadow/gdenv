@@ -10,7 +10,11 @@ use zip::write::SimpleFileOptions;
 
 pub struct MockDownloadClient;
 impl DownloadClient for MockDownloadClient {
-    async fn godot_releases(&self, _force_refresh: bool) -> anyhow::Result<Vec<GitHubRelease>> {
+    async fn godot_releases(
+        &self,
+        _force_refresh: bool,
+        _partial_fetch: bool,
+    ) -> anyhow::Result<Vec<GitHubRelease>> {
         Ok(vec![GitHubRelease {
             version: GodotVersion::new("4.2.1-stable", false)?,
             assets: vec![

@@ -6,6 +6,7 @@ pub trait DownloadClient {
     fn godot_releases(
         &self,
         force_refresh: bool,
+        partial_fetch: bool,
     ) -> impl Future<Output = Result<Vec<GitHubRelease>>> + Send;
 
     fn download_asset(

@@ -49,7 +49,7 @@ impl<D: DownloadClient> GodotRunner<D> {
                 RUNTIME.block_on(future)
             }
         }
-        .context("Gdenv failed to load Godot project")
+        .context("Gdenv failed to run Godot")
     }
 
     /// Run Godot with the current configuration.
@@ -66,6 +66,7 @@ impl<D: DownloadClient> GodotRunner<D> {
             |error| -> Result<ProjectSpecification> {
                 match error {
                     ProjectSpecError::NotFound => Ok(ProjectSpecification {
+                        project_root_dir: working_dir.to_path_buf(),
                         spec_file_path: None,
                         godot_version: self.godot_version.clone().context(
                             "No Godot version specified and no configuration file found.",

@@ -14,7 +14,7 @@ use tokio::io::AsyncWriteExt;
 use tracing::instrument;
 use tracing_indicatif::span_ext::IndicatifSpanExt;
 
-const CACHE_VALIDITY_DAYS: u64 = 7;
+pub const CACHE_VALIDITY_DAYS: u64 = 7;
 
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
 pub struct GitHubRelease {
@@ -102,25 +102,36 @@ impl DownloadClient for GitHubClient {
     /// Returns a sorted list of all available Godot releases.
     /// If `force_refresh` is true, fetches the latest list from GitHub.
     /// Otherwise, uses a cached list if it exists and was modified less than 6 months ago.
-    async fn godot_releases(&self, force_refresh: bool) -> Result<Vec<GitHubRelease>> {
+    /// If `partial_fetch` is true, fetches only the latest 100 releases (1 page) from GitHub.
+    async fn godot_releases(
+        &self,
+        force_refresh: bool,
+        partial_fetch: bool,
+    ) -> Result<Vec<GitHubRelease>> {
         let cache_file = self.config.cache_dir.join("releases_cache.json");
 
         if !force_refresh && self.is_cache_valid(&cache_file) {
             return self
                 .load_cache(&cache_file)
-                .context("Failed to load releases cache. Use `gdenv godot update` to refresh it.");
+                .context("Failed to load releases cache. Use `gdenv godot fetch` to refresh it.");
         }
 
-        let releases = self.fetch_all_releases_from_api().await?;
+        let cache_exists = cache_file.exists();
+        let new_releases = self.fetch_releases_from_api(partial_fetch).await?;
 
-        let mut sorted_releases = releases;
-        sorted_releases.sort();
+        let mut all_releases = if cache_exists && partial_fetch {
+            self.merge_with_cache(new_releases, &cache_file)?
+        } else {
+            new_releases
+        };
 
-        if let Err(e) = self.save_cache(&cache_file, &sorted_releases) {
+        all_releases.sort();
+
+        if let Err(e) = self.save_cache(&cache_file, &all_releases) {
             bail!("Failed to save releases cache: {}", e);
         }
 
-        Ok(sorted_releases)
+        Ok(all_releases)
     }
 
     #[instrument(skip_all)]
@@ -168,7 +179,7 @@ impl GitHubClient {
     }
 
     pub fn cache_status_message(&self) -> String {
-        let cache_file = Config::default().cache_dir.join("releases_cache.json");
+        let cache_file = self.config.cache_dir.join("releases_cache.json");
 
         if let Ok(metadata) = std::fs::metadata(cache_file)
             && let Ok(modified) = metadata.modified()
@@ -178,16 +189,13 @@ impl GitHubClient {
 
             let now = chrono::Local::now();
             let days_ago = now.signed_duration_since(local_time).num_days().max(0);
-            let days_next = CACHE_VALIDITY_DAYS as i64 - days_ago;
 
             format!(
-                "{} {} {} {} {} {}",
+                "{} {} {} {}",
                 "GitHub release cache:".cyan(),
                 "Last fetch:".dimmed(),
                 format!("{days_ago}").green().bold(),
-                "days ago. Next fetch in:".dimmed(),
-                format!("{days_next}").green().bold(),
-                "days.".dimmed(),
+                "days ago.".dimmed(),
             )
         } else {
             format!(
@@ -199,11 +207,22 @@ impl GitHubClient {
     }
 
     #[instrument(skip_all)]
-    async fn fetch_all_releases_from_api(&self) -> Result<Vec<GitHubRelease>> {
+    async fn fetch_releases_from_api(&self, partial_fetch: bool) -> Result<Vec<GitHubRelease>> {
+        let message = if partial_fetch {
+            "Fetching first page of Godot releases from GitHub..."
+        } else {
+            "Fetching Godot releases from GitHub..."
+        };
+        let finish_message = if partial_fetch {
+            "Fetching first page of Godot releases from GitHub... Done"
+        } else {
+            "Fetching Godot releases from GitHub... Done"
+        };
+
         let current_span = tracing::Span::current();
-        current_span.pb_set_style(&spinner_style("{msg} [Fetched pages: {pos}]")?);
-        current_span.pb_set_message("Fetching Godot releases from GitHub...");
-        current_span.pb_set_finish_message("Fetching Godot releases from GitHub... Done");
+        current_span.pb_set_style(&spinner_style("{msg} [Fetch count: {pos}]")?);
+        current_span.pb_set_message(message);
+        current_span.pb_set_finish_message(finish_message);
 
         let mut releases = Vec::new();
         let mut next_url = Some(
@@ -229,7 +248,7 @@ impl GitHubClient {
 
             current_span.pb_set_position(releases.len() as u64);
 
-            if releases.len() >= 1000 {
+            if partial_fetch || releases.len() >= 1000 {
                 break;
             }
 
@@ -274,8 +293,29 @@ impl GitHubClient {
         None
     }
 
-    /// A cache file is valid if it exists and was modified less than CACHE_VALIDITY_DAYS days ago.
+    /// Merge the fetched releases with the cached ones, ensuring no duplicates
+    fn merge_with_cache(
+        &self,
+        releases: Vec<GitHubRelease>,
+        cache_file: &Path,
+    ) -> Result<Vec<GitHubRelease>> {
+        let mut all = releases;
+        all.extend(
+            self.load_cache(cache_file)
+                .context("Failed to load releases cache for partial fetch.")?,
+        );
+        all.sort();
+        all.dedup_by(|a, b| a.version == b.version);
+        Ok(all)
+    }
+
+    /// A cache file is valid if it exists.
     fn is_cache_valid(&self, path: &Path) -> bool {
+        path.exists()
+    }
+
+    pub fn is_cache_stale(&self) -> bool {
+        let path = self.config.cache_dir.join("releases_cache.json");
         if !path.exists() {
             return false;
         }
@@ -285,7 +325,7 @@ impl GitHubClient {
         {
             let now = std::time::SystemTime::now();
             if let Ok(duration) = now.duration_since(modified) {
-                return duration.as_secs() < CACHE_VALIDITY_DAYS * 24 * 60 * 60;
+                return duration.as_secs() >= CACHE_VALIDITY_DAYS * 24 * 60 * 60;
             }
         }
         false
@@ -420,6 +460,40 @@ mod tests {
         versions.sort();
 
         assert_eq!(versions, vec![v1, v2, v3, v4, v5, v6, v7, v8]);
+        Ok(())
+    }
+
+    #[test]
+    fn test_dedup_bug_repro() -> Result<()> {
+        let v_normal = GodotVersion::new("4.2.1", false)?;
+        let v_dotnet = GodotVersion::new("4.2.1", true)?;
+
+        let r1 = GitHubRelease {
+            version: v_normal.clone(),
+            assets: vec![],
+        };
+        let r2 = GitHubRelease {
+            version: v_dotnet.clone(),
+            assets: vec![],
+        };
+        let r3 = GitHubRelease {
+            version: v_normal.clone(),
+            assets: vec![],
+        };
+
+        let mut releases = vec![r1, r2, r3];
+        releases.sort();
+
+        // If bug exists, releases might be [r1, r2, r3] because all are "equal" in cmp
+        // and sort is stable. dedup_by only checks neighbors.
+        releases.dedup_by(|a, b| a.version == b.version);
+
+        // We expect r1 and r3 to be deduped, leaving 2 releases (normal and dotnet)
+        assert_eq!(
+            releases.len(),
+            2,
+            "Duplicate normal releases were not deduped!"
+        );
         Ok(())
     }
 }

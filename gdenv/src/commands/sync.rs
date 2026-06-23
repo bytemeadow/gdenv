@@ -47,7 +47,7 @@ impl SyncCommand {
             }
         }
 
-        sync_addons(project_spec, &working_dir, &git_client).await?;
+        sync_addons(project_spec, &git_client).await?;
 
         Ok(())
     }

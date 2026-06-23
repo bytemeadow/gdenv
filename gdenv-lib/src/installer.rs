@@ -20,13 +20,13 @@ pub async fn ensure_installed<D: DownloadClient>(
     }
 
     // 1. Fetch releases
-    let releases = download_client.godot_releases(false).await?;
+    let releases = download_client.godot_releases(false, false).await?;
 
     // 2. Find release & asset
     let release = releases
         .iter()
         .find(|r| r.version == *version)
-        .ok_or_else(|| anyhow!("Godot Version {} not found in available releases", version))?;
+        .ok_or_else(|| anyhow!("Godot Version '{}' not found in available releases. The cache may be out of date. Use `gdenv godot fetch` to find new releases.", version))?;
 
     let asset = release.find_godot_asset(version.is_dotnet, &config.os, &config.arch)?;
 
