@@ -14,7 +14,7 @@ strip = true
 
 
 [workspace.package]
-version = "1.0.0"
+version = "1.1.0"
 edition = "2024"
 description = "The best command-line tool to install and switch between multiple versions of Godot."
 license = "MIT OR Apache-2.0"
@@ -23,7 +23,7 @@ authors = ["David Chavez <david@dcvz.io>"]
 
 
 [workspace.dependencies]
-gdenv-lib = { path = "./gdenv-lib", version = "1.0.0" }
+gdenv-lib = { path = "./gdenv-lib", version = "1.1.0" }
 
 clap = { version = "4.5", features = ["derive", "color"] }
 

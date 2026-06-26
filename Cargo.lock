@@ -669,7 +669,7 @@ dependencies = [
 
 [[package]]
 name = "gdenv"
-version = "1.0.0"
+version = "1.1.0"
 dependencies = [
  "anyhow",
  "clap",
@@ -684,7 +684,7 @@ dependencies = [
 
 [[package]]
 name = "gdenv-lib"
-version = "1.0.0"
+version = "1.1.0"
 dependencies = [
  "anyhow",
  "cargo_metadata",
