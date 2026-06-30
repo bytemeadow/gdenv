@@ -1,3 +1,5 @@
+//! Addon synchronization.
+
 use crate::file_sync::sync_recursive;
 use crate::git::GitClient;
 use crate::project_specification::{

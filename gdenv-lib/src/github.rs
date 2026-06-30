@@ -1,3 +1,5 @@
+//! Download client implementation for GitHub releases.
+
 use crate::config::Config;
 use crate::download_client::DownloadClient;
 use crate::godot::get_platform_patterns;

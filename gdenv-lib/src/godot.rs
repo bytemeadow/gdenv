@@ -1,3 +1,5 @@
+//! Utility functions for working with downloaded Godot releases.
+
 use crate::godot_version::GodotVersion;
 
 /// Get the platform suffix for the current OS and architecture

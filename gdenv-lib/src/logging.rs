@@ -1,3 +1,5 @@
+//! Logging setup.
+
 use tracing_indicatif::style::ProgressStyle;
 
 use anyhow::Result;
