@@ -1,3 +1,5 @@
+//! `gdenv.toml` file specification.
+
 use crate::cargo::CargoInfoProvider;
 use crate::gdextension_config::GdExtensionConfig;
 use crate::godot_version::GodotVersion;

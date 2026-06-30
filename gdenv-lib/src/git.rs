@@ -1,3 +1,5 @@
+//! Provides a Git client interface for interacting with Git repositories.
+
 use crate::config::Config;
 use anyhow::{Context, Result, anyhow, bail};
 use std::path::{Path, PathBuf};

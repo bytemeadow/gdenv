@@ -1,3 +1,7 @@
+//! The `gdenv-lib` public API consists of the [`api`] module.
+//! The most useful class is [`api::godot_runner::GodotRunner`],
+//! which makes it a good starting point for exploring this API.
+
 #[cfg(test)]
 pub mod test_helpers;
 

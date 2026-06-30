@@ -7,6 +7,8 @@ use gdenv_lib::cargo::cargo_info_provider;
 use gdenv_lib::config::Config;
 use gdenv_lib::git::SystemGitClient;
 use gdenv_lib::project_specification::{ProjectSpecification, load_godot_project_spec};
+use inquire::{InquireError, MultiSelect};
+use std::collections::HashSet;
 use std::io;
 use std::io::Write;
 
@@ -25,7 +27,43 @@ impl SyncCommand {
         let spec_from_file = load_godot_project_spec(&working_dir, cargo_info_provider())?;
         let project_spec = ProjectSpecification { ..spec_from_file };
 
-        if !self.yes {
+        if project_spec.addons.is_empty() {
+            ui::warning("No addons have been configured in the project specification.");
+            return Ok(());
+        }
+
+        let filtered_project_spec = if self.yes {
+            project_spec
+        } else {
+            let mut addon_names: Vec<String> = project_spec.addons.keys().cloned().collect();
+            addon_names.sort();
+            let all_indices: Vec<usize> = (0..addon_names.len()).collect();
+
+            let selected = match MultiSelect::new("Select addons to sync:", addon_names)
+                .with_default(&all_indices)
+                .prompt()
+            {
+                Ok(s) => s,
+                Err(InquireError::OperationCanceled | InquireError::OperationInterrupted) => {
+                    ui::warning("Synchronization cancelled.");
+                    return Ok(());
+                }
+                Err(e) => return Err(e.into()),
+            };
+
+            if selected.is_empty() {
+                ui::warning("No addons selected, synchronization cancelled.");
+                return Ok(());
+            }
+
+            let selected_set: HashSet<String> = selected.into_iter().collect();
+            let filtered_addons = project_spec
+                .addons
+                .iter()
+                .filter(|(name, _)| selected_set.contains(*name))
+                .map(|(name, spec)| (name.clone(), spec.clone()))
+                .collect();
+
             ui::warning("Warning! Synchronizing addons is a potentially destructive operation.");
             ui::warning(
                 "In order to sync, files that do not exist in the addon must be removed, which could result in the loss of data.",
@@ -45,9 +83,14 @@ impl SyncCommand {
                 ui::warning("Synchronization cancelled.");
                 return Ok(());
             }
-        }
 
-        sync_addons(project_spec, &git_client).await?;
+            ProjectSpecification {
+                addons: filtered_addons,
+                ..project_spec
+            }
+        };
+
+        sync_addons(filtered_project_spec, &git_client).await?;
 
         Ok(())
     }

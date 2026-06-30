@@ -1,7 +1,11 @@
+//! Context about `gdenv`'s environment such as paths to where resources are stored.
+
 use crate::migrate::migrate;
 use anyhow::{Context, Result};
 use std::path::{Path, PathBuf};
 
+/// Context about `gdenv`'s environment such as paths to where resources are stored.
+/// Tests can configure this struct to mock the environment.
 #[derive(Debug, Clone)]
 pub struct Config {
     /// Root directory for gdenv data (installations, cache, symlinks, etc.)
