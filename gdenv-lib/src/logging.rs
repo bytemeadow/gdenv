@@ -1,10 +1,11 @@
 use tracing_indicatif::style::ProgressStyle;
 
 use anyhow::Result;
+use colored::Colorize;
 use tracing::field::{Field, Visit};
 use tracing::level_filters::LevelFilter;
 use tracing::span::Record;
-use tracing::{Event, Subscriber};
+use tracing::{Event, Level, Subscriber};
 use tracing_indicatif::IndicatifLayer;
 use tracing_subscriber::field::RecordFields;
 use tracing_subscriber::fmt;
@@ -101,10 +102,18 @@ where
         mut writer: Writer<'_>,
         event: &Event<'_>,
     ) -> std::fmt::Result {
-        // 1. Format event fields to the writer
-        ctx.field_format().format_fields(writer.by_ref(), event)?;
+        let mut buf = String::new();
+        ctx.field_format()
+            .format_fields(Writer::new(&mut buf), event)?;
 
-        // 2. Write a newline
+        let colored = match *event.metadata().level() {
+            Level::TRACE => buf.dimmed().to_string(),
+            Level::DEBUG => buf.cyan().to_string(),
+            Level::INFO => buf,
+            Level::WARN => buf.yellow().to_string(),
+            Level::ERROR => buf.red().to_string(),
+        };
+        write!(writer, "{}", colored)?;
         writeln!(writer)
     }
 }
