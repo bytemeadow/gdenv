@@ -82,4 +82,4 @@ tracing-indicatif = "0.3"
 
 # TOML serialization
 toml = "1.1"
-documented = "0.9"
+documented = "0.10"
