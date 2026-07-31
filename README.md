@@ -2,7 +2,8 @@
 
 The best command-line tool to install and switch between multiple versions of Godot.
 
-_Inspired by [xcodes](https://github.com/XcodesOrg/xcodes) and built with ❤️ in Rust._
+_Inspired by [xcodes](https://github.com/XcodesOrg/xcodes) and [uv](https://docs.astral.sh/uv/)._
+_Built with ❤️ in Rust!_
 
 ---
 
@@ -178,6 +179,6 @@ The action adds `godot` to `PATH` and sets `GODOT`, `GODOT4`, and `GODOT4_BIN` t
 
 ## License
 
-gdenv is distributed under the terms of both the MIT license and the Apache License (Version 2.0).
+`gdenv` is distributed under the terms of both the MIT license and the Apache License (Version 2.0).
 See [LICENSE-APACHE](./LICENSE-APACHE) and [LICENSE-MIT](./LICENSE-MIT) for details. Opening a pull
 request is assumed to signal agreement with these licensing terms.

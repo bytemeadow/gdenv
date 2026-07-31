@@ -1,3 +1,5 @@
+//! Utility functions for syncing files between directories.
+
 use anyhow::Context;
 use std::fs;
 use std::hash::{DefaultHasher, Hash, Hasher};

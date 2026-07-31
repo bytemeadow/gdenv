@@ -1,3 +1,5 @@
+//! Godot installation and file management.
+
 use crate::download_client::DownloadClient;
 use crate::godot::{extracted_godot_executable_path, godot_installation_name};
 use crate::logging::spinner_style;

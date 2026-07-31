@@ -1,3 +1,5 @@
+//! API for downloading Godot releases and assets.
+
 use crate::github::{GitHubAsset, GitHubRelease};
 use anyhow::Result;
 use std::path::Path;

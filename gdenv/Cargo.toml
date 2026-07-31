@@ -23,6 +23,7 @@ tokio.workspace = true
 # Terminal UI
 indicatif.workspace = true
 colored.workspace = true
+inquire.workspace = true
 
 # Error handling
 anyhow.workspace = true
